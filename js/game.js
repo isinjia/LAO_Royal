@@ -7,7 +7,7 @@
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 2.45;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 2.85;       // troops are drawn larger than the tower guards (readable on phones)
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -671,7 +671,7 @@
     u.disc = FX.sprite({ x, y: z * TILT, size: u.r * 3, aspect: TILT, color: teamHex(side), alpha: 0.95, tex: FX.tex.ring, order: L.GROUND + 1 });
     u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 3.4, aspect: TILT, color: teamHex(side), alpha: 0.32, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
-    u.fxk *= 1.7 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    u.fxk *= 1.75 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 2.2, 0.8, 1.7), teamHex(side));
     G.ents.push(u);
@@ -1051,10 +1051,11 @@
       b.inst.root.position.set(x, y, 0);
       b.inst.root.rotation.z = Math.atan2(dy, dx);
       b.inst.update(dt);
+      if ((b.trT = (b.trT || 0) - dt) <= 0) { b.trT = 0.025; FX.particle({ x, y, life: 0.22, size: 0.28, size1: 0, color: b.atk.color, tex: FX.tex.glow, alpha: 0.55 }); } // a fading trail behind the original projectile
       if (f >= 1) {
         const big = b.dmg ? clamp(b.dmg / 220, 0.75, 1.5) : 0.7;
         if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big * 1.3))) FX.hit(b.ex, b.ey, b.atk.color, 1.05 * big);
-        FX.sparks(b.ex, b.ey, b.atk.color, Math.round(3 + big * 3), 3 + big * 1.5, 0.13, 0.32);
+        { const a0 = Math.atan2(dy, dx); for (let s = 0; s < 3 + big * 3; s++) { const a = a0 + rnd(-0.7, 0.7), v = rnd(3, 6); FX.particle({ x: b.ex, y: b.ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, drag: 5, life: rnd(0.15, 0.3), size: 0.12, size1: 0.02, color: b.atk.color, tex: FX.tex.dot }); } } // sparks carry on in the shot's direction
         if (b.atk.splash) FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8);
         if (b.dmg) hit(b.src, b.atk, b.target, b.tx, b.tz, b.dmg);
         b.inst.dispose();
