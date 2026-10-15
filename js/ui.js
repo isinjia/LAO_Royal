@@ -463,6 +463,7 @@
     // one cut-in per side at a time; the opponent's is a compact banner that keeps the field readable
     document.querySelectorAll('.skcut.' + u.side).forEach((x) => x.remove());
     el.className = 'skcut ' + u.side + (u.side === 'red' ? ' mini' : '');
+    if (u.side === 'red') document.querySelectorAll('.bubble.red').forEach((x) => x.classList.add('low'));
     // champions with original full-body art step into the cut-in; the rest keep the portrait chip
     const face = u.side === 'red' && FULL_ART.has(u.card.id) ? `<span class="pf face" style="background-image:url(assets/full/${u.card.id}.png)"></span>` : u.side === 'red' && PANEL_ART.has(u.card.id) ? `<span class="pf face panel-face" style="background-image:url(assets/full/${u.card.id}_panel.png)"></span>` : '';
     el.innerHTML = face ? face + `<b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>` : (u.side === 'blue' && PANEL_ART.has(u.card.id) ? `<img class="panel" alt="" src="assets/full/${u.card.id}_panel.png">` : u.side === 'blue' && FULL_ART.has(u.card.id) ? `<img class="full" alt="" src="assets/full/${u.card.id}.png">` : `<span class="pf" style="background-image:url(${art(u.card)})"></span>`) + `<b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>`;
@@ -471,7 +472,7 @@
   }
   function emote(side, i) {
     const G = GAME.G;
-    if (!G.sides) return;
+    if (!G.sides || G.phase !== 'play') return; // (a delayed AI taunt never lands on the end banner)
     const f = FACTIONS[G.sides[side].faction], em = f.emotes[i];
     if (!em) return;
     const old = document.querySelector('.bubble.' + side);
@@ -831,7 +832,7 @@
   function init() {
     syncCollection();
     applyAudio();
-    if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${IMG.bg_title})`);
+    if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${new URL(IMG.bg_title, location.href).href})`); // absolute: the stylesheet would resolve a relative one under css/
     $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; persist(); SFX.play('click'); renderTitle(); });
     $('diffSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.diff = +b.dataset.d; persist(); SFX.play('click'); renderTitle(); });
     $('modeSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.mode = +b.dataset.m; persist(); SFX.play('click'); renderTitle(); toast(save.mode === 3 ? `오늘의 작전: ${DATA.mutatorOf().name} — ${DATA.mutatorOf().desc}` : BAL.modes[save.mode].desc); });

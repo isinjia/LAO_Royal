@@ -222,6 +222,17 @@
     const backup = JSON.stringify(UI.save);
     panel();
     try {
+      // every image file the game names, and the CSS backgrounds set from script, must actually load (a 404 is not a JS error)
+      {
+        const urls = new Set(Object.values(window.IMG || {}).filter((v) => typeof v === 'string' && !v.startsWith('data:')));
+        const tb = document.querySelector('#title .tbg'), bg = tb ? getComputedStyle(tb).backgroundImage : '';
+        for (const x of bg.matchAll(/url\("?([^")]+)"?\)/g)) if (!x[1].startsWith('data:')) urls.add(x[1]);
+        DATA.CHESTS.forEach((c) => urls.add('assets/icon/crate_' + c.key + '.png'));
+        const bad = [];
+        await Promise.all([...urls].map((u) => fetch(u, { method: 'HEAD' }).then((r) => { if (!r.ok) bad.push(r.status + ' ' + u); }).catch(() => bad.push('fail ' + u))));
+        if (bad.length) out.errors.push('missing images: ' + bad.slice(0, 5).join(', '));
+        out.runs.push(['image files', urls.size + ' checked']);
+      }
       const arenas = DATA.ARENAS.map((a) => a.trophy);
       let k = 0;
       for (const faction of ['orca', 'iron']) {

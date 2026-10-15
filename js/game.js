@@ -1160,7 +1160,10 @@
     for (const o of enemiesNear(u.side, u.x, u.z, u.card.skill.dist + 3)) if (!o.air) { const d = dist(u, o); if (d < bd) { bd = d; best = o; } }
     if (best) return best;
     const t = nearestTower(u);
-    if (t && dashPath(u, t.x, t.z)[2] < 1.5) { const bx = (u.x < 0 ? -1 : 1) * BAL.bridgeX; return { x: bx, z: Math.sign(t.z - u.z) * (BAL.river + 1), air: false }; } // toward the bridge instead of a skid on the bank
+    if (t && dashPath(u, t.x, t.z)[2] < 1.5) { // the straight line would skid on the bank: head for the near end of the lane's bridge if the dash really gets there
+      const bx = (u.x < 0 ? -1 : 1) * BAL.bridgeX, bz = -Math.sign(t.z - u.z) * (BAL.river + 0.6), want = Math.min(u.card.skill.dist, Math.max(0, Math.hypot(bx - u.x, bz - u.z) - 1));
+      if (want > 0.5 && dashPath(u, bx, bz)[2] >= want * 0.8) return { x: bx, z: bz, air: false };
+    }
     return t;
   }
   // a dash from u toward (tx, tz): [end x, end z, fraction of the wanted travel]; a ground champion stops at the chasm edge off the bridges
@@ -1255,7 +1258,7 @@
       case 'barrage': {
         const [cx, cz] = u.skillSpot || bestSpot(u, sk.reach, sk.radius * 1.5);
         for (let i = 0; i < sk.n; i++) {
-          const x = cx + (i ? rnd(-1.6, 1.6) : 0), z = cz + (i ? rnd(-1.2, 1.2) : 0);
+          const x = cx + (i ? rnd(-1, 1) * sk.radius : 0), z = cz + (i ? rnd(-0.75, 0.75) * sk.radius : 0); // inside the telegraph ring
           FX.later(0.15 + i * 0.16, () => {
             if (G.phase !== 'play') return;
             const y = z * TILT;
@@ -1271,7 +1274,7 @@
         for (let i = 0; i < sk.n; i++) {
           const o = list[i % Math.max(1, list.length)];
           const x = o ? o.x : u.x + rnd(-3, 3), z = o ? o.z : u.z - SGN[side] * rnd(1, 4);
-          FX.later(i * 0.12, () => { if (G.phase !== 'play') return; FX.thunderBolt(x, z * TILT + 0.3, sk.color); spawnStatic(SKILL_FX.storm, x, z * TILT + 0.4, 0.3); hitArea(x, z, 1, sk.dmg, { stun: sk.stun }); if (!i) impact(u, x, z, sk.color); SFX.play('elec', 0.4); });
+          FX.later(i * 0.12 + rnd(0, 0.06), () => { if (G.phase !== 'play') return; FX.thunderBolt(x, z * TILT + 0.3, sk.color); spawnStatic(SKILL_FX.storm, x, z * TILT + 0.4, 0.3); hitArea(x, z, 1, sk.dmg, { stun: sk.stun }); if (!i) impact(u, x, z, sk.color); SFX.play('elec', 0.4); });
         }
         break;
       }
@@ -1308,7 +1311,7 @@
           const hold = new THREE.Group(); hold.add(c.root);
           hold.position.set(x0 + dx * k * f, (z0 + dz * k * f) * TILT, 0); hold.scale.x = u.holder.scale.x;
           c.play('atk'); c.fadeD = 0; c.time = 0.2; c.apply(); c.render(); // exact attack pose, no crossfade
-          c.setOpacity(0.25 + f * 0.25); c.setTint(((sk.color >> 16) & 255) / 255, ((sk.color >> 8) & 255) / 255, (sk.color & 255) / 255); c.setOrder(L.UNIT + 300);
+          c.setOpacity(0.25 + f * 0.25); c.setTint(((sk.color >> 16) & 255) / 255, ((sk.color >> 8) & 255) / 255, (sk.color & 255) / 255); c.setOrder(L.UNIT - (z0 + dz * k * f) * TILT * 10 + 5); // depth-sorted like the units (not drawn over those in front)
           scene.add(hold);
           const ai = { hold, c };
           G.after.push(ai);
@@ -1789,7 +1792,7 @@
       const sharp = Math.random() < S.ai.diff.smart;
       const combo = sharp && (sk.kind === 'nova' || sk.kind === 'barrage' || sk.kind === 'storm') && enemiesNear('red', u.x, u.z, sk.kind === 'nova' ? sk.radius : sk.reach || 4, true).some((o) => o.freezeT > 0 || o.stunT > 0);
       const need = sharp && (sk.kind === 'nova' || sk.kind === 'storm' || sk.kind === 'barrage') && u.z > 2 && !atTower ? 3 : 2;
-      if (sk.kind === 'barrage') near = enemiesNear('red', u.x, u.z, sk.reach, true).length; // shells are judged by the troops they can catch
+      if (sk.kind === 'barrage') { const L0 = enemiesNear('red', u.x, u.z, sk.reach, true); near = 0; for (const a of L0) { let s = 0; for (const b of L0) if (Math.hypot(a.x - b.x, a.z - b.z) <= sk.radius * 1.5) s++; if (s > near) near = s; } } // the densest cluster a blast can catch
       if (combo || near >= need || atTower || (sk.kind === 'haste' && u.z < 6) || (sk.kind === 'shield' && u.hp < u.max * 0.6)) { useSkill(u, spot); return true; }
     }
     return false;
@@ -1810,7 +1813,7 @@
     // finish a weak tower with a spell
     for (const o of hand) {
       if (o.c.type !== 'spell' || !o.c.dmg) continue;
-      const t = blueT.find((tt) => tt.hp <= o.c.dmg * LEVEL.mult(S.lvl) * o.c.towerK);
+      const t = blueT.find((tt) => tt.hp <= o.c.dmg * LEVEL.mult(S.lvl) * (o.c.towerK || 0.35));
       if (t && smart) { playCard('red', o.i, t.x, t.z); return; }
     }
     // defend: troops coming at the AI's towers
@@ -2017,7 +2020,7 @@
         gh.chars.forEach((c, i) => {
           const [ox, oz] = (FORM[gh.card.count] || FORM[1])[i];
           c.holder.position.set(gh.x + ox, (gh.z + oz) * TILT + (gh.card.air ? AIR_LIFT : 0), 0);
-          if (c.sd) { c.sd.setTint(ok ? 1 : 1.4, ok ? 1 : 0.4, ok ? 1 : 0.4); c.sd.update(dt); c.sd.pose(); }
+          if (c.sd) { if (c.okTint !== ok) { c.okTint = ok; c.sd.setTint(ok ? 1 : 1.4, ok ? 1 : 0.4, ok ? 1 : 0.4); } c.sd.update(dt); c.sd.pose(); } // tint only when it changes
         });
       }
     }
@@ -2190,7 +2193,7 @@
     window.addEventListener('keydown', (ev) => {
       if (G.phase !== 'play' && G.phase !== 'countdown') return;
       if (G.paused && ev.key !== 'Escape') return;
-      if (ev.repeat) return; // a held key acts once
+      if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return; // a held key acts once; Ctrl/Alt/Meta combos stay browser shortcuts
       const di = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(ev.code); if (di >= 0) select(di);
       const si = ['KeyQ', 'KeyW', 'KeyE'].indexOf(ev.code); // Q / W / E by physical key: works under the Korean IME too
       if (si >= 0 && UI.aimPid() == null) { const b = document.querySelectorAll('#skillBar .skb')[si], u = b && G.ents.find((e) => e.id === +b.dataset.id && e.alive); if (u) UI.fireSkill(u); }
@@ -2341,9 +2344,9 @@
     if (amb.back2 && amb.back2.visible) {
       const cw = camera.right - camera.left, ch = camera.top - camera.bottom, cy = (camera.top + camera.bottom) / 2;
       amb.back2.scale.set(cw * 1.1, ch * 1.1, 1); amb.back2.position.set(0, cy, 0);
-      amb.back2.material.map.offset.set(amb.t * 0.006, amb.t * 0.0025); amb.back2.material.opacity = 0.12 + 0.04 * Math.sin(amb.t * 0.3);
+      amb.back2.material.map.offset.set(amb.t * 0.006, amb.t * 0.0025); amb.back2.material.opacity = 0.09 + 0.03 * Math.sin(amb.t * 0.3);
       amb.veil.scale.set(cw * 1.05, ch * 1.05, 1); amb.veil.position.set(0, cy, 0);
-      amb.veil.material.map.offset.set(-amb.t * 0.011, amb.t * 0.004); amb.veil.material.opacity = QUALITY[perf.level].bloom ? 0.035 : 0;
+      amb.veil.material.map.offset.set(-amb.t * 0.011, amb.t * 0.004); amb.veil.visible = !!QUALITY[perf.level].bloom; amb.veil.material.opacity = 0.035; // off (not just transparent) on low quality: no full-screen pass
     }
     // drifting motes in the arena's light colour
     amb.moteT = (amb.moteT || 0) - dt;
