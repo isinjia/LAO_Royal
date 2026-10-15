@@ -435,3 +435,5 @@ button:disabled { cursor: default; }
 .skcut .pf.face.panel-face{background-size:cover;background-position:60% 40%}
 
 .skb .hk{position:absolute;left:-4px;top:-4px;width:18px;height:18px;border-radius:5px;background:#0d1218;border:1px solid #6a7a8a;color:#cfe3ff;font:800 10px/16px var(--kr);font-style:normal;text-align:center;pointer-events:none}
+
+.bubble.red.low{margin-top:44px}

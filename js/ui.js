@@ -356,7 +356,7 @@
       el.style.setProperty('--fill', fill + '%');
     }
   }
-  let lastClock = '', skillKey = '';
+  let lastClock = '';
   function tick(G) {
     if (!G.sides) return;
     tickCards();
@@ -373,26 +373,33 @@
       if (G.phase === 'play' && G.clock <= 10 && G.clock > 0 && t !== tick.lastBeep) { tick.lastBeep = t; SFX.play('click', 0.35); }
     }
     // champion skill buttons
-    const champs = G.phase === 'play' ? GAME.champions('blue').slice(0, 3) : [];
-    const key = champs.map((u) => u.id).join();
+    // buttons are patched in place in deployment order: a new champion takes a free slot and the others never move (Q / W / E stay put)
+    const live = G.phase === 'play' ? GAME.champions('blue') : [];
     const bar = $('skillBar');
-    if (key !== skillKey && !aim) { // (not while a button is held for aiming: it would vanish under the finger)
-      skillKey = key;
-      bar.innerHTML = '';
-      champs.forEach((u, i) => {
-        const b = document.createElement('button');
-        b.className = 'skb';
-        b.dataset.id = u.id;
-        b.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><span class="cd"></span><b>${esc(u.card.skill.name)}</b><span class="cost-s">${GAME.skillState(u).cost}</span>${HOVER ? `<i class="hk">${'QWE'[i]}</i>` : ''}`;
-        if (GAME.aimable(u)) b.title = '탭: 자동 조준 · 전장으로 끌기: 직접 조준';
-        b.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (GAME.aimable(u) && GAME.skillState(u).ready && !aim) { startAim(u, b, ev); return; } fireSkill(u); });
-        bar.appendChild(b);
-      });
+    for (const b of [...bar.children]) {
+      const id = +b.dataset.id;
+      if (live.some((u) => u.id === id)) continue;
+      if (aim && aim.u.id === id) { clearInterval(aim.timer); GAME.aimHide(); aim = null; bar.classList.remove('cancel'); } // its champion fell mid-aim
+      b.remove();
+    }
+    for (let k = live.length - 1; k >= 0 && bar.children.length < 3; k--) { // oldest first
+      const u = live[k];
+      if (bar.querySelector(`[data-id="${u.id}"]`)) continue;
+      const b = document.createElement('button');
+      b.className = 'skb';
+      b.dataset.id = u.id;
+      b._u = u;
+      b.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><span class="cd"></span><b>${esc(u.card.skill.name)}</b><span class="cost-s">${GAME.skillState(u).cost}</span>${HOVER ? '<i class="hk"></i>' : ''}`;
+      if (GAME.aimable(u)) b.title = '탭: 자동 조준 · 전장으로 끌기: 직접 조준';
+      b.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (GAME.aimable(u) && GAME.skillState(u).ready && !aim) { startAim(u, b, ev); return; } fireSkill(u); });
+      const st0 = GAME.skillState(u); b._ready = st0.ready && G.sides.blue.elixir >= st0.cost; // no "ready" chime just for appearing
+      b.classList.toggle('ready', b._ready);
+      bar.appendChild(b);
     }
     const e = G.sides.blue.elixir;
     for (let i = 0; i < bar.children.length; i++) {
-      const b = bar.children[i], u = champs[i];
-      if (!u) continue;
+      const b = bar.children[i], u = b._u; // paired by the button's own champion, never by index
+      if (HOVER) { const hk = b.querySelector('.hk'); if (hk && hk.textContent !== 'QWE'[i]) hk.textContent = 'QWE'[i]; }
       const st = GAME.skillState(u);
       const deg = Math.round(st.cd / st.cdMax * 72) * 5, ready = st.ready && e >= st.cost;
       if (b._deg !== deg) { b._deg = deg; b.style.setProperty('--cd', deg + 'deg'); }
@@ -470,7 +477,7 @@
     const old = document.querySelector('.bubble.' + side);
     if (old) old.remove();
     const el = document.createElement('div');
-    el.className = 'bubble ' + side;
+    el.className = 'bubble ' + side + (side === 'red' && document.querySelector('.skcut.red') ? ' low' : '');
     el.innerHTML = `<span class="pf" style="background-image:url(${IMG[em[0]]})"></span><b>${esc(em[1])}</b>`;
     $('stage').appendChild(el);
     SFX.play('click', 0.4);
@@ -811,7 +818,7 @@
     SFX.play('click');
     $('result').className = 'screen';
     show('battle');
-    handKey = ''; lastEl = -1; lastClock = ''; skillKey = ''; prevHand = [];
+    handKey = ''; lastEl = -1; lastClock = ''; prevHand = [];
     $('skillBar').innerHTML = '';
     $('emotePanel').hidden = true;
     document.querySelectorAll('.bubble,.skcut,.flycrown').forEach((x) => x.remove());

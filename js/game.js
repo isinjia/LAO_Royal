@@ -147,6 +147,24 @@
     g.strokeStyle = 'rgba(255,120,120,0.4)'; g.shadowColor = '#ff4a5a';
     g.beginPath(); g.moveTo(X(-9), Y(BAL.deployDepth)); g.lineTo(X(9), Y(BAL.deployDepth)); g.stroke();
     g.setLineDash([]); g.shadowBlur = 0;
+    // depth pass (baked: no extra draw calls)
+    // the chasm's light spills onto both banks
+    for (const [yy, d] of [[ry0, -1], [ry1, 1]]) {
+      const sp = g.createLinearGradient(0, yy, 0, yy + d * 2.2 * P);
+      sp.addColorStop(0, `rgba(${ar.glow >> 16 & 255},${ar.glow >> 8 & 255},${ar.glow & 255},0.16)`); sp.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = sp; g.fillRect(X(-9), Math.min(yy, yy + d * 2.2 * P), 18 * P, 2.2 * P);
+    }
+    // the far wall of the chasm faces the camera: a lit face under the far lip, a cast shadow over the near lip
+    { g.save(); g.beginPath(); g.rect(0, 0, cv.width, cv.height); for (const s of [-1, 1]) g.rect(X(s * BAL.bridgeX - BAL.bridgeW), 0, 2 * BAL.bridgeW * P, cv.height); g.clip('evenodd'); // (not over the bridges)
+      const fw = g.createLinearGradient(0, ry0 + 3, 0, ry0 + 0.55 * P); fw.addColorStop(0, 'rgba(120,135,150,0.55)'); fw.addColorStop(1, 'rgba(10,14,18,0)'); g.fillStyle = fw; g.fillRect(X(-9), ry0 + 3, 18 * P, 0.55 * P);
+      const cs = g.createLinearGradient(0, ry1 - 0.5 * P, 0, ry1 - 3); cs.addColorStop(0, 'rgba(0,0,0,0)'); cs.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = cs; g.fillRect(X(-9), ry1 - 0.5 * P, 18 * P, 0.5 * P - 3); g.restore(); }
+    // ambient occlusion where the towers stand
+    for (const sz of [-1, 1]) for (const [tx, tz, tr] of [[-BAL.tower.princess.x, BAL.tower.princess.z, 1.7], [BAL.tower.princess.x, BAL.tower.princess.z, 1.7], [0, BAL.tower.king.z, 2.2]]) {
+      const cx = X(tx), cy = Y(sz * tz) + 0.25 * P, ao = g.createRadialGradient(cx, cy, tr * 0.35 * P, cx, cy, tr * P * 1.25);
+      ao.addColorStop(0, 'rgba(0,0,0,0.42)'); ao.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = ao; g.fillRect(cx - tr * 1.3 * P, cy - tr * 1.3 * P, tr * 2.6 * P, tr * 2.6 * P);
+    }
+    // one key light from the upper left across the whole deck
+    { const kl = g.createLinearGradient(0, 0, cv.width, cv.height); kl.addColorStop(0, 'rgba(255,255,255,0.06)'); kl.addColorStop(0.55, 'rgba(0,0,0,0)'); kl.addColorStop(1, 'rgba(0,0,0,0.14)'); g.fillStyle = kl; g.fillRect(0, 0, cv.width, cv.height); }
     // soft vignette
     const vg = g.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * 0.3, cv.width / 2, cv.height / 2, cv.height * 0.75);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
@@ -566,7 +584,7 @@
     };
     u.holder = new THREE.Group();
     scene.add(u.holder);
-    u.shadow = FX.sprite({ x, y: z * TILT, size: u.r * 2.8, aspect: TILT * 0.75, color: 0x000000, alpha: 0.5, tex: FX.tex.dot, normal: true, order: L.GROUND });
+    u.shadow = FX.sprite({ x, y: z * TILT, size: u.r * 2.8, aspect: TILT * 0.75, color: 0x000000, alpha: 0.62, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: u.r * 2.6, aspect: TILT, color: teamHex(side), alpha: 0.65, tex: FX.tex.ring, order: L.GROUND + 1 });
     u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 4, aspect: TILT, color: teamHex(side), alpha: 0.16, tex: FX.tex.glow, order: L.GROUND + 1 }); // team light on the floor
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
@@ -1140,7 +1158,10 @@
     if (tg && !tg.air) return tg;
     let best = null, bd = Infinity;
     for (const o of enemiesNear(u.side, u.x, u.z, u.card.skill.dist + 3)) if (!o.air) { const d = dist(u, o); if (d < bd) { bd = d; best = o; } }
-    return best || nearestTower(u);
+    if (best) return best;
+    const t = nearestTower(u);
+    if (t && dashPath(u, t.x, t.z)[2] < 1.5) { const bx = (u.x < 0 ? -1 : 1) * BAL.bridgeX; return { x: bx, z: Math.sign(t.z - u.z) * (BAL.river + 1), air: false }; } // toward the bridge instead of a skid on the bank
+    return t;
   }
   // a dash from u toward (tx, tz): [end x, end z, fraction of the wanted travel]; a ground champion stops at the chasm edge off the bridges
   function dashPath(u, tx, tz) {
@@ -1246,7 +1267,7 @@
         break;
       }
       case 'storm': {
-        const list = enemiesNear(side, u.x, u.z, sk.reach, true).sort(() => Math.random() - 0.5); // troops only: not a tower-melter
+        const list = shuffle(enemiesNear(side, u.x, u.z, sk.reach, true)); // troops only: not a tower-melter
         for (let i = 0; i < sk.n; i++) {
           const o = list[i % Math.max(1, list.length)];
           const x = o ? o.x : u.x + rnd(-3, 3), z = o ? o.z : u.z - SGN[side] * rnd(1, 4);
@@ -1277,7 +1298,7 @@
         const x0 = u.x, z0 = u.z, [ex, ez, went] = dashPath(u, sp[0], sp[1]);
         const k = went / Ld; // the path actually travelled (the chasm may stop it short)
         u.x = ex; u.z = ez;
-        if (went + 0.3 < Math.min(sk.dist, Math.max(0, Ld - 1))) { FX.sparks(ex, ez * TILT + 0.2, 0xd8c8a8, 12, 3, 0.16, 0.5); for (let i = 0; i < 4; i++) FX.particle({ x: ex + rnd(-0.4, 0.4), y: ez * TILT + 0.2, vx: rnd(-0.8, 0.8), vy: rnd(0.2, 0.7), life: rnd(0.5, 0.8), size: 0.4, size1: 1.1, color: 0x6a6258, frames: FX.sheets.smoke, alpha: 0.5, normal: true, drag: 1.5 }); FX.groundRing(ex, ez * TILT, 0.3, 1.4, 0xd8c8a8, 0.35, 0.7); FX.shake(0.1); } // braked at the edge
+        if (went + 0.3 < Math.min(sk.dist, Math.max(0, Ld - 1))) { const dust = new THREE.Color(ARENAS[G.arena].glow).lerp(new THREE.Color(0xb0a898), 0.7).getHex(); FX.sparks(ex, ez * TILT + 0.2, dust, 12, 3, 0.16, 0.5); for (let i = 0; i < 4; i++) FX.particle({ x: ex + rnd(-0.4, 0.4), y: ez * TILT + 0.2, vx: rnd(-0.8, 0.8), vy: rnd(0.2, 0.7), life: rnd(0.5, 0.8), size: 0.4, size1: 1.1, color: 0x6a6258, frames: FX.sheets.smoke, alpha: 0.5, normal: true, drag: 1.5 }); FX.groundRing(ex, ez * TILT, 0.3, 1.4, dust, 0.35, 0.7); FX.shake(0.1); } // braked at the edge
         for (let i = 0; i <= 6; i++) { const f = i / 6; FX.particle({ x: x0 + dx * k * f, y: (z0 + dz * k * f) * TILT + u.bodyH * 0.4, life: 0.4, size: 1.2, size1: 0.2, color: sk.color, tex: FX.tex.glow, alpha: 0.7 }); }
         FX.slash(u.x, u.z * TILT + u.bodyH * 0.4, sk.color, 2.2);
         if (u.rig && SD.ready(u.rig)) for (let i = 1; i <= 3; i++) {
@@ -1287,7 +1308,7 @@
           const hold = new THREE.Group(); hold.add(c.root);
           hold.position.set(x0 + dx * k * f, (z0 + dz * k * f) * TILT, 0); hold.scale.x = u.holder.scale.x;
           c.play('atk'); c.fadeD = 0; c.time = 0.2; c.apply(); c.render(); // exact attack pose, no crossfade
-          c.setOpacity(0.25 + f * 0.25); c.setTint(...TINTS[5]); c.setOrder(L.UNIT + 300);
+          c.setOpacity(0.25 + f * 0.25); c.setTint(((sk.color >> 16) & 255) / 255, ((sk.color >> 8) & 255) / 255, (sk.color & 255) / 255); c.setOrder(L.UNIT + 300);
           scene.add(hold);
           const ai = { hold, c };
           G.after.push(ai);
@@ -1441,7 +1462,7 @@
       }
       if (u.sd) { u.sd.update(dt); if (u.dieT > fade0) u.sd.setOpacity(Math.max(0, 1 - (u.dieT - fade0) / 0.4)); }
       if (u.placeholder) { u.placeholder.material.opacity = Math.max(0, 1 - u.dieT / u.dieDur); u.placeholder.position.y = 0.75 - u.dieT * 0.4; }
-      u.shadow.alpha = u.disc.alpha = Math.max(0, 0.5 - u.dieT);
+      u.shadow.alpha = Math.max(0, 0.62 - u.dieT); u.disc.alpha = Math.max(0, 0.5 - u.dieT);
       u.glow.alpha = Math.max(0, 0.16 - u.dieT * 0.3);
       return u.dieT > u.dieDur;
     }
@@ -1767,7 +1788,8 @@
       // combos: frozen or stunned enemies in reach are a free hit; on its own half a sharp commander saves area skills for a real crowd (defence)
       const sharp = Math.random() < S.ai.diff.smart;
       const combo = sharp && (sk.kind === 'nova' || sk.kind === 'barrage' || sk.kind === 'storm') && enemiesNear('red', u.x, u.z, sk.kind === 'nova' ? sk.radius : sk.reach || 4, true).some((o) => o.freezeT > 0 || o.stunT > 0);
-      const need = sharp && (sk.kind === 'nova' || sk.kind === 'storm') && u.z > 2 && !atTower ? 3 : 2;
+      const need = sharp && (sk.kind === 'nova' || sk.kind === 'storm' || sk.kind === 'barrage') && u.z > 2 && !atTower ? 3 : 2;
+      if (sk.kind === 'barrage') near = enemiesNear('red', u.x, u.z, sk.reach, true).length; // shells are judged by the troops they can catch
       if (combo || near >= need || atTower || (sk.kind === 'haste' && u.z < 6) || (sk.kind === 'shield' && u.hp < u.max * 0.6)) { useSkill(u, spot); return true; }
     }
     return false;
@@ -2140,7 +2162,7 @@
   function bindInput() {
     const cv = renderer.domElement;
     const pos = (ev) => { const r = cv.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; };
-    const aiming = (ev) => UI.aimPid && UI.aimPid() === ev.pointerId;
+    const aiming = (ev) => UI.aimPid() != null && UI.aimPid() === ev.pointerId;
     cv.addEventListener('pointermove', (ev) => { if (aiming(ev)) return; if (G.sel >= 0 && (ev.pointerType === 'mouse' || ev.buttons)) ghostAt(...pos(ev)); });
     cv.addEventListener('pointerdown', (ev) => { if (aiming(ev)) return; if (G.sel >= 0) ghostAt(...pos(ev)); });
     cv.addEventListener('pointerup', (ev) => { if (aiming(ev)) return; if (G.sel >= 0 && !G.drag) dropAt(...pos(ev)); });
@@ -2169,9 +2191,9 @@
       if (G.phase !== 'play' && G.phase !== 'countdown') return;
       if (G.paused && ev.key !== 'Escape') return;
       if (ev.repeat) return; // a held key acts once
-      if (ev.key >= '1' && ev.key <= '4') select(+ev.key - 1);
-      const si = 'qwe'.indexOf(ev.key.toLowerCase()); // Q / W / E: the skill buttons in order
-      if (si >= 0 && !UI.aimPid()) { const b = document.querySelectorAll('#skillBar .skb')[si], u = b && G.ents.find((e) => e.id === +b.dataset.id && e.alive); if (u) UI.fireSkill(u); }
+      const di = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(ev.code); if (di >= 0) select(di);
+      const si = ['KeyQ', 'KeyW', 'KeyE'].indexOf(ev.code); // Q / W / E by physical key: works under the Korean IME too
+      if (si >= 0 && UI.aimPid() == null) { const b = document.querySelectorAll('#skillBar .skb')[si], u = b && G.ents.find((e) => e.id === +b.dataset.id && e.alive); if (u) UI.fireSkill(u); }
       if (ev.key === 'Escape') {
         const dlg = [...document.querySelectorAll('.ov:not([hidden])')].find((o) => o.id !== 'pauseOv' && o.id !== 'loading');
         if (dlg) { dlg.hidden = true; return; } // a dialog over the pause menu closes first
@@ -2238,13 +2260,15 @@
   function setBackdrop(a) {
     if (amb.back) {
       const url = ARENAS[a].bg;
-      const use = (tx) => { amb.back.material.map = tx; amb.back.material.needsUpdate = true; amb.back.visible = true; if (amb.back2) { amb.back2.material.map = tx; amb.back2.material.color.setHex(ARENAS[a].glow); amb.back2.material.needsUpdate = true; amb.back2.visible = true; } fitBack(); };
-      amb.back.visible = false; if (amb.back2) amb.back2.visible = false;
+      const use = (tx) => { amb.back.material.map = tx; amb.back.material.needsUpdate = true; amb.back.visible = true; fitBack(); };
+      setBackdropTint(a);
+      amb.back.visible = false;
       if (bgTex[url]) use(bgTex[url]);
       else if (url) new THREE.TextureLoader().load(url, (tx) => { bgTex[url] = tx; if (G.arenaDrawn === a) use(tx); }, undefined, () => {}); // file://: stays dark
     }
   }
   const bgTex = {};
+  function setBackdropTint(a) { const c = ARENAS[a].glow; if (amb.back2) amb.back2.material.color.setHex(c); if (amb.veil) amb.veil.material.color.setHex(c); }
   function fitBack() {
     const m = amb.back, tx = m && m.material.map;
     if (!tx || !tx.image) return;
@@ -2261,10 +2285,21 @@
     amb.back.material.transparent = false;
     amb.back.visible = false;
     scene.add(amb.back);
-    // a second, larger copy of the art drifting the other way, added faintly on top: a cheap parallax depth layer
-    amb.back2 = quad(null, 0xffffff, 0.1, true, -19);
+    // two layers of the original fog texture (tiling noise) drifting at different speeds: haze behind the deck and a faint veil over it
+    amb.back2 = quad(null, 0xffffff, 0.14, true, -19);
     amb.back2.visible = false;
     scene.add(amb.back2);
+    amb.veil = quad(null, 0xffffff, 0.035, true, L.GROUND + 40);
+    amb.veil.visible = false;
+    scene.add(amb.veil);
+    new THREE.TextureLoader().load('assets/bg/haze.png', (tx) => {
+      tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+      const tx2 = tx.clone(); tx2.needsUpdate = true;
+      tx.repeat.set(1.6, 2.4); tx2.repeat.set(1.1, 1.7);
+      amb.back2.material.map = tx; amb.back2.material.needsUpdate = true; amb.back2.visible = true;
+      amb.veil.material.map = tx2; amb.veil.material.needsUpdate = true; amb.veil.visible = true;
+      setBackdropTint(G.arenaDrawn || 0);
+    }, undefined, () => {});
     // a horizontally tiling band of energy streaks, scrolled every frame
     const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
     const g = cv.getContext('2d');
@@ -2301,7 +2336,15 @@
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)
     if (amb.back && amb.back.visible && amb.backS) { const k = 1.04 + 0.02 * Math.sin(amb.t * 0.11); amb.back.scale.set(amb.backS[0] * k, amb.backS[1] * k, 1); amb.back.position.x = Math.sin(amb.t * 0.07) * 0.45;
-      if (amb.back2 && amb.back2.visible) { const k2 = 1.18 + 0.03 * Math.sin(amb.t * 0.09 + 1); amb.back2.scale.set(amb.backS[0] * k2, amb.backS[1] * k2, 1); amb.back2.position.set(-Math.sin(amb.t * 0.05) * 0.9, amb.back.position.y + Math.sin(amb.t * 0.06) * 0.4, 0); amb.back2.material.opacity = 0.07 + 0.03 * Math.sin(amb.t * 0.4); } }
+    }
+    // the haze drifts one way behind the deck and the veil the other way over it (true parallax: different layers, speeds and scales)
+    if (amb.back2 && amb.back2.visible) {
+      const cw = camera.right - camera.left, ch = camera.top - camera.bottom, cy = (camera.top + camera.bottom) / 2;
+      amb.back2.scale.set(cw * 1.1, ch * 1.1, 1); amb.back2.position.set(0, cy, 0);
+      amb.back2.material.map.offset.set(amb.t * 0.006, amb.t * 0.0025); amb.back2.material.opacity = 0.12 + 0.04 * Math.sin(amb.t * 0.3);
+      amb.veil.scale.set(cw * 1.05, ch * 1.05, 1); amb.veil.position.set(0, cy, 0);
+      amb.veil.material.map.offset.set(-amb.t * 0.011, amb.t * 0.004); amb.veil.material.opacity = QUALITY[perf.level].bloom ? 0.035 : 0;
+    }
     // drifting motes in the arena's light colour
     amb.moteT = (amb.moteT || 0) - dt;
     if (amb.moteT <= 0 && QUALITY[perf.level].bloom && (G.phase === 'play' || G.phase === 'countdown')) {
