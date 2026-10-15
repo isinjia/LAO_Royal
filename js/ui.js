@@ -495,8 +495,10 @@
     el.style.transform = `translate(${x}px,${y}px)`;
   }
   // floating damage on towers (DOM: crisp text; at most a few alive)
+  const dmgRecent = []; // numbers still popping: a hit landing close to one merges into it (one counting number, not a stack)
   function dmgNum(x, y, n, side) {
-    const box = $('labels');
+    const box = $('labels'), now = performance.now();
+    for (const r of dmgRecent) if (r.side === side && now - r.t < 450 && Math.abs(r.x - x) < 48 && Math.abs(r.y - y) < 48 && r.el.isConnected) { r.n += n; r.el.textContent = '-' + r.n; r.el.classList.toggle('big', r.n >= 300); r.el.style.animation = 'none'; void r.el.offsetWidth; r.el.style.animation = ''; r.t = now; return; }
     if (dmgLive >= 24) return;
     const el = dmgPool.pop() || document.createElement('span'); // nodes are reused (no DOM churn in big fights)
     el.className = 'dmgn ' + side + (n >= 300 ? ' big' : '');
@@ -504,7 +506,9 @@
     el.style.left = (x + (Math.random() - 0.5) * 26) + 'px'; el.style.top = (y - (dmgLive % 3) * 12) + 'px'; // spread so quick hits never stack on one spot
     box.appendChild(el);
     dmgLive++;
-    setTimeout(() => { el.remove(); dmgLive--; if (dmgPool.length < 24) dmgPool.push(el); }, 900);
+    const rec = { el, x, y, n, side, t: now }; dmgRecent.push(rec); if (dmgRecent.length > 12) dmgRecent.shift();
+    const done = () => { if (now === rec.t || performance.now() - rec.t >= 880) { el.remove(); dmgLive--; const i = dmgRecent.indexOf(rec); if (i >= 0) dmgRecent.splice(i, 1); if (dmgPool.length < 24) dmgPool.push(el); } else setTimeout(done, 880 - (performance.now() - rec.t)); };
+    setTimeout(done, 900);
   }
   const dmgPool = [];
   // champion skills: tap = auto aim; barrage / laser / dash can also be dragged onto the field to aim them
