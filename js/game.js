@@ -11,7 +11,7 @@
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
-  const TOWER_E = { king: 1.9, princess: 1.45, bld: 0.9 }; // tower top height (guard stands there)
+  const TOWER_E = { king: 2.3, princess: 1.75, bld: 0.9 }; // tower top height (guard stands there)
   const L = FX.L;
 
   let renderer, composer, bloom, scene, camera, stageEl, labelsEl;
@@ -223,7 +223,7 @@
   // hexagonal bunker drawn in screen space; returns { tex, w, h, cy } (plane size, centre height over the ground point)
   const PROPS = {}; // original battlefield props (BG_OBJ): sandbags, a supply container, iron wrecks
   function towerCanvas(type, side, dead, emblem, faction) {
-    const P = 64, r = BAL.tower[type].r + 0.35, E = dead ? 0.45 : TOWER_E[type];
+    const P = 64, r = BAL.tower[type].r + (type === 'bld' ? 0.35 : 0.6), E = dead ? 0.45 : TOWER_E[type]; // towers drawn with real mass
     const top = E + r * TILT + (type === 'king' && !dead ? 0.7 : 0.25), bot = -r * TILT - 0.25, half = r + 0.25;
     const cv = document.createElement('canvas');
     cv.width = Math.round(half * 2 * P); cv.height = Math.round((top - bot) * P);
@@ -645,7 +645,7 @@
     u.holder = new THREE.Group();
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: u.r * 2.8, aspect: TILT * 0.75, color: 0x000000, alpha: 0.62, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
-    u.disc = FX.sprite({ x, y: z * TILT, size: u.r * 2.6, aspect: TILT, color: teamHex(side), alpha: 0.65, tex: FX.tex.ring, order: L.GROUND + 1 });
+    u.disc = FX.sprite({ x, y: z * TILT, size: u.r * 3, aspect: TILT, color: teamHex(side), alpha: 0.95, tex: FX.tex.ring, order: L.GROUND + 1 });
     u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 3.4, aspect: TILT, color: teamHex(side), alpha: 0.32, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
@@ -1542,7 +1542,7 @@
       }
       if (u.sd) { u.sd.update(dt); if (u.dieT > fade0) u.sd.setOpacity(Math.max(0, 1 - (u.dieT - fade0) / 0.4)); }
       if (u.placeholder) { u.placeholder.material.opacity = Math.max(0, 1 - u.dieT / u.dieDur); u.placeholder.position.y = 0.75 - u.dieT * 0.4; }
-      u.shadow.alpha = Math.max(0, 0.62 - u.dieT); u.disc.alpha = Math.max(0, 0.5 - u.dieT); if (u.halo) u.halo.alpha = Math.max(0, 0.2 - u.dieT);
+      u.shadow.alpha = Math.max(0, 0.62 - u.dieT); u.disc.alpha = Math.max(0, 0.95 - u.dieT * 2); if (u.halo) u.halo.alpha = Math.max(0, 0.2 - u.dieT);
       u.glow.alpha = Math.max(0, 0.16 - u.dieT * 0.3);
       return u.dieT > u.dieDur;
     }
@@ -2078,7 +2078,7 @@
           const w = (e.hp / e.max * 100).toFixed(1) + '%';
           if (e.labelW !== w) { e.labelW = w; e.label.firstChild.firstChild.style.width = w; }
           const hv = Math.ceil(e.hp);
-          if (e.hpShown !== hv) { e.hpShown = hv; e.label.children[1].textContent = hv; }
+          if (e.hpShown !== hv) { e.hpShown = hv; e.label.children[1].textContent = hv; const low = e.hp < e.max * 0.3; if (e.labelLow !== low) { e.labelLow = low; e.label.classList.toggle('low', low); } } // a plate under 30% pulses
         }
       }
     }
@@ -2139,7 +2139,7 @@
     view.w = w; view.h = h;
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
-    const fw = 18.3, top = 16.2 * TILT + 4.9, bot = -16.4 * TILT - 0.2, fh = top - bot;
+    const fw = 18.3, top = 16.2 * TILT + 5.6, bot = -16.4 * TILT - 1.0, fh = top - bot;
     const k = Math.min(w / fw, h / fh);
     const cw = w / k, ch = h / k, cy = (top + bot) / 2;
     camera.left = -cw / 2; camera.right = cw / 2; camera.top = cy + ch / 2; camera.bottom = cy - ch / 2;
