@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0e12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>라스트로얄</title>
+<link rel="stylesheet" href="css/game.css">
+<script defer src="js/ui_assets.js"></script>
+</head>
+<body>
+<div id="app">
+  <div id="boot"><b>LAST ROYAL</b><i></i></div>
+
+  <!-- title -->
+  <section id="title" class="screen">
+    <div class="tbg"></div>
+    <div class="ttop">
+      <div class="tro-box"><i class="tro"></i><b id="trophy">0</b><small id="record"></small></div>
+      <div class="gold-box"><i class="gold-i"></i><b id="gold">0</b></div>
+      <span class="sp"></span>
+      <button class="ibtn mbtn" id="btnMissions" aria-label="임무"><span class="ms-i"></span><em id="mBadge" hidden>0</em></button>
+      <button class="ibtn" id="btnHelp" aria-label="도움말"><span class="q">?</span></button>
+      <button class="ibtn" id="btnSettings" aria-label="설정"><span class="gear"></span></button>
+    </div>
+    <div class="logo">
+      <small>LAST ORIGIN</small>
+      <h1>LAST ROYAL</h1>
+      <h2>라스트로얄</h2>
+    </div>
+    <div class="arena-box">
+      <div class="an" id="arenaName" role="status" aria-live="polite"></div>
+      <div class="abar"><i id="arenaBar"></i></div>
+      <div class="anext"><span id="arenaNext"></span><span class="aun" id="arenaUnlock"></span></div>
+      <div class="road"><small id="roadNext" role="status"></small><button class="btn y sm" id="roadBtn" hidden></button></div>
+    </div>
+    <div class="chests" id="chestRow"></div>
+    <div class="fwin" id="firstWin"></div>
+    <div class="tpanel">
+      <div class="lbl">진영</div>
+      <div id="factionSel" class="factions">
+        <button data-f="orca"><span class="fp"></span><b>오르카</b><small>바이오로이드</small></button>
+        <button data-f="iron"><span class="fp"></span><b>철충</b><small>기계 군단</small></button>
+      </div>
+      <div id="vsLine" class="vs"></div>
+      <div class="two">
+        <div><div class="lbl">모드</div>
+          <div id="modeSel" class="seg s4"><button data-m="0">일반전</button><button data-m="1">에너지 폭주</button><button data-m="2">무작위 덱</button><button data-m="3">오늘의 작전</button></div></div>
+        <div><div class="lbl">난이도</div>
+          <div id="diffSel" class="seg"><button data-d="0">훈련</button><button data-d="1">실전</button><button data-d="2">정예</button></div></div>
+      </div>
+      <div class="lbl">출전 덱 <span class="avg">평균 에너지 <b id="avgCost"></b></span></div>
+      <div id="deckPreview" class="deckrow"></div>
+      <div class="tbtns">
+        <button class="btn d" id="btnDeck">덱 편성</button>
+        <button class="btn y big" id="btnBattle">전투 개시</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- deck builder -->
+  <section id="deck" class="screen">
+    <header class="dhead"><h3 id="deckTitle">덱 편성</h3><span id="deckAvg"></span><button class="btn d sm" id="btnDeckReset">기본 덱</button><button class="btn y sm" id="btnDeckDone">완료</button></header>
+    <div id="deckSlots" class="slots"></div>
+    <div id="cardInfo" class="cinfo"></div>
+    <div class="lbl pad">카드 컬렉션</div>
+    <div id="collection" class="coll"></div>
+  </section>
+
+  <!-- battle -->
+  <section id="battle" class="screen">
+    <header id="hud">
+      <span class="av" id="foeAv"></span>
+      <div class="foe"><span id="foeName" class="fname"></span><div class="frow"><em id="foeLv" class="lvtag"></em><div id="crRed" class="crowns red"></div></div></div>
+      <div id="timer"><small id="timerLabel">남은 시간</small><b id="timerVal">3:00</b><em id="multTag"></em><em id="mutTag" class="muttag" hidden></em></div>
+      <button class="ibtn" id="btnPause" aria-label="일시 정지"><span class="pz"></span></button>
+    </header>
+    <main id="stage">
+      <div id="grade" aria-hidden="true"></div>
+      <div id="labels"></div>
+      <div class="bl"><button id="btnEmote" class="ibtn emo" aria-label="감정 표현"><span></span></button><div id="crBlue" class="crowns blue"></div></div>
+      <div id="emotePanel" hidden></div>
+      <div id="skillBar"></div>
+      <div id="cardTip" hidden></div>
+      <div id="banner" class="banner"></div>
+      <div id="countdown"></div>
+    </main>
+    <footer id="handBar">
+      <div class="handrow">
+        <div id="nextBox"><small>NEXT</small><div id="nextCard"></div></div>
+        <div id="hand"></div>
+      </div>
+      <div id="elixir"><div class="drop"><b id="elixirNum">5</b></div><div class="ebar"><i id="elixirFill"></i><em id="costPrev" hidden></em><span class="ticks"></span></div></div>
+    </footer>
+  </section>
+
+  <!-- result -->
+  <section id="result" class="screen">
+    <div class="rbox">
+      <div class="rhero" id="resHero"></div>
+      <h2 id="resTitle"></h2><div class="rreason" id="resReason"></div>
+      <div id="resCrowns" class="rcrowns"></div>
+      <div id="resTrophy" class="rtro"></div>
+      <div id="resArena" class="rarena" hidden></div>
+      <div id="resStats" class="rstats"></div>
+      <div id="resMvp" class="rmvp" hidden></div><div id="resChart" class="rchart" hidden></div>
+      <div id="resLog" class="rlog" hidden></div>
+      <div class="lbl c">보급 보상</div>
+      <div id="resReward" class="rreward"></div>
+      <div class="tbtns"><button class="btn d" id="btnHome">메인으로</button><button class="btn y" id="btnAgain">다시 전투</button></div>
+    </div>
+  </section>
+
+  <div id="pauseOv" class="ov" hidden>
+    <div class="dlg"><h4>일시 정지</h4><p>전투가 멈춰 있습니다.</p>
+      <div class="tbtns"><button class="btn d" id="btnSurrender">항복</button><button class="btn d" id="btnPauseSet">설정</button><button class="btn y" id="btnResume">계속</button></div></div>
+  </div>
+
+  <div id="settingsOv" class="ov" hidden>
+    <div class="dlg"><h4>설정</h4>
+      <label class="row">음악<input type="range" id="setMusic" min="0" max="1" step="0.05"></label>
+      <label class="row">효과음<input type="range" id="setSfx" min="0" max="1" step="0.05"></label>
+      <label class="row">그래픽<select id="setQuality"><option value="auto">자동</option><option value="0">높음</option><option value="1">보통</option><option value="2">낮음</option></select></label>
+      <p class="setinfo" id="setInfo"></p>
+      <div class="tbtns"><button class="btn d sm" id="btnReset">진행 초기화</button><button class="btn y" id="btnSetClose">닫기</button></div></div>
+  </div>
+
+  <div id="roadOv" class="ov" hidden>
+    <div class="dlg"><h4>트로피 로드</h4><p>트로피가 오를수록 보상이 열립니다. 500마다 상자!</p>
+      <div id="roadList" class="roadlist"></div>
+      <div class="tbtns"><button class="btn d" id="btnRoadClose">닫기</button><button class="btn y" id="btnRoadClaim">모두 받기</button></div></div>
+  </div>
+
+  <div id="missionOv" class="ov" hidden>
+    <div class="dlg"><h4>작전 임무</h4><p>임무를 완료하고 부품을 받으세요. 받으면 새 임무가 주어집니다.</p>
+      <div id="missionList"></div>
+      <div class="tbtns"><button class="btn y" id="btnMClose">닫기</button></div></div>
+  </div>
+
+  <div id="chestOv" class="ov" hidden>
+    <div class="dlg chestdlg"><span class="bigbox" id="chestBox"></span><h4 id="chestName"></h4><div id="chestList" class="rreward wrap"></div>
+      <div class="tbtns"><button class="btn y" id="btnChestClose">확인</button></div></div>
+  </div>
+
+  <div id="tutOv" class="ov" hidden>
+    <div class="dlg tut"><span class="pf" id="tutPf"></span><h4 id="tutH"></h4><p id="tutP"></p><div class="dots" id="tutDots"></div>
+      <div class="tbtns"><button class="btn d sm" id="tutSkip">건너뛰기</button><button class="btn y" id="tutNext">다음</button></div></div>
+  </div>
+
+  <div id="loading" class="ov vsov" hidden>
+    <div class="vs-wrap">
+      <div class="vs-side me"><span class="vs-pf" id="vsMe"></span><b id="vsMeName"></b><small id="vsMeSub"></small></div>
+      <div class="vs-mid">VS<small id="vsArena"></small><em id="vsHint" hidden></em></div>
+      <div class="vs-side foe"><span class="vs-pf" id="vsFoe"></span><b id="vsFoeName"></b><small id="vsFoeSub"></small></div>
+    </div>
+    <div class="vsdeck" id="vsDeck"></div>
+    <div class="lbar"><i id="loadBar"></i></div>
+    <p class="ltip">카드를 드래그해 배치하세요. 상대 킹 타워를 파괴하면 즉시 승리!</p>
+    <button class="btn d sm lcancel" id="btnLoadCancel">취소</button>
+  </div>
+
+  <div id="fatal" class="ov" hidden><div class="dlg"><h4>실행할 수 없습니다</h4><p></p></div></div>
+  <div id="toast"></div>
+  <div id="dragCard" hidden></div>
+</div>
+
+<script defer src="js/vendor/three.min.js"></script>
+<script defer src="js/vendor/CopyShader.js"></script>
+<script defer src="js/vendor/LuminosityHighPassShader.js"></script>
+<script defer src="js/vendor/EffectComposer.js"></script>
+<script defer src="js/vendor/RenderPass.js"></script>
+<script defer src="js/vendor/ShaderPass.js"></script>
+<script defer src="js/vendor/UnrealBloomPass.js"></script>
+<script defer src="js/assets.js"></script>
+<script defer src="js/anim_events.js"></script>
+<script defer src="js/fx/_meta.js"></script>
+<script defer src="js/sd.js"></script>
+<script defer src="js/fxbake.js"></script>
+<script defer src="js/audio.js"></script>
+<script defer src="js/data.js"></script>
+<script defer src="js/fx.js"></script>
+<script defer src="js/game.js"></script>
+<script defer src="js/ui.js"></script>
+<script defer src="js/smoke.js"></script>
+</body>
+</html>

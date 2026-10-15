@@ -1,0 +1,918 @@
+// Last Royal: title, deck builder, progression, battle HUD and result screens (DOM).
+(function () {
+  const { RARITY, FACTIONS, ARENAS, LEVEL, BAL, card: CARD, arenaOf } = DATA;
+  const $ = (id) => document.getElementById(id);
+  const KEY = 'lastroyal.v2';
+
+  // ── save ──────────────────────────────────────────────
+  const save = (() => {
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem('lastroyal.v1') || '{}') || {}; } catch (e) { s = {}; }
+    const d = { trophy: 0, best: 0, gold: 100, wins: 0, losses: 0, draws: 0, faction: 'orca', diff: 1, mode: 0, decks: {}, cards: {},
+      music: 1, sfx: 1, quality: null, autoQuality: true, muted: false, tutorial: false, streak: 0 };
+    s = Object.assign(d, typeof s === 'object' ? s : {});
+    ['trophy', 'best', 'gold', 'wins', 'losses', 'draws', 'streak', 'opDay', 'opStreak'].forEach((k) => { s[k] = Math.max(0, Math.floor(+s[k] || 0)); });
+    if (!FACTIONS[s.faction]) s.faction = 'orca';
+    if (!(s.diff >= 0 && s.diff <= 2)) s.diff = 1;
+    if (!(s.mode >= 0 && s.mode < BAL.modes.length)) s.mode = 0;
+    const unit = (v, d) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : d);
+    s.music = unit(s.music, 1); s.sfx = unit(s.sfx, 1);
+    s.quality = s.quality === null || s.quality === undefined || !(+s.quality >= 0 && +s.quality <= 2) ? null : Math.round(+s.quality);
+    s.autoQuality = s.autoQuality !== false;
+    // crates: known kinds only, at most four, unlock start times that make sense
+    s.chests = Array.isArray(s.chests) ? s.chests.filter((c) => c && DATA.CHESTS.some((d) => d.key === c.k)).slice(0, 4) : [];
+    s.chests.forEach((c) => { if (!Number.isFinite(c.t0) || c.t0 > Date.now() + 60000) c.t0 = c.t0 == null ? null : Date.now(); });
+    if (typeof s.cards !== 'object' || !s.cards) s.cards = {};
+    s.road = Number.isFinite(+s.road) ? Math.max(0, +s.road) : 0;
+    if (typeof s.newCards !== 'object' || !s.newCards) s.newCards = {};
+    Object.keys(s.newCards).forEach((id) => { if (!CARD[id]) delete s.newCards[id]; });
+    if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
+    return s;
+  })();
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* private mode / quota */ } }
+  const arena = () => arenaOf(save.trophy);
+  const unlocked = (c) => c.arena <= arena();
+  // every unlocked card is owned (level 1 at least); fix decks that hold locked / foreign cards
+  function syncCollection() {
+    // a save that already owns cards (older versions had no 'seen' flag) gets NEW badges for what this sync adds
+    const news = save.seen || Object.keys(save.cards).length > 0;
+    DATA.CARDS.forEach((c) => {
+      const o = save.cards[c.id];
+      if (unlocked(c) && !o) { save.cards[c.id] = { lv: 1, n: 0 }; if (news) (save.newCards || (save.newCards = {}))[c.id] = 1; }
+      if (o) { o.lv = Math.min(LEVEL.max, Math.max(1, o.lv | 0)); o.n = Math.max(0, o.n | 0); }
+    });
+    save.seen = true; // after the first sync, every unlock is news
+    for (const f of ['orca', 'iron']) {
+      const dk = Array.isArray(save.decks[f]) ? save.decks[f] : [];
+      const ok = dk.length === 8 && new Set(dk).size === 8 && dk.every((id) => CARD[id] && CARD[id].faction === f && save.cards[id]);
+      if (!ok) save.decks[f] = FACTIONS[f].deck.slice();
+    }
+    persist();
+  }
+  const levelOf = (id) => (save.cards[id] ? save.cards[id].lv : 1);
+
+  // ── missions ──────────────────────────────────────────
+  const MDEF = Object.fromEntries(DATA.MISSIONS.map((m) => [m.k, m]));
+  function ensureMissions() {
+    if (!Array.isArray(save.missions)) save.missions = [];
+    save.missions = save.missions.filter((m) => m && MDEF[m.k]);
+    while (save.missions.length < 3) {
+      const free = DATA.MISSIONS.filter((m) => !save.missions.some((x) => x.k === m.k) && m.k !== save.lastMission);
+      const m = free[Math.floor(Math.random() * free.length)];
+      if (!m) break;
+      save.missions.push({ k: m.k, prog: 0 });
+    }
+  }
+  function progressMissions(win, b, stats, opts) {
+    ensureMissions();
+    const add = { win: win ? 1 : 0, crowns: b, three: win && b === 3 ? 1 : 0, skills: stats.skills, cards: stats.cards, kills: stats.kills, dmg: Math.round(stats.dmg),
+      rush: opts.mode === 1 ? 1 : 0, iron: win && opts.faction === 'iron' ? 1 : 0, orca: win && opts.faction === 'orca' ? 1 : 0 };
+    let done = 0;
+    save.missions.forEach((m) => {
+      const goal = MDEF[m.k].goal, before = m.prog;
+      m.prog = Math.min(goal, m.prog + (add[m.k] || 0));
+      if (before < goal && m.prog >= goal) done++;
+    });
+    return done;
+  }
+  const claimable = () => (save.missions || []).filter((m) => m.prog >= MDEF[m.k].goal).length;
+  function renderMissions() {
+    ensureMissions();
+    $('missionList').innerHTML = save.missions.map((m, i) => {
+      const d = MDEF[m.k], ok = m.prog >= d.goal;
+      return `<div class="ms${ok ? ' ok' : ''}"><div class="mt"><b>${esc(d.name)}</b><small>${m.prog.toLocaleString()} / ${d.goal.toLocaleString()}</small><div class="mbar"><i style="width:${Math.min(100, m.prog / d.goal * 100)}%"></i></div></div>
+        <button class="btn ${ok ? 'y' : 'd'} sm" data-i="${i}" ${ok ? '' : 'disabled'}><i class="gold-i"></i>${d.gold}</button></div>`;
+    }).join('');
+  }
+  const upCost = (c, lv) => ({
+    n: Math.max(1, Math.ceil(LEVEL.copies[lv] * [1, 0.5, 0.25, 0.1][c.rarity])),
+    gold: Math.round(LEVEL.gold[lv] * (1 + c.rarity * 0.5)),
+  });
+
+  // ── card art ──────────────────────────────────────────
+  const artCache = {};
+  // original skill icons for the spell cards (art falls back to drawn symbols until they load)
+  const spellIcons = {};
+  ['strike', 'emp', 'freeze', 'napalm', 'missile', 'overclock', 'turret', 'outpost', 'barricade'].forEach((k) => {
+    const im = new Image();
+    im.onload = () => { DATA.CARDS.forEach((c) => { if (c.icon === k) delete artCache[c.id]; }); if ($('title').classList.contains('on')) renderTitle(); };
+    im.src = `assets/icon/${k}.png`;
+    spellIcons[k] = im;
+  });
+  function spellArt(c) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const g = cv.getContext('2d');
+    const col = '#' + c.color.toString(16).padStart(6, '0');
+    const bg = g.createRadialGradient(64, 64, 4, 64, 64, 80);
+    bg.addColorStop(0, col); bg.addColorStop(0.45, 'rgba(30,40,60,0.9)'); bg.addColorStop(1, '#0c1018');
+    g.fillStyle = bg; g.fillRect(0, 0, 128, 128);
+    g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineWidth = 6; g.lineJoin = 'round'; g.lineCap = 'round';
+    g.shadowColor = col; g.shadowBlur = 16;
+    const icon = spellIcons[c.icon];
+    if (icon && icon.complete && icon.naturalWidth) {
+      // the original skill icon, tinted with the spell colour (it keeps its own shading)
+      const t = document.createElement('canvas'); t.width = t.height = 112;
+      const tg = t.getContext('2d');
+      tg.drawImage(icon, 0, 0, 112, 112);
+      tg.globalCompositeOperation = 'color'; tg.fillStyle = col; tg.fillRect(0, 0, 112, 112);
+      tg.globalCompositeOperation = 'destination-in'; tg.drawImage(icon, 0, 0, 112, 112);
+      g.drawImage(t, 8, 8);
+      try { return cv.toDataURL(); } catch (e) { spellIcons[c.icon] = null; return spellArt(c); } // file://: a tainted canvas, draw the symbol instead
+    }
+    if (c.spell === 'fireball') {
+      g.beginPath(); g.arc(64, 70, 22, 0, Math.PI * 2); g.fill();
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.beginPath(); g.moveTo(64 + Math.cos(a) * 30, 70 + Math.sin(a) * 30); g.lineTo(64 + Math.cos(a) * 44, 70 + Math.sin(a) * 44); g.stroke(); }
+      g.fillStyle = col; g.beginPath(); g.moveTo(64, 10); g.lineTo(74, 40); g.lineTo(54, 40); g.closePath(); g.fill();
+    } else if (c.spell === 'zap') {
+      g.beginPath(); g.moveTo(74, 14); g.lineTo(44, 68); g.lineTo(66, 68); g.lineTo(52, 114); g.lineTo(88, 54); g.lineTo(66, 54); g.closePath(); g.fill();
+    } else {
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        g.beginPath(); g.moveTo(64, 64); g.lineTo(64 + Math.cos(a) * 46, 64 + Math.sin(a) * 46); g.stroke();
+        for (const t of [0.55, 0.8]) { const bx = 64 + Math.cos(a) * 46 * t, by = 64 + Math.sin(a) * 46 * t; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(a + s * 0.8) * 12, by + Math.sin(a + s * 0.8) * 12); g.stroke(); } }
+      }
+    }
+    return cv.toDataURL();
+  }
+  function art(c) {
+    if (artCache[c.id]) return artCache[c.id];
+    return (artCache[c.id] = c.type !== 'troop' ? spellArt(c) : (window.IMG && IMG[c.img]) || '');
+  }
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+
+  // opts: { lv, cls, locked, progress }
+  function cardEl(c, cls, opt) {
+    opt = opt || {};
+    const el = document.createElement('div');
+    el.className = 'card r' + c.rarity + (cls ? ' ' + cls : '') + (c.type !== 'troop' ? ' spell' : '') + (c.type === 'building' ? ' bld' : '') + (c.skill ? ' champ' : '') + (opt.locked ? ' locked' : '');
+    let h = `<div class="art" style="background-image:url(${art(c)})"></div><span class="cost">${c.cost}</span><span class="nm">${esc(c.name)}</span>`;
+    if (c.count > 1) h += `<span class="cnt">x${c.count}</span>`;
+    if (opt.lv) h += `<span class="lv">Lv.${opt.lv}</span>`;
+    if (opt.progress != null) h += `<span class="prog${opt.progress >= 1 ? ' full' : ''}"><i style="width:${Math.min(100, opt.progress * 100)}%"></i></span>`;
+    if (opt.isNew) h += '<span class="newb">NEW</span>';
+    if (opt.locked) h += `<span class="lock"><i></i>${esc(ARENAS[c.arena].name)}</span>`;
+    el.innerHTML = h;
+    return el;
+  }
+
+  // ── screens ───────────────────────────────────────────
+  function show(id) {
+    ['title', 'deck', 'battle'].forEach((s) => $(s).classList.toggle('on', s === id));
+    if (id === 'battle') requestAnimationFrame(() => GAME.resize(true));
+  }
+
+  function renderTitle() {
+    syncCollection();
+    const a = arena(), A = ARENAS[a], nx = ARENAS[a + 1];
+    $('trophy').textContent = save.trophy;
+    $('gold').textContent = save.gold;
+    $('record').textContent = `${save.wins}승 ${save.losses}패`;
+    $('arenaName').textContent = `ARENA ${a + 1} · ${A.name}`;
+    document.querySelector('.arena-box').style.backgroundImage = `linear-gradient(90deg, rgba(10,14,20,.92) 35%, rgba(10,14,20,.55)), url(${A.bg})`;
+    const f0 = A.trophy, f1 = nx ? nx.trophy : A.trophy + 1;
+    $('arenaBar').style.width = (nx ? Math.min(100, (save.trophy - f0) / (f1 - f0) * 100) : 100) + '%';
+    $('arenaNext').textContent = nx ? `다음: ${nx.name} (${nx.trophy})` : '최고 아레나 도달!';
+    const nextCards = nx ? DATA.CARDS.filter((c) => c.arena === a + 1 && c.faction === save.faction && c.type === 'troop').slice(0, 4) : [];
+    $('arenaUnlock').innerHTML = nextCards.map((c) => `<i style="background-image:url(${art(c)})" title="${esc(c.name)}"></i>`).join('');
+    document.querySelectorAll('#factionSel button').forEach((b) => b.classList.toggle('on', b.dataset.f === save.faction));
+    document.querySelectorAll('#diffSel button').forEach((b) => b.classList.toggle('on', +b.dataset.d === save.diff));
+    document.querySelectorAll('#modeSel button').forEach((b) => b.classList.toggle('on', +b.dataset.m === save.mode));
+
+    const row = $('deckPreview');
+    row.innerHTML = '';
+    save.decks[save.faction].forEach((id) => row.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
+    $('avgCost').textContent = avg(save.decks[save.faction]);
+    const foe = save.faction === 'orca' ? 'iron' : 'orca';
+    $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>`;
+    const up = DATA.byFaction(save.faction).some((c) => canUpgrade(c));
+    $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id] && CARD[id].faction === save.faction)));
+    renderChests();
+    // trophy road: rewards reached but not claimed yet
+    const road = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
+    $('roadBtn').hidden = !road.length;
+    $('roadBtn').textContent = `★ 트로피 로드 보상 ${road.length}개 받기`;
+    const nextR = DATA.ROAD.find((r) => r.trophy > save.trophy);
+    $('roadNext').textContent = nextR ? `다음 보상 ${nextR.trophy}: ${nextR.chest ? CH[nextR.chest].name : '부품 ' + nextR.gold}` : '';
+    if (save.pendingReveal != null) setTimeout(() => { if ($('title').classList.contains('on')) revealArena(); }, 300);
+    $('firstWin').textContent = save.firstWin === new Date().toDateString() ? '' : '★ 오늘의 첫 승리 보너스가 기다리고 있습니다';
+    ensureMissions();
+    const cl = claimable();
+    $('mBadge').textContent = cl;
+    $('mBadge').hidden = !cl;
+  }
+  const avg = (d) => (d.reduce((s, id) => s + CARD[id].cost, 0) / d.length).toFixed(1);
+  function canUpgrade(c) {
+    const o = save.cards[c.id];
+    if (!o || o.lv >= LEVEL.max) return false;
+    const k = upCost(c, o.lv);
+    return o.n >= k.n && save.gold >= k.gold;
+  }
+
+  // deck builder
+  let deckSel = null, swapMode = false;
+  function renderDeck() {
+    const f = save.faction, deck = save.decks[f];
+    $('deckTitle').textContent = `덱 편성 · ${FACTIONS[f].name}`;
+    $('deckAvg').innerHTML = `평균 에너지 <b>${avg(deck)}</b> · <i class="gold-i"></i>${save.gold}`;
+    const slots = $('deckSlots');
+    slots.innerHTML = '';
+    deck.forEach((id, i) => {
+      const el = cardEl(CARD[id], (deckSel === id ? 'sel' : '') + (swapMode ? ' swap' : ''), { lv: levelOf(id) });
+      el.onclick = () => {
+        if (swapMode && deckSel && !deck.includes(deckSel)) { deck[i] = deckSel; swapMode = false; persist(); SFX.play('click'); }
+        else { deckSel = id; swapMode = false; }
+        renderDeck();
+      };
+      slots.appendChild(el);
+    });
+    const col = $('collection');
+    col.innerHTML = '';
+    const list = DATA.byFaction(f).slice().sort((a, b) => (unlocked(b) - unlocked(a)) || a.arena - b.arena || a.cost - b.cost);
+    list.forEach((c) => {
+      const o = save.cards[c.id];
+      const locked = !unlocked(c) || !o;
+      const prog = o && o.lv < LEVEL.max ? o.n / upCost(c, o.lv).n : null;
+      const el = cardEl(c, (deck.includes(c.id) ? 'used' : '') + (deckSel === c.id ? ' sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, progress: locked ? null : prog, isNew: !locked && save.newCards && save.newCards[c.id] });
+      el.onclick = () => { deckSel = c.id; swapMode = false; if (save.newCards && save.newCards[c.id]) { delete save.newCards[c.id]; persist(); } renderDeck(); };
+      col.appendChild(el);
+    });
+    const info = $('cardInfo');
+    const c = deckSel && CARD[deckSel];
+    if (!c) { info.innerHTML = '<p class="hint">카드를 눌러 정보를 확인하세요. 덱은 8장, 카드는 승리 보상으로 강화합니다.</p>'; return; }
+    const o = save.cards[c.id], lv = o ? o.lv : 1, m = LEVEL.mult(lv);
+    const st = [];
+    if (c.type === 'troop') {
+      st.push(['체력', Math.round(c.hp * m) + (c.count > 1 ? ` ×${c.count}` : '')], ['공격력', Math.round(c.dmg * m)], ['공격 속도', c.rate + '초'], ['사거리', c.range <= 1.2 ? '근접' : c.range],
+        ['이동', c.speed >= 2 ? '매우 빠름' : c.speed >= 1.5 ? '빠름' : c.speed >= 1 ? '보통' : '느림'],
+        ['대상', c.aim === 'buildings' ? '건물' : c.hits === 'ground' ? '지상' : '공중·지상']);
+      if (c.air) st.push(['유형', '비행']);
+      if (c.heal) st.push(['치료', `${Math.round(c.heal.amount * m)} / ${c.heal.every}초`], ['치료 반경', c.heal.radius]);
+      if (c.chain) st.push(['연쇄', c.chain + '타겟']);
+      if (c.slow) st.push(['둔화', Math.round(c.slow * 100) + '%']);
+      if (c.splash) st.push(['범위', c.splash]);
+    } else if (c.type === 'building') {
+      st.push(['체력', Math.round(c.hp * m)], ['유지', c.life + '초']);
+      if (c.dmg) st.push(['공격력', Math.round(c.dmg * m)], ['공격 속도', c.rate + '초'], ['사거리', c.range], ['대상', '공중·지상']);
+      if (c.spawn) st.push(['출격', `${CARD[c.spawn.card].name} / ${c.spawn.every}초`]);
+    } else if (c.spell === 'rage') {
+      st.push(['반경', c.radius], ['지속', c.dur + '초'], ['가속', '+' + Math.round((c.k - 1) * 100) + '%']);
+    } else {
+      st.push(['피해', Math.round(c.dmg * m) + (c.dur ? '/초' : '')], ['반경', c.radius], ['탑 피해', Math.round(c.dmg * m * c.towerK)]);
+      if (c.dur) st.push(['지속', c.dur + '초']);
+      if (c.stun) st.push(['기절', c.stun + '초']);
+      if (c.freeze) st.push(['빙결', c.freeze + '초']);
+    }
+    const inDeck = deck.includes(c.id);
+    let act = '';
+    if (!o || !unlocked(c)) act = `<span class="hint">${esc(ARENAS[c.arena].name)} (트로피 ${ARENAS[c.arena].trophy})에서 해금</span>`;
+    else {
+      if (lv < LEVEL.max) {
+        const k = upCost(c, lv);
+        act += `<button class="btn ${canUpgrade(c) ? 'g' : 'd'} sm" id="btnUp" ${canUpgrade(c) ? '' : 'disabled'}>강화 Lv.${lv + 1} · 카드 ${o.n}/${k.n} · <i class="gold-i"></i>${k.gold}</button>`;
+      } else act += '<span class="hint">최대 레벨</span>';
+      act += inDeck ? ' <span class="hint">덱에 포함됨</span>' : swapMode ? ' <span class="hint blink">위의 덱에서 교체할 카드를 누르세요</span>' : ' <button class="btn y sm" id="btnUse">덱에 넣기</button>';
+    }
+    const skill = c.skill ? `<div class="skillinfo"><b>챔피언 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
+    info.innerHTML = `<div class="ci-head"></div><div class="ci-body"><h4><span class="rk r${c.rarity}">${RARITY[c.rarity].name}</span>${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
+      <dl>${st.map(([k2, v]) => `<div><dt>${k2}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      <div class="ci-act">${act}</div></div>`;
+    info.querySelector('.ci-head').appendChild(cardEl(c, '', { lv: o && o.lv, locked: !o || !unlocked(c) }));
+    const b = $('btnUse');
+    if (b) b.onclick = () => { swapMode = true; SFX.play('click'); renderDeck(); };
+    const u = $('btnUp');
+    if (u) u.onclick = () => {
+      const k = upCost(c, o.lv);
+      if (o.n < k.n || save.gold < k.gold) return;
+      o.n -= k.n; save.gold -= k.gold; o.lv++;
+      persist();
+      SFX.play('rankUp', 0.7);
+      renderDeck();
+      const head = info.querySelector('.ci-head .card');
+      if (head) head.classList.add('levelup');
+    };
+  }
+
+  // ── battle HUD ────────────────────────────────────────
+  let handKey = '', prevHand = [];
+  function hand(played) {
+    const G = GAME.G, S = G.sides && G.sides.blue;
+    if (!S) return;
+    const h = $('hand');
+    // selection only toggles a class: rebuilding would detach the card under the finger mid-gesture (iOS drops the pointer)
+    const key = S.hand.join() + '|' + S.queue[0];
+    if (key !== handKey) {
+      handKey = key;
+      h.innerHTML = '';
+      S.hand.forEach((id, i) => {
+        const el = cardEl(CARD[id], played && prevHand[i] && prevHand[i] !== id ? 'enter' : '', { lv: levelOf(id) });
+        el.dataset.i = i;
+        el.addEventListener('pointerdown', (ev) => { ev.preventDefault(); GAME.cardDown(i, ev); SFX.play('click', 0.3); });
+        el.insertAdjacentHTML('beforeend', `<kbd>${i + 1}</kbd>`);
+        h.appendChild(el);
+      });
+      prevHand = S.hand.slice();
+      const n = $('nextCard');
+      n.innerHTML = '';
+      if (S.queue[0]) n.appendChild(cardEl(CARD[S.queue[0]], 'mini'));
+      tickCards(true);
+    }
+    for (const el of h.children) el.classList.toggle('sel', +el.dataset.i === G.sel);
+    costPrev();
+    const tip = $('cardTip'), sc = G.sel >= 0 && CARD[S.hand[G.sel]];
+    tip.hidden = !sc;
+    if (sc) tip.innerHTML = `<b>${esc(sc.name)}</b> <span class="rk r${sc.rarity}">${RARITY[sc.rarity].name}</span> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
+  }
+  let lastEl = -1;
+  // the selected card's cost marked on the energy bar (red when it cannot be paid yet)
+  function costPrev() {
+    const G = GAME.G, S = G.sides && G.sides.blue, el = $('costPrev');
+    const c = S && G.sel >= 0 && CARD[S.hand[G.sel]];
+    if (!c) { el.hidden = true; return; }
+    const e = S.elixir, M = BAL.elixirMax;
+    el.hidden = false;
+    el.classList.toggle('lack', e < c.cost);
+    el.style.left = (Math.max(0, e - c.cost) / M * 100) + '%';
+    el.style.width = (c.cost / M * 100) + '%';
+  }
+  function tickCards(force) {
+    const S = GAME.G.sides.blue;
+    const e = S.elixir;
+    if (!force && Math.abs(e - lastEl) < 0.1 && !(e >= BAL.elixirMax && lastEl < BAL.elixirMax)) return; // 1% steps of the bar
+    if (Math.floor(e) > Math.floor(lastEl) && lastEl >= 0) { const d = $('elixir').querySelector('.drop'); d.classList.remove('pulse'); void d.offsetWidth; d.classList.add('pulse'); }
+    lastEl = e;
+    $('elixirFill').style.width = (e / BAL.elixirMax * 100) + '%';
+    $('elixirNum').textContent = Math.floor(e);
+    costPrev();
+    $('elixir').classList.toggle('full', e >= BAL.elixirMax - 1e-3);
+    for (const el of $('hand').children) {
+      const c = CARD[S.hand[+el.dataset.i]];
+      const lack = c.cost - e;
+      const fill = lack > 0 ? Math.round(Math.max(0, 1 - lack / c.cost) * 20) * 5 : 100; // 5% steps: few style writes
+      if (el._fill === fill) continue;
+      el._fill = fill;
+      el.classList.toggle('poor', lack > 0);
+      el.style.setProperty('--fill', fill + '%');
+    }
+  }
+  let lastClock = '', skillKey = '';
+  function tick(G) {
+    if (!G.sides) return;
+    tickCards();
+    const t = Math.max(0, Math.ceil(G.clock));
+    const s = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+    if (s !== lastClock) {
+      lastClock = s;
+      $('timerVal').textContent = s;
+      $('timerLabel').textContent = G.overtime ? '연장전' : '남은 시간';
+      $('timer').classList.toggle('hot', G.overtime || G.clock <= BAL.doubleAt);
+      $('timer').classList.toggle('last', G.clock <= 10);
+      $('multTag').textContent = G.mult > 1 ? `에너지 x${G.mult}` : '';
+      $('elixir').classList.toggle('x2', G.mult > 1);
+      if (G.phase === 'play' && G.clock <= 10 && G.clock > 0 && t !== tick.lastBeep) { tick.lastBeep = t; SFX.play('click', 0.35); }
+    }
+    // champion skill buttons
+    const champs = G.phase === 'play' ? GAME.champions('blue').slice(0, 3) : [];
+    const key = champs.map((u) => u.id).join();
+    const bar = $('skillBar');
+    if (key !== skillKey) {
+      skillKey = key;
+      bar.innerHTML = '';
+      champs.forEach((u) => {
+        const b = document.createElement('button');
+        b.className = 'skb';
+        b.dataset.id = u.id;
+        b.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><span class="cd"></span><b>${esc(u.card.skill.name)}</b><span class="cost-s">${GAME.skillState(u).cost}</span>`;
+        b.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (!GAME.useSkill(u)) { SFX.play('fail', 0.3); toast(u.skillCd > 0 ? '스킬 재사용 대기 중' : '에너지가 부족합니다'); } });
+        bar.appendChild(b);
+      });
+    }
+    const e = G.sides.blue.elixir;
+    for (let i = 0; i < bar.children.length; i++) {
+      const b = bar.children[i], u = champs[i];
+      if (!u) continue;
+      const st = GAME.skillState(u);
+      const deg = Math.round(st.cd / st.cdMax * 72) * 5, ready = st.ready && e >= st.cost;
+      if (b._deg !== deg) { b._deg = deg; b.style.setProperty('--cd', deg + 'deg'); }
+      if (b._ready !== ready) { b._ready = ready; b.classList.toggle('ready', ready); if (ready) SFX.play('charge', 0.25); }
+    }
+  }
+  function crowns() {
+    const G = GAME.G;
+    for (const [side, el] of [['red', 'crRed'], ['blue', 'crBlue']]) {
+      const n = G.sides[side].crowns;
+      $(el).innerHTML = [0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+    }
+  }
+  function crownFly(tower, toSide) {
+    const r = $('stage').getBoundingClientRect(), lab = tower.label.getBoundingClientRect();
+    const target = $(toSide === 'blue' ? 'crBlue' : 'crRed').getBoundingClientRect();
+    const el = document.createElement('i');
+    el.className = 'flycrown ' + toSide;
+    el.style.left = (lab.left - r.left) + 'px'; el.style.top = (lab.top - r.top) + 'px';
+    $('stage').appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transform = `translate(${target.left - lab.left + 20}px,${target.top - lab.top}px) scale(.6)`;
+      el.style.opacity = '0.2';
+    }));
+    setTimeout(() => el.remove(), 1300);
+  }
+  let toastT = 0;
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => el.classList.remove('on'), 1400);
+  }
+  function banner(msg, kind) {
+    const el = $('banner');
+    el.className = 'banner ' + (kind || '');
+    el.textContent = msg;
+    void el.offsetWidth;
+    el.classList.add('on');
+  }
+  function countdown(n) {
+    const el = $('countdown');
+    el.textContent = n > 0 ? n : '';
+    el.className = 'on' + (n > 0 ? '' : ' go');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    if (n <= 0) setTimeout(() => { el.className = ''; }, 1000);
+  }
+  function skillCut(u) {
+    const el = document.createElement('div');
+    el.className = 'skcut ' + u.side;
+    el.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>`;
+    $('stage').appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+  }
+  function emote(side, i) {
+    const G = GAME.G;
+    if (!G.sides) return;
+    const f = FACTIONS[G.sides[side].faction], em = f.emotes[i];
+    if (!em) return;
+    const old = document.querySelector('.bubble.' + side);
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'bubble ' + side;
+    el.innerHTML = `<span class="pf" style="background-image:url(${IMG[em[0]]})"></span><b>${esc(em[1])}</b>`;
+    $('stage').appendChild(el);
+    SFX.play('click', 0.4);
+    setTimeout(() => el.remove(), 2200);
+  }
+  function dragCard(d, x, y, over) {
+    const el = $('dragCard');
+    if (!d) { el.hidden = true; el.innerHTML = ''; return; }
+    if (!el.firstChild) el.appendChild(cardEl(CARD[GAME.G.sides.blue.hand[d.i]]));
+    el.hidden = !d.moved || over;
+    el.classList.toggle('cancel', d.moved && !over && y > $('stage').getBoundingClientRect().bottom - 6); // back over the hand: let go to cancel
+    el.style.transform = `translate(${x}px,${y}px)`;
+  }
+  // floating damage on towers (DOM: crisp text; at most a few alive)
+  function dmgNum(x, y, n, side) {
+    const box = $('labels');
+    if (dmgLive >= 24) return;
+    const el = dmgPool.pop() || document.createElement('span'); // nodes are reused (no DOM churn in big fights)
+    el.className = 'dmgn ' + side + (n >= 300 ? ' big' : '');
+    el.textContent = '-' + n;
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    box.appendChild(el);
+    dmgLive++;
+    setTimeout(() => { el.remove(); dmgLive--; if (dmgPool.length < 24) dmgPool.push(el); }, 900);
+  }
+  const dmgPool = [];
+  let dmgLive = 0;
+  function elixirShake() { const el = $('elixir'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+  // VS loading screen (the commander is picked when the battle starts: opts.foe)
+  let foe = null;
+  // mirror operation: the opponent fights with the player's own faction (and one of its commanders)
+  const foeFaction = (o) => o.mode === 3 && DATA.mutatorOf().mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca';
+  function loading(f, opts) {
+    const el = $('loading');
+    if (el.hidden && opts) {
+      const ff = foeFaction(opts);
+      foe = opts.foe || DATA.COMMANDERS[ff][0];
+      const st = DATA.STYLES[foe.style] || DATA.STYLES.balanced;
+      const myDeck = (GAME.G.sides && GAME.G.sides.blue.deck) || opts.deck;
+      const vd = $('vsDeck'); vd.innerHTML = ''; myDeck.forEach((id) => vd.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
+      $('vsMe').style.backgroundImage = `url(${IMG[FACTIONS[opts.faction].banner]})`;
+      $('vsFoe').style.backgroundImage = `url(${IMG[foe.img]})`;
+      $('vsMeName').textContent = '사령관';
+      $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 트로피 ${save.trophy}`;
+      $('vsFoeName').textContent = foe.name;
+      const rl = GAME.G.sides && GAME.G.sides.red.lvl;
+      $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? DATA.mutatorOf().name : BAL.modes[opts.mode].name}`;
+      $('vsArena').textContent = ARENAS[opts.arena].name;
+      const hs = GAME.G.hints || []; $('vsHint').textContent = hs.length ? '정보: 상대가 ' + hs[0] : ''; $('vsHint').hidden = !hs.length;
+      el.style.backgroundImage = `radial-gradient(ellipse at center, rgba(12,18,28,.55), rgba(5,7,10,.95) 75%), url(${ARENAS[opts.arena].bg})`;
+      $('foeName').textContent = foe.name;
+      $('foeName').className = 'fname f-' + ff;
+      $('foeAv').style.backgroundImage = `url(${IMG[foe.img]})`;
+      $('foeLv').textContent = st.name;
+      const mu = opts.mode === 3 ? DATA.mutatorOf() : null; // today's operation rule stays visible during the battle
+      $('mutTag').hidden = !mu; $('mutTag').textContent = mu ? mu.name : ''; $('mutTag').title = mu ? mu.desc : '';
+    }
+    el.hidden = false;
+    $('loadBar').style.width = (f * 100).toFixed(0) + '%';
+  }
+  function loaded() { $('loading').hidden = true; }
+  function pause(on) {
+    if (on && GAME.G.phase !== 'play' && GAME.G.phase !== 'countdown') return;
+    GAME.pause(on);
+    SFX.pauseMusic(on);
+    $('pauseOv').hidden = !on;
+    $('btnSurrender').textContent = '항복';
+    $('btnSurrender').classList.remove('warn');
+  }
+
+  // card copies of unlocked cards of the played faction (rarer cards come in smaller stacks)
+  function rollCards(n, bonus, ss) {
+    const a = arena();
+    const pool = DATA.byFaction(save.faction).filter((c) => unlocked(c) && save.cards[c.id]);
+    const picks = new Map();
+    for (let i = 0; i < n && pool.length; i++) {
+      const r = Math.random();
+      let rar = r < 0.04 ? 3 : r < 0.16 ? 2 : r < 0.45 ? 1 : 0;
+      if (ss && i === 0) rar = 3;
+      let cand = pool.filter((c) => c.rarity === rar);
+      if (!cand.length) cand = pool.filter((c) => c.rarity === Math.min(rar, 2));
+      if (!cand.length) cand = pool;
+      const c = cand[Math.floor(Math.random() * cand.length)];
+      const cnt = Math.ceil([3 + Math.random() * 5, 2 + Math.random() * 2, 1 + (Math.random() < 0.3 ? 1 : 0), 1][c.rarity] * (1 + Math.floor(a / 2)) * (bonus || 1));
+      picks.set(c, (picks.get(c) || 0) + cnt);
+    }
+    const out = [...picks.entries()];
+    out.forEach(([c, k]) => { save.cards[c.id].n += k; });
+    return out;
+  }
+  // battle rewards: parts, a supply crate on a win (or loose cards when every crate slot is full)
+  function rollRewards(win, crownsN) {
+    const a = arena();
+    const gold = win ? 20 + a * 8 + crownsN * 5 : 6 + crownsN * 3;
+    let chest = null, picks = [];
+    if (win) {
+      if (!Array.isArray(save.chests)) save.chests = [];
+      if (save.chests.length < 4) {
+        const tot = DATA.CHESTS.reduce((s, c) => s + c.weight, 0);
+        let r = Math.random() * tot;
+        chest = DATA.CHESTS.find((c) => (r -= c.weight) < 0) || DATA.CHESTS[0];
+        save.chests.push({ k: chest.key, t0: null });
+      } else picks = rollCards(3);
+    } else if (crownsN > 0) picks = rollCards(1);
+    return { gold, picks, chest };
+  }
+
+  // ── supply crates ─────────────────────────────────────
+  // crate icons drawn once (an armoured supply case with the rarity colour on its bands and emblem)
+  function crateArt(col) {
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 112;
+    const g = cv.getContext('2d');
+    const box = (x, y, w, h, top, side) => {
+      g.fillStyle = side; g.beginPath(); g.moveTo(x + w, y + 14); g.lineTo(x + w + 18, y); g.lineTo(x + w + 18, y + h - 14); g.lineTo(x + w, y + h); g.fill();
+      g.fillStyle = top; g.beginPath(); g.moveTo(x, y + 14); g.lineTo(x + 18, y); g.lineTo(x + w + 18, y); g.lineTo(x + w, y + 14); g.fill();
+    };
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(64, 104, 54, 7, 0, 0, Math.PI * 2); g.fill();
+    box(12, 44, 88, 58, '#7a8794', '#3c4650');
+    const fg = g.createLinearGradient(0, 58, 0, 102); fg.addColorStop(0, '#5f6b77'); fg.addColorStop(1, '#3a434c');
+    g.fillStyle = fg; g.fillRect(12, 58, 88, 44);
+    box(8, 26, 96, 30, '#9aa7b3', '#4d5862'); // lid
+    g.fillStyle = '#6d7984'; g.fillRect(8, 40, 96, 18);
+    g.fillStyle = col; [[8, 40, 96, 4], [12, 76, 88, 5], [26, 40, 6, 62], [80, 40, 6, 62]].forEach(([x, y, w, h]) => g.fillRect(x, y, w, h));
+    g.shadowColor = col; g.shadowBlur = 12; g.fillStyle = col;
+    g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; g.lineTo(56 + Math.cos(a) * 11, 66 + Math.sin(a) * 11); } g.fill();
+    g.shadowBlur = 0; g.fillStyle = '#fff'; g.beginPath(); g.arc(56, 66, 4, 0, Math.PI * 2); g.fill();
+    return cv.toDataURL();
+  }
+  DATA.CHESTS.forEach((c) => document.documentElement.style.setProperty('--crate-' + c.key, `url(${crateArt(c.color)})`));
+  const CH = Object.fromEntries(DATA.CHESTS.map((c) => [c.key, c]));
+  // remaining unlock seconds (null: not started); a clock moved backwards never stretches it past the full time
+  const chestLeft = (c) => (c.t0 ? Math.min(CH[c.k].time, Math.max(0, CH[c.k].time - (Date.now() - c.t0) / 1000)) : null);
+  const fmtT = (s) => (s >= 60 ? `${Math.floor(s / 60)}분 ${Math.ceil(s % 60)}초` : `${Math.ceil(s)}초`);
+  const rushCost = (left) => Math.max(5, Math.ceil(left / 6)); // parts to finish an unlock now
+  let chestKey = '';
+  function renderChests() {
+    if (!Array.isArray(save.chests)) save.chests = [];
+    const row = $('chestRow');
+    // the slots are rebuilt only when their set changes; the timers update text and classes in place
+    const key = save.chests.map((c) => c.k).join() + '|' + save.chests.length;
+    if (key !== chestKey || row.childElementCount !== 4) {
+      chestKey = key;
+      row.innerHTML = [0, 1, 2, 3].map((i) => {
+        const c = save.chests[i];
+        if (!c) return '<div class="chest empty"><small>빈 슬롯</small></div>';
+        return `<button class="chest ${c.k}" data-i="${i}"><i class="box"></i><b>${esc(CH[c.k].name)}</b><small></small></button>`;
+      }).join('');
+    }
+    const unlocking = save.chests.some((c) => c.t0 && chestLeft(c) > 0);
+    save.chests.forEach((c, i) => {
+      const b = row.children[i], left = chestLeft(c);
+      const st = left === null ? (unlocking ? '대기' : '탭하여 해제') : left > 0 ? `${fmtT(left)} · ⚙${rushCost(left)}` : '열기!';
+      const sm = b.querySelector('small');
+      if (sm.textContent !== st) sm.textContent = st;
+      b.classList.toggle('ready', left === 0);
+      b.classList.toggle('busy', left > 0);
+    });
+  }
+  // reaching a new arena: its art and the cards it opens, shown once on the title
+  function revealArena() {
+    const a = save.pendingReveal;
+    if (a == null || !$('chestOv').hidden) return;
+    save.pendingReveal = null;
+    persist();
+    const A = ARENAS[a];
+    $('chestName').textContent = `ARENA ${a + 1} · ${A.name}`;
+    $('chestBox').className = 'bigbox arena';
+    $('chestBox').style.backgroundImage = `url(${A.bg})`;
+    const cards = DATA.byFaction(save.faction).filter((c) => c.arena === a);
+    const list = $('chestList');
+    list.innerHTML = `<div class="rw"><b>새 카드 해금</b></div>` + cards.map((c) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>${esc(c.name)}</b><em>NEW</em></div>`).join('');
+    list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.5 + k * 0.18) + 's'; });
+    $('chestOv').hidden = false;
+    SFX.play('rankUpSS', 0.6);
+  }
+  function openChest(i) {
+    $('chestBox').style.backgroundImage = '';
+    const c = save.chests[i], d = CH[c.k];
+    save.chests.splice(i, 1);
+    const gold = Math.round(d.gold[0] + Math.random() * (d.gold[1] - d.gold[0])) * (1 + arena() * 0.25) | 0;
+    save.gold += gold;
+    const picks = rollCards(d.cards, 1.4, d.ss);
+    persist();
+    SFX.play('pickSS', 0.7);
+    const ov = $('chestOv');
+    $('chestName').textContent = d.name;
+    $('chestBox').className = 'bigbox ' + c.k;
+    const list = $('chestList');
+    list.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${gold}</b></div>` + picks.map(([cd, n]) => `<div class="rw"><span class="pf r${cd.rarity}" style="background-image:url(${art(cd)})"></span><b>${esc(cd.name)}</b><em>x${n}</em></div>`).join('');
+    list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.7 + k * 0.22) + 's'; setTimeout(() => SFX.play(k ? 'genB' : 'coin', 0.4), 700 + k * 220); });
+    ov.hidden = false;
+    renderTitle();
+  }
+  function result(winner, b, r, stats, reason) {
+    const win = winner === 'blue', draw = winner === 'draw';
+    const G = GAME.G, d = BAL.diffs[G.opts.diff];
+    const a0 = arena();
+    const floor = ARENAS[a0].trophy;
+    let delta = draw ? 0 : win ? Math.round((26 + b * 3) * d.trophy) : -Math.round(18 + a0 * 3);
+    if (!win && save.trophy + delta < floor) delta = floor - save.trophy; // never drop out of a reached arena
+    save.trophy += delta;
+    save.best = Math.max(save.best, save.trophy);
+    if (win) { save.wins++; save.streak++; } else if (draw) save.draws++; else { save.losses++; save.streak = 0; }
+    const rw = rollRewards(win, b);
+    save.gold += rw.gold;
+    const a1 = arena();
+    syncCollection();
+    const el = $('result');
+    el.className = 'screen on ' + (win ? 'win' : draw ? 'draw' : 'lose');
+    $('resTitle').textContent = win ? '승리!' : draw ? '무승부' : '패배';
+    const REASON = { king: '킹 타워 파괴', crowns: '크라운 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
+    $('resReason').textContent = REASON[reason] || '';
+    // the winning side's original cut-scene art behind the result
+    const wf = (win || draw ? G.sides.blue : G.sides.red).faction;
+    el.style.backgroundImage = `linear-gradient(rgba(4,6,10,.5), rgba(4,6,10,.88)), url(assets/bg/win_${wf}.jpg)`;
+    $('resHero').style.backgroundImage = `url(${IMG[FACTIONS[(win || draw ? G.sides.blue : G.sides.red).faction].banner]})`;
+    $('resCrowns').innerHTML = `<div class="rc blue"><small>${FACTIONS[G.sides.blue.faction].name}</small><span>${[0, 1, 2].map((i) => `<i class="${i < b ? 'on' : ''}"></i>`).join('')}</span></div>
+      <div class="rc red"><small>${esc(foe ? foe.name : FACTIONS[G.sides.red.faction].name)}</small><span>${[0, 1, 2].map((i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</span></div>`;
+    $('resTrophy').innerHTML = `<i class="tro"></i>${save.trophy} <em class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${delta}</em>`;
+    const s = stats.blue;
+    $('resStats').innerHTML = `<div><b>${Math.round(s.dmg).toLocaleString()}</b><small>입힌 피해</small></div><div><b>${s.kills}</b><small>처치</small></div><div><b>${s.spent}</b><small>사용 에너지</small></div><div><b>${s.wasted.toFixed(1)}</b><small>낭비 에너지</small></div>`;
+    // how the battle went: tower falls, champion skills, energy phases
+    const lg = stats.log || [];
+    $('resLog').hidden = !lg.length;
+    $('resLog').innerHTML = lg.map(([t, line, sd]) => `<div class="${sd}"><em>${t}</em>${esc(line)}</div>`).join('');
+    const mvp = Object.entries(s.by || {}).sort((x, y) => y[1] - x[1])[0];
+    $('resMvp').hidden = !mvp;
+    if (mvp && CARD[mvp[0]]) $('resMvp').innerHTML = `<span class="pf" style="background-image:url(${art(CARD[mvp[0]])})"></span><div><small>MVP</small><b>${esc(CARD[mvp[0]].name)}</b><em>피해 ${Math.round(mvp[1]).toLocaleString()}</em></div>`;
+    // damage by card: who carried the battle (top five, against the MVP's bar)
+    const top = Object.entries(s.by || {}).filter(([id]) => CARD[id]).sort((x, y) => y[1] - x[1]).slice(0, 5);
+    $('resChart').hidden = top.length < 2;
+    $('resChart').innerHTML = top.map(([id, v]) => `<div class="bar"><span>${esc(CARD[id].name)}</span><i style="--w:${(v / top[0][1] * 100).toFixed(0)}%"></i><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
+    const rwEl = $('resReward');
+    rwEl.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${rw.gold}</b></div>` + (rw.chest ? `<div class="rw"><span class="chest-i ${rw.chest.key}"></span><b>${esc(rw.chest.name)}</b></div>` : '') + rw.picks.map(([c, n]) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>x${n}</b></div>`).join('');
+    rwEl.querySelectorAll('.rw').forEach((x, i) => { x.style.animationDelay = (0.5 + i * 0.25) + 's'; });
+    const mDone = progressMissions(win, b, s, G.opts);
+    const notes = [];
+    if (a1 > a0) save.pendingReveal = a1;
+    if (a1 > a0) { notes.push(`<b>새 아레나 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => SFX.play('rankUpSS', 0.6), 900); }
+    if (mDone) notes.push(`<b>임무 완료 ${mDone}개!</b> 메인 화면에서 보상을 받으세요`);
+    if (win && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
+    // the day's first win pays a bonus (parts and a handful of cards)
+    const today = new Date().toDateString();
+    if (win && save.firstWin !== today) {
+      save.firstWin = today;
+      const bg = 80 + arena() * 30;
+      save.gold += bg;
+      const bp = rollCards(3, 1.5);
+      notes.push(`<b>오늘의 첫 승리 보너스!</b> 부품 +${bg} · ${bp.map(([c, n]) => `${esc(c.name)} x${n}`).join(', ')}`);
+      setTimeout(() => SFX.play('pickSS', 0.6), 1200);
+    }
+    // the daily operation: its first clear of the day pays a crate, and clearing on consecutive days grows the parts bonus
+    const day = DATA.dayIndex();
+    if (win && G.opts.mode === 3 && save.opDay !== day) {
+      save.opStreak = save.opDay === day - 1 ? save.opStreak + 1 : 1;
+      save.opDay = day;
+      const og = 100 + 40 * Math.min(save.opStreak, 5);
+      save.gold += og;
+      const crate = save.chests.length < 4 ? (save.opStreak >= 3 ? 'epic' : 'rare') : null;
+      if (crate) save.chests.push({ k: crate, t0: null });
+      notes.push(`<b>오늘의 작전 완수! (${save.opStreak}일 연속)</b> 부품 +${og}${crate ? ' · ' + esc(CH[crate].name) : ' · 상자 슬롯이 가득 차 상자는 받지 못했습니다'}`);
+    }
+    $('resArena').hidden = !notes.length;
+    $('resArena').innerHTML = notes.join('<br>');
+    if (win) setTimeout(() => SFX.play('coin', 0.6), 700);
+    persist();
+  }
+
+  function fatal(msg) { const el = $('fatal'); el.hidden = false; el.querySelector('p').textContent = msg; }
+
+  // settings
+  function openSettings() {
+    $('setMusic').value = save.music;
+    $('setSfx').value = save.sfx;
+    $('setQuality').value = save.autoQuality ? 'auto' : String(save.quality == null ? GAME.perf.level : save.quality);
+    $('setInfo').textContent = `현재 품질: ${GAME.QUALITY[GAME.perf.level].name} · 최근 FPS ${GAME.perf.fps || '-'} · 버전 1.4`;
+    $('settingsOv').hidden = false;
+  }
+  function applyAudio() { SFX.setVolume('bgm', save.music); SFX.setVolume('sfx', save.sfx); SFX.setMuted(save.music === 0 && save.sfx === 0); }
+
+  // tutorial
+  const TUT = [
+    ['c_BR_Brownie_N', '카드 배치', '아래 카드를 전장으로 드래그하거나, 카드를 누른 뒤 아군 진영을 누르면 유닛이 출격합니다. 카드마다 에너지가 필요합니다.'],
+    ['c_BR_Leprechaun_N', '에너지', '에너지는 2.8초마다 1씩 차고 최대 10까지 모입니다. 가득 찬 채로 두면 낭비! 남은 1분은 2배로 찹니다.'],
+    ['c_PECS_Empress_N', '타워 공략', '적 프린세스 타워를 부수면 크라운 1개. 킹 타워를 부수면 즉시 승리합니다. 건물만 노리는 유닛으로 압박하세요.'],
+    ['c_BR_Leprechaun_N', '건물과 주문', '건물은 아군 진영에만 지을 수 있고 시간이 지나면 무너집니다. 포탑·방벽은 건물만 노리는 적을 끌어당기고, 기지는 유닛을 계속 보냅니다. 주문은 전장 어디에나 쓸 수 있습니다.'],
+    ['c_3P_Labiata_N', '챔피언 스킬', 'SS 등급 챔피언이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요!'],
+  ];
+  let tutI = 0;
+  function showTut(i) {
+    tutI = i;
+    const [img, h, p] = TUT[i];
+    $('tutPf').style.backgroundImage = `url(${IMG[img]})`;
+    $('tutH').textContent = h; $('tutP').textContent = p;
+    $('tutDots').innerHTML = TUT.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
+    $('tutNext').textContent = i === TUT.length - 1 ? '전투 시작!' : '다음';
+    $('tutOv').hidden = false;
+  }
+
+  // ── wiring ────────────────────────────────────────────
+  function startBattle() {
+    if (save.decks[save.faction].length !== 8) { toast('덱은 8장이어야 합니다'); return; }
+    if (!save.tutorial) { showTut(0); return; }
+    SFX.play('click');
+    $('result').className = 'screen';
+    show('battle');
+    handKey = ''; lastEl = -1; lastClock = ''; skillKey = ''; prevHand = [];
+    $('skillBar').innerHTML = '';
+    $('emotePanel').hidden = true;
+    document.querySelectorAll('.bubble,.skcut,.flycrown').forEach((x) => x.remove());
+    const levels = {};
+    save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
+    DATA.CARDS.forEach((c) => { if (!(c.id in levels) && save.cards[c.id]) levels[c.id] = save.cards[c.id].lv; });
+    const ff = foeFaction({ faction: save.faction, mode: save.mode }), cs = DATA.COMMANDERS[ff];
+    GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] });
+  }
+  function init() {
+    syncCollection();
+    applyAudio();
+    if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${IMG.bg_title})`);
+    $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; persist(); SFX.play('click'); renderTitle(); });
+    $('diffSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.diff = +b.dataset.d; persist(); SFX.play('click'); renderTitle(); });
+    $('modeSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.mode = +b.dataset.m; persist(); SFX.play('click'); renderTitle(); toast(save.mode === 3 ? `오늘의 작전: ${DATA.mutatorOf().name} — ${DATA.mutatorOf().desc}` : BAL.modes[save.mode].desc); });
+    document.querySelectorAll('#factionSel button').forEach((b) => { b.querySelector('.fp').style.backgroundImage = `url(${IMG[FACTIONS[b.dataset.f].banner]})`; });
+    $('btnBattle').onclick = startBattle;
+    $('btnDeck').onclick = () => { SFX.play('click'); deckSel = null; swapMode = false; renderDeck(); show('deck'); };
+    $('btnDeckDone').onclick = () => { SFX.play('click'); renderTitle(); show('title'); };
+    $('btnDeckReset').onclick = () => { save.decks[save.faction] = FACTIONS[save.faction].deck.slice(); persist(); deckSel = null; swapMode = false; renderDeck(); };
+    $('btnSettings').onclick = () => { SFX.play('click'); openSettings(); };
+    $('chestRow').addEventListener('click', (e) => {
+      const b = e.target.closest('button.chest'); if (!b) return;
+      const i = +b.dataset.i, c = save.chests[i]; if (!c) return;
+      const left = chestLeft(c);
+      if (left === 0) { openChest(i); return; }
+      if (left > 0) {
+        // second tap within 3 s spends parts to finish now
+        const cost = rushCost(left);
+        if (b.dataset.rush && Date.now() - +b.dataset.rush < 3000) {
+          if (save.gold < cost) { toast('부품이 부족합니다'); SFX.play('fail', 0.4); return; }
+          save.gold -= cost; c.t0 = Date.now() - CH[c.k].time * 1000; persist(); SFX.play('purchase', 0.6); renderTitle(); return;
+        }
+        b.dataset.rush = Date.now();
+        toast(`해제까지 ${fmtT(left)} — 한 번 더 누르면 부품 ${cost}개로 즉시 해제`);
+        return;
+      }
+      if (save.chests.some((x) => x.t0 && chestLeft(x) > 0)) { toast('다른 상자를 해제하는 중입니다'); return; }
+      c.t0 = Date.now(); persist(); SFX.play('reinforce', 0.6); renderChests();
+    });
+    $('btnChestClose').onclick = () => { $('chestOv').hidden = true; renderTitle(); };
+    setInterval(() => { if ($('title').classList.contains('on')) renderChests(); }, 1000);
+    // the trophy road screen: claimed / ready / locked milestones around the current count
+    const renderRoad = () => {
+      const near = DATA.ROAD.filter((r) => r.trophy >= Math.min(save.road || 0, save.trophy) - 200).slice(0, 12);
+      $('roadList').innerHTML = near.map((r) => {
+        const st = r.trophy <= (save.road || 0) ? 'got' : r.trophy <= save.trophy ? 'ready' : 'lock';
+        const what = r.chest ? `<i class="chest-i ${r.chest}"></i>${esc(CH[r.chest].name)}` : `<i class="gold-i"></i>부품 ${r.gold}`;
+        return `<div class="rd ${st}"><b>${r.trophy}</b><span>${what}</span><em>${st === 'got' ? '✓ 받음' : st === 'ready' ? '받기 가능' : '잠김'}</em></div>`;
+      }).join('');
+      const ready = DATA.ROAD.some((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
+      $('btnRoadClaim').disabled = !ready;
+      const cur = $('roadList').querySelector('.ready, .lock');
+      if (cur) cur.scrollIntoView({ block: 'center' });
+    };
+    $('arenaName').onclick = $('roadNext').onclick = () => { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); }; // shown first: scrollIntoView needs layout
+    $('btnRoadClose').onclick = () => { $('roadOv').hidden = true; renderTitle(); };
+    $('roadBtn').onclick = () => { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); };
+    $('btnRoadClaim').onclick = () => {
+      const road = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
+      let gold = 0, crates = 0;
+      let full = false;
+      for (const r of road) {
+        if (r.chest) { if (save.chests.length >= 4) { full = true; break; } save.chests.push({ k: r.chest, t0: null }); crates++; } // a crate waits for a free slot
+        else gold += r.gold;
+        save.road = r.trophy;
+      }
+      if (!gold && !crates) { toast('상자 슬롯이 가득 찼습니다 — 상자를 열고 다시 받으세요'); SFX.play('fail', 0.4); renderRoad(); return; }
+      if (full) setTimeout(() => toast('상자 슬롯이 가득 찼습니다 — 상자를 열고 다시 받으세요'), 1500);
+      save.gold += gold;
+      persist();
+      SFX.play('pickSS', 0.6);
+      toast(`트로피 로드 보상: ${gold ? '부품 +' + gold : ''}${gold && crates ? ' · ' : ''}${crates ? '상자 ' + crates + '개' : ''}`);
+      renderRoad();
+    };
+    $('btnMissions').onclick = () => { SFX.play('click'); renderMissions(); $('missionOv').hidden = false; };
+    $('btnMClose').onclick = () => { $('missionOv').hidden = true; renderTitle(); };
+    $('missionList').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b || b.disabled) return;
+      const m = save.missions[+b.dataset.i];
+      if (!m || m.prog < MDEF[m.k].goal) return;
+      save.gold += MDEF[m.k].gold;
+      save.lastMission = m.k;
+      save.missions.splice(+b.dataset.i, 1);
+      ensureMissions();
+      persist();
+      SFX.play('coin', 0.8);
+      renderMissions();
+      toast(`부품 +${MDEF[m.k].gold}`);
+    });
+    $('btnHelp').onclick = () => { SFX.play('click'); showTut(0); };
+    $('btnSetClose').onclick = () => { $('settingsOv').hidden = true; };
+    $('setMusic').oninput = (e) => { save.music = +e.target.value; applyAudio(); persist(); };
+    $('setSfx').oninput = (e) => { save.sfx = +e.target.value; applyAudio(); persist(); SFX.play('click'); };
+    $('setQuality').onchange = (e) => {
+      const v = e.target.value;
+      save.autoQuality = v === 'auto';
+      save.quality = v === 'auto' ? null : +v;
+      GAME.setQuality(v === 'auto' ? GAME.autoLevel : +v);
+      persist();
+    };
+    $('btnReset').onclick = () => {
+      if (!confirm('모든 진행(트로피·카드·골드)을 초기화할까요?')) return;
+      try { localStorage.removeItem(KEY); localStorage.removeItem('lastroyal.v1'); } catch (e) { /* ignore */ }
+      location.reload();
+    };
+    $('tutNext').onclick = () => {
+      SFX.play('click');
+      if (tutI < TUT.length - 1) { showTut(tutI + 1); return; }
+      $('tutOv').hidden = true;
+      if (!save.tutorial) { save.tutorial = true; persist(); startBattle(); }
+    };
+    $('tutSkip').onclick = () => { $('tutOv').hidden = true; if (!save.tutorial) { save.tutorial = true; persist(); startBattle(); } };
+    $('btnPause').onclick = () => pause(true);
+    $('btnResume').onclick = () => pause(false);
+    $('btnPauseSet').onclick = () => openSettings();
+    $('btnSurrender').onclick = () => {
+      const b = $('btnSurrender');
+      if (!b.classList.contains('warn')) { b.classList.add('warn'); b.textContent = '정말 항복?'; return; } // second tap confirms
+      $('pauseOv').hidden = true; SFX.pauseMusic(false); GAME.surrender();
+    };
+    $('btnLoadCancel').onclick = () => { GAME.leave(); $('loading').hidden = true; renderTitle(); show('title'); };
+    $('btnAgain').onclick = startBattle;
+    $('btnHome').onclick = () => { $('result').className = 'screen'; GAME.leave(); renderTitle(); show('title'); };
+    $('btnEmote').onclick = (e) => { e.stopPropagation(); const p = $('emotePanel'); p.hidden = !p.hidden; };
+    const ep = $('emotePanel');
+    ep.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      emote('blue', +b.dataset.i); ep.hidden = true;
+      if (Math.random() < 0.35) setTimeout(() => { if (GAME.G.phase === 'play') emote('red', Math.floor(Math.random() * 4)); }, 900);
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
+    window.addEventListener('pointerdown', function unlock() { SFX.music(GAME.G.phase === 'title' ? 'title' : null); window.removeEventListener('pointerdown', unlock); }, { once: true });
+    renderTitle();
+    show('title');
+    GAME.boot();
+    const bootEl = $('boot');
+    if (bootEl) { bootEl.classList.add('out'); setTimeout(() => bootEl.remove(), 500); }
+  }
+
+  // emote panel content depends on the battle's faction (filled when the button is first touched)
+  document.addEventListener('pointerdown', (e) => {
+    if (e.target.id === 'btnEmote' || e.target.closest && e.target.closest('#btnEmote')) {
+      const G = GAME.G; if (!G.sides) return;
+      $('emotePanel').innerHTML = FACTIONS[G.sides.blue.faction].emotes.map(([img, t], i) => `<button data-i="${i}"><span class="pf" style="background-image:url(${IMG[img]})"></span>${esc(t)}</button>`).join('');
+    } else if (!e.target.closest || !e.target.closest('#emotePanel')) { const p = $('emotePanel'); if (p) p.hidden = true; }
+  }, true);
+
+  window.UI = { _sync: () => syncCollection(), init, dmgNum, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal };
+  window.addEventListener('DOMContentLoaded', init);
+})();
