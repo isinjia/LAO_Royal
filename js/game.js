@@ -1058,8 +1058,10 @@
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
     FX.particle({ x, y, life: 0.08, size: 0.2, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.6 }); // a short star flash
     FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
+    // streaks carry on along the shot: the hit reads as coming from the shooter
+    { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 7, life: rnd(0.1, 0.18), size: 0.16, size1: 0.05, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 0.95 }); } }
     if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
-    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.75 * big)) return;
+    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.55 * big)) return; // the original hit effect, kept small so it does not smear over the target
     FX.hit(x, y, a.color, 0.6);
   }
 
