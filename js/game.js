@@ -407,7 +407,7 @@
     cannon: 'RPG_skill2_hit', bomb: 'Sleipnir_hit', frost: 'Undine_skill1_Hit', laser: 'Constantia_hit', lightning: '', wave: '', flame: '',
   };
   const SPELL_FX = { fireball: ['RPG_skill2_hit', 'simple_explosion'], zap: ['Raven_skill1_Hit'], freeze: ['Titania_skill1_Ground_ice', 'Titania_skill1_Ground_ice_smoke'] };
-  const SKILL_FX = { nova: 'RPG_skill2_hit', barrage: 'simple_explosion', storm: 'Raven_skill1_Hit', laser: 'Constantia_hit', dash: 'valkyrie_Hit_skill2', summon: 'skill_hit_simple', shield: '', haste: '' };
+  const SKILL_FX = { nova: 'RPG_skill2_hit', barrage: 'simple_explosion', storm: 'Raven_skill1_Hit', laser: 'Constantia_hit', dash: 'valkyrie_Hit_skill2', summon: 'skill_hit_simple', shield: 'Thetis_Skill2_Chaff_Hit', haste: 'Kunoichi_skill2_after_Lighting' };
   // the champion's own skill effect from the original skill clip (an effect event, else its projectile's hit)
   const skillFxCache = {};
   function skillFxFor(rig) {
@@ -1201,6 +1201,7 @@
     if (sk.kind === 'barrage') {
       put(aimMarks[0], x, z, sk.radius * 1.5, 0.9); put(aimMarks[1], x, z, sk.radius * 1.4, 0.3);
       for (let i = 2; i <= 8; i++) aimMarks[i].alpha = 0;
+      aimMarks[0].color = sk.color;
       return;
     }
     const dx = x - u.x, dz = z - u.z, Ln = Math.hypot(dx, dz) || 1, reach = sk.kind === 'laser' ? sk.reach : dashPath(u, x, z)[2];
@@ -1210,7 +1211,20 @@
     for (let i = 2; i <= 7; i++) { const f = (i - 1) / 6; put(aimMarks[i], u.x + dx / Ln * reach * f, u.z + dz / Ln * reach * f, w * 0.35, 0.7); }
     put(aimMarks[0], u.x + dx / Ln * reach, u.z + dz / Ln * reach, (sk.width || sk.radius) * 1.1, 0.9); // where it ends
     put(aimMarks[8], x, z, 0.3, sk.kind === 'dash' && Ln - reach > 1.3 ? 0.4 : 0);
+    // a dash cut short by the chasm ends in a red ring (cut short by its range: the skill colour)
+    aimMarks[0].color = sk.kind === 'dash' && reach + 0.3 < Math.min(sk.dist, Math.max(0, Ln - 1)) ? 0xff5050 : sk.color;
   }
+  // status tint toward its target: a hit flash snaps on, everything else eases (freeze / stun / shield read smoothly)
+  function tintTo(e, tk, dt) {
+    const T = TINTS[tk];
+    if (!e.tintC) { e.tintC = T.slice(); e.sd.setTint(T[0], T[1], T[2]); e.tintK = tk; return; } // first frame: written once (a pooled rig may carry an old tint)
+    const c = e.tintC, k = tk === 2 ? 1 : Math.min(1, dt * 12);
+    let ch = false;
+    for (let i = 0; i < 3; i++) { if (c[i] === T[i]) continue; const v = Math.abs(T[i] - c[i]) < 0.01 ? T[i] : c[i] + (T[i] - c[i]) * k; c[i] = v; ch = true; }
+    if (ch) e.sd.setTint(c[0], c[1], c[2]);
+    e.tintK = tk;
+  }
+  function sparkle(e, dt, emit) { e.spkT = (e.spkT || 0) - dt; let n = 0; while (e.spkT <= 0 && n++ < 2) { emit(); e.spkT += 0.055; } if (e.spkT < 0) e.spkT = 0; }
   // a champion skill landing: a beat of hit-stop, a camera punch and a colour flash (lighter for the opponent's)
   function impact(u, x, z, color) {
     const k = u.side === 'blue' ? 1 : 0.5;
@@ -1266,7 +1280,7 @@
             const y = z * TILT;
             if (sk.pillar) { FX.pillar(x, y, 0.6, sk.color); spawnStatic('Azazel_skill1_Hit_m', x, y + 0.3, 0.2); }
             else FX.meteor(x, y, null, sk.color);
-            FX.later(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { spawnStatic('simple_explosion', x, y + 0.3, 0.22 * rnd(0.85, 1.2)); scorch(x, y, sk.radius * 0.5); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
+            FX.later(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { const bk = rnd(0.85, 1.2); spawnStatic('simple_explosion', x, y + 0.3, 0.22 * bk); scorch(x, y, sk.radius * 0.5 * bk); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
           });
         }
         break;
@@ -1338,13 +1352,14 @@
           const tr = spawnTroop(side, c, clamp(u.x + Math.cos(a) * 1.3, -8.6, 8.6), clamp(u.z + Math.sin(a) * 1.3, -15.6, 15.6), i * 0.06, u.lv);
           tr.deployT = tr.deploy0 = 0.4 + i * 0.06;
           tr.elev = 0; tr.dropT = 0;
+          FX.later(tr.deployT * 0.6, () => { if (!tr.alive) return; FX.particle({ x: tr.x, y: tr.z * TILT + 0.4, life: 0.25, size: 0.4, size1: 1.6, color: sk.color, tex: FX.tex.glow, alpha: 0.8 }); FX.groundRing(tr.x, tr.z * TILT, 0.2, 1, sk.color, 0.3, 0.8); }); // each summon lands with a flash
         }
         FX.summonBurst(u.x, y0 + 0.3, 3, sk.color);
         SFX.play('genA', 0.5);
         break;
       }
-      case 'shield': u.shieldT = sk.dur; FX.groundRing(u.x, y0, 0.5, 2, sk.color, 0.6); SFX.play('reinforce'); break;
-      case 'haste': u.hasteT = sk.dur; u.hasteK = sk.k; u.hasteColor = sk.color; FX.groundRing(u.x, y0, 0.5, 2, sk.color, 0.6); SFX.play('reinforce'); break;
+      case 'shield': u.shieldT = sk.dur; FX.groundRing(u.x, y0, 0.5, 2, sk.color, 0.6); spawnStatic(SKILL_FX.shield, u.x, y0 + u.bodyH * 0.5, 0.35); SFX.play('reinforce'); break;
+      case 'haste': u.hasteT = sk.dur; u.hasteK = sk.k; u.hasteColor = sk.color; FX.groundRing(u.x, y0, 0.5, 2, sk.color, 0.6); spawnStatic(SKILL_FX.haste, u.x, y0 + u.bodyH * 0.4, 0.35); SFX.play('reinforce'); break;
     }
   }
 
@@ -1691,6 +1706,7 @@
     if (G.phase !== 'play') return;
     G.phase = 'ended';
     G.result = winner;
+    for (const e of G.ents) { e.hitT = 0; e.shieldT = 0; e.hasteT = 0; } // nothing stays mid-flash in the final frame
     G.endT = 0;
     deselect();
     for (const e of G.ents) {
@@ -1712,7 +1728,7 @@
   // ── AI ────────────────────────────────────────────────
   function aiEmote(i, chance, atEnd) {
     const S = G.sides && G.sides.red;
-    if (!S || !S.ai || Math.random() > chance || G.time - (S.ai.emoteT || -99) < 6) return;
+    if (!S || !S.ai || Math.random() > chance || (!atEnd && G.time - (S.ai.emoteT || -99) < 6)) return; // the end-of-match taunt always gets its turn
     S.ai.emoteT = G.time;
     FX.later(0.4 + Math.random() * 0.6, () => UI.emote('red', i, atEnd)); // on the game clock: a pause holds it back
   }
@@ -1774,6 +1790,12 @@
     for (const o of list) { if (ground && o.air) continue; const n = lineCount(u, o.x, o.z, ground ? dashPath(u, o.x, o.z)[2] + 1 : reach, w, list, ground); if (!best || n > best[2]) best = [o.x, o.z, n]; }
     return best;
   }
+  // a tower or a heavy hitter has this unit in its sights (worth a shield before the damage lands)
+  function underFire(u) {
+    for (const t of G.sides[other(u.side)].towers) if (t.alive && t.target === u) return true;
+    for (const o of (G.troops ? G.troops[other(u.side)] : [])) if (o.alive && o.target === u && o.atk && o.atk.dmg >= 300) return true;
+    return false;
+  }
   function aiSkills(S) {
     for (const u of G.ents) {
       if (u.side !== 'red' || u.kind !== 'troop' || !skillReady(u)) continue;
@@ -1795,7 +1817,7 @@
       const combo = sharp && (sk.kind === 'nova' || sk.kind === 'barrage' || sk.kind === 'storm') && enemiesNear('red', u.x, u.z, sk.kind === 'nova' ? sk.radius : sk.reach || 4, true).some((o) => o.freezeT > 0 || o.stunT > 0);
       const need = sharp && (sk.kind === 'nova' || sk.kind === 'storm' || sk.kind === 'barrage') && u.z > 2 && !atTower ? 3 : 2;
       if (sk.kind === 'barrage') { const L0 = enemiesNear('red', u.x, u.z, sk.reach, true); near = 0; for (const a of L0) { let s = 0; for (const b of L0) if (Math.hypot(a.x - b.x, a.z - b.z) <= sk.radius * 1.5) s++; if (s > near) near = s; } } // the densest cluster a blast can catch
-      if (combo || near >= need || atTower || (sk.kind === 'haste' && u.z < 6) || (sk.kind === 'shield' && u.hp < u.max * 0.6)) { useSkill(u, spot); return true; }
+      if (combo || near >= need || atTower || (sk.kind === 'haste' && u.z < 6) || (sk.kind === 'shield' && (u.hp < u.max * 0.6 || underFire(u)))) { useSkill(u, spot); return true; }
     }
     return false;
   }
@@ -1813,7 +1835,7 @@
     const smart = Math.random() < ai.diff.smart;
     const blueT = G.sides.blue.towers.filter((t) => t.alive);
     // finish a weak tower with a spell
-    for (const o of hand) {
+    for (const o of hand.slice().sort((a, b) => a.c.cost - b.c.cost)) { // the cheapest spell that finishes it
       if (o.c.type !== 'spell' || !o.c.dmg) continue;
       const t = blueT.find((tt) => tt.hp <= o.c.dmg * (o.c.spell === 'zone' ? o.c.dur || 1 : 1) * LEVEL.mult(S.lvl) * (o.c.towerK || 0.35)); // a zone burns dps x duration
       if (t && smart) { playCard('red', o.i, t.x, t.z); return; }
@@ -1945,7 +1967,7 @@
           if (e.alive) {
             // status tint, written to the materials only when it changes
             const tk = e.freezeT > 0 ? 1 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.shieldT > 0 ? 4 : e.hasteT > 0 ? 5 : 0;
-            if (e.tintK !== tk) { e.tintK = tk; e.sd.setTint(...TINTS[tk]); }
+            tintTo(e, tk, dt);
           }
         }
         e.shadow.x = e.disc.x = e.glow.x = e.x; e.shadow.y = e.disc.y = e.glow.y = e.z * TILT;
@@ -1958,7 +1980,7 @@
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
           } else hideBar(e.bar);
-          if ((e.shieldT > 0 || e.hasteT > 0) && (e.spkT = (e.spkT || 0) - dt) <= 0 && (e.spkT = 0.055)) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot });
+          if (e.shieldT > 0 || e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
           // your champion's skill is ready: a pulsing ring at its feet points to the button
           if (e.side === 'blue' && e.card.skill && (e.readyT = (e.readyT || 0) - dt) <= 0 && skillReady(e) && G.sides.blue.elixir >= skillCost(e)) {
             e.readyT = 0.7;
@@ -1973,13 +1995,13 @@
         if (e.sd) {
           e.sd.setOrder(e.base.renderOrder + 0.5);
           if (e.alive && e.active) {
-            const tk = e.freezeT > 0 ? 1 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.hasteT > 0 ? 5 : 0; // cached like the troops'
-            if (e.tintK !== tk) { e.tintK = tk; e.sd.setTint(...TINTS[tk]); }
+            const tk = e.freezeT > 0 ? 1 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.hasteT > 0 ? 5 : 0;
+            tintTo(e, tk, dt);
           }
-          if (e.hasteT > 0 && (e.spkT = (e.spkT || 0) - dt) <= 0 && (e.spkT = 0.055)) FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 1.2), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.hasteColor || 0xd65cff, tex: FX.tex.dot });
+          if (e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 1.2), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
         }
-        const hb = 1 + 0.25 * clamp(e.hitT / 0.1, 0, 1); // eases back from the hit flash
-        if (Math.abs((e.baseB || 1) - hb) > 0.01) { e.baseB = hb; e.base.material.color.setScalar(hb); }
+        const hb = e.hitT > 0 ? 1 + 0.25 * clamp(e.hitT / 0.1, 0, 1) : 1; // eases back from the hit flash, then exactly 1
+        if (hb === 1 ? e.baseB !== 1 && e.baseB != null : Math.abs((e.baseB || 1) - hb) > 0.01) { e.baseB = hb; e.base.material.color.setScalar(hb); }
         e.dmgT = (e.dmgT || 0) - dt;
         if (e.dmgAcc >= 1 && e.dmgT <= 0) {
           e.dmgT = 0.35;
@@ -2607,7 +2629,7 @@
     _toScreen: (x, y) => toScreen(x, y),
     autoSpot(u) { const sk = u.card.skill, tg = u.target && u.target.alive ? u.target : null; const a = sk.kind === 'barrage' ? bestSpot(u, sk.reach, sk.radius * 1.5) : (sk.kind === 'laser' ? tg || nearestTower(u) : dashTarget(u)); return a ? (Array.isArray(a) ? { x: a[0], z: a[1] } : { x: a.x, z: a.z }) : null; },
     clientToField(cx, cy) { const r = stageEl.getBoundingClientRect(); if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null; return toField(cx - r.left, cy - r.top); },
-    aimable: (u) => !!AIMABLE[u.card.skill.kind], aimPreview, aimHide,
+    aimable: (u) => !!AIMABLE[u.card.skill.kind], aimPreview, aimHide, aiEmote: (i, chance) => aiEmote(i, chance),
     _tickFx(dt) { updateProjs(dt); FX.update(dt); render(0); },
     _run(sec) {
       if (G.phase === 'countdown') { G.phase = 'play'; UI.countdown(0); }

@@ -404,6 +404,8 @@
       const deg = Math.round(st.cd / st.cdMax * 72) * 5, ready = st.ready && e >= st.cost;
       if (b._deg !== deg) { b._deg = deg; b.style.setProperty('--cd', deg + 'deg'); }
       if (b._ready !== ready) { b._ready = ready; b.classList.toggle('ready', ready); if (ready) SFX.play('charge', 0.25); }
+      const why = !u.alive ? '' : u.stunT > 0 || u.freezeT > 0 ? 'stun' : u.casting > 0 ? 'cast' : u.deployT > 0 ? 'deploy' : st.cd <= 0 && e < st.cost ? 'poor' : ''; // why it is not ready, shown on the button itself
+      if (b._why !== why) { b._why = why; b.dataset.why = why; }
     }
   }
   function crowns() {
@@ -472,7 +474,7 @@
   }
   function emote(side, i, atEnd) {
     const G = GAME.G;
-    if (!G.sides || (G.phase !== 'play' && !(atEnd && G.phase === 'ended'))) return; // only in play (the victory taunt excepted)
+    if (!G.sides || G.paused || (G.phase !== 'play' && !(atEnd && G.phase === 'ended'))) return; // only in play (the victory taunt excepted), never over the pause menu
     const f = FACTIONS[G.sides[side].faction], em = f.emotes[i];
     if (!em) return;
     const old = document.querySelector('.bubble.' + side);
@@ -950,7 +952,7 @@
     ep.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       emote('blue', +b.dataset.i); ep.hidden = true;
-      if (Math.random() < 0.35) setTimeout(() => { if (GAME.G.phase === 'play') emote('red', Math.floor(Math.random() * 4)); }, 900);
+      GAME.aiEmote(Math.floor(Math.random() * 4), 0.35); // the opponent answers on the game clock and its own chatter cooldown
     });
     document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
     window.addEventListener('pointerdown', function unlock() { SFX.music(GAME.G.phase === 'title' ? 'title' : null); window.removeEventListener('pointerdown', unlock); }, { once: true });
