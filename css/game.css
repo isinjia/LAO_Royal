@@ -297,9 +297,9 @@ button:disabled { cursor: default; }
 .ebar .ticks { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(0,0,0,.6) calc(10% - 2px) 10%); }
 #dragCard.cancel { opacity: .5; filter: grayscale(1); }
 #dragCard.cancel::after { content: '취소'; position: absolute; left: 50%; top: 40%; transform: translateX(-50%); font-size: 13px; font-weight: 700; color: #fff; background: rgba(200,40,60,.9); padding: 2px 8px; border-radius: 6px; }
-.dmgn { position: absolute; transform: translate(-50%, -50%); font: 900 italic 14px var(--en-font); color: #ffe0e3; text-shadow: 0 1px 2px #000, 0 0 4px #000; pointer-events: none; animation: dmgUp .9s ease-out forwards; }
+.dmgn { position: absolute; transform: translate(-50%, -50%); font: 900 italic 17px var(--en-font); color: #ffe0e3; text-shadow: 0 1px 2px #000, 0 0 4px #000, 0 0 2px #000; pointer-events: none; animation: dmgUp .9s ease-out forwards; }
 .dmgn.blue { color: #d8efff; }
-.dmgn.big { font-size: 19px; color: #ffd36e; }
+.dmgn.big { font-size: 23px; color: #ffd36e; }
 @keyframes dmgUp { 0% { opacity: 0; transform: translate(-50%, -20%) scale(1.5); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -180%); } }
 #dragCard { position: fixed; left: 0; top: 0; z-index: 50; width: 76px; margin: -50px 0 0 -38px; pointer-events: none; opacity: .9; }
 

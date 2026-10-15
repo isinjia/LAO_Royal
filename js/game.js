@@ -3,7 +3,7 @@
 // x / y plane with y = z * TILT (+ height): characters stand upright on the tilted floor.
 (function () {
   const { BAL, FACTIONS, ARENAS, LEVEL, card: CARD } = DATA;
-  const TILT = 0.52;        // floor squash: a flatter view lets the 18 x 32 arena fill the whole column width
+  const TILT = 0.47;        // floor squash: a flatter view lets the 18 x 32 arena fill the whole column width
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
@@ -45,7 +45,7 @@
   const perf = { level: MOBILE ? 1 : 0, acc: 0, n: 0, slow: 0, fps: 60, work: 0 };
 
   // ── textures ──────────────────────────────────────────
-  const FX_ = { x0: -10.5, x1: 10.5, z0: -17.5, z1: 17.5, P: 36 };
+  const FX_ = { x0: -10.5, x1: 10.5, z0: -17.5, z1: 26, P: 36 }; // z1 reaches past the far wall: the band above the arena is the bunker's back wall
   function fieldCanvas(ar) {
     const { x0, x1, z0, z1, P } = FX_;
     const cv = document.createElement('canvas');
@@ -70,22 +70,20 @@
       g.fillStyle = 'rgba(0,0,0,' + (ar.floorDim || 0.18) + ')'; g.fillRect(fx0, fy0, tw, H);
       // strong side identity: cool blue-grey steel at home, rusted red plating across the chasm
       g.save(); g.globalCompositeOperation = 'color';
-      g.fillStyle = 'rgba(70,120,175,0.12)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(165,70,55,0.12)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.fillStyle = 'rgba(70,120,175,0.2)'; g.fillRect(fx0, Y(0), tw, 16 * P);
+      g.fillStyle = 'rgba(165,70,55,0.2)'; g.fillRect(fx0, fy0, tw, 16 * P);
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(230,110,80,0.06)'; g.fillRect(fx0, fy0, tw, 16 * P);
       // original props along the walls, clear of the lanes and the tower pads (the deck reads as a place)
-      const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
+      const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.filter = 'brightness(0.72) saturate(0.8)'; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
       for (const s of [-1, 1]) { // a cluster per corner: home side crates and sandbag lines, the far side iron wreckage
-        prop(PROPS.sandbag2, s * 7.3, -12.4, 3.2, s > 0); prop(PROPS.crate, s * 7.9, -11.2, 2.3, s > 0); prop(PROPS.crate, s * 7.0, -10.6, 1.8, s < 0);
-        prop(PROPS.sandbag, s * 7.6, -5.0, 3, s > 0);
-        prop(PROPS.wreck, s * 7.4, 11.9, 3, s > 0); prop(PROPS.wreck2, s * 7.9, 10.4, 2.4, s < 0);
-        prop(PROPS.wreck2, s * 7.6, 5.6, 2.8, s > 0);
+        prop(PROPS.sandbag2, s * 7.3, -12.4, 3.2, s > 0); prop(PROPS.crate, s * 7.9, -11.2, 2.3, s > 0);
+        prop(PROPS.wreck, s * 7.4, 11.9, 3, s > 0);
       }
       // the sides are told apart by glowing team edge strips along the walls (the arena's own floor stays visible)
       for (const [z0, z1, col] of [[-16, -BAL.river, '58,168,255'], [BAL.river, 16, '255,74,90']]) {
-        for (const ex of [fx0, fx0 + tw - 0.22 * P]) { const sg = g.createLinearGradient(0, Y(z1), 0, Y(z0)); sg.addColorStop(0, `rgba(${col},0.15)`); sg.addColorStop(0.5, `rgba(${col},0.75)`); sg.addColorStop(1, `rgba(${col},0.15)`); g.fillStyle = sg; g.fillRect(ex, Y(z1), 0.22 * P, Y(z0) - Y(z1)); }
+        for (const ex of [fx0, fx0 + tw - 0.4 * P]) { const sg = g.createLinearGradient(0, Y(z1), 0, Y(z0)); sg.addColorStop(0, `rgba(${col},0.3)`); sg.addColorStop(0.5, `rgba(${col},0.95)`); sg.addColorStop(1, `rgba(${col},0.3)`); g.save(); g.shadowColor = `rgb(${col})`; g.shadowBlur = 14; g.fillStyle = sg; g.fillRect(ex, Y(z1), 0.4 * P, Y(z0) - Y(z1)); g.restore(); }
       }
       // deck decals: maintenance hatches and stencilled numbers
       g.save();
@@ -221,13 +219,25 @@
     }
     // one key light from the upper left across the whole deck
     { const kl = g.createLinearGradient(0, 0, cv.width, cv.height); kl.addColorStop(0, 'rgba(255,255,255,0.06)'); kl.addColorStop(0.55, 'rgba(0,0,0,0)'); kl.addColorStop(1, 'rgba(0,0,0,0.14)'); g.fillStyle = kl; g.fillRect(0, 0, cv.width, cv.height); }
+    // the far bulkhead wall above the arena (fills the band behind the enemy towers)
+    {
+      const wy0 = Y(FX_.z1), wy1 = Y(16) - 0.55 * P, wx0 = X(-10.5), ww = 21 * P;
+      const wg = g.createLinearGradient(0, wy0, 0, wy1); wg.addColorStop(0, '#0d1116'); wg.addColorStop(0.7, '#1f262e'); wg.addColorStop(1, '#2c343d');
+      g.fillStyle = wg; g.fillRect(wx0, wy0, ww, wy1 - wy0);
+      const wim = PROPS.wall_orca; if (wim && wim.naturalWidth) { g.save(); g.globalAlpha = 0.45; const pat = g.createPattern(wim, 'repeat'); if (pat.setTransform) pat.setTransform(new DOMMatrix().scale(0.45)); g.fillStyle = pat; g.fillRect(wx0, wy0, ww, wy1 - wy0); g.restore(); }
+      g.fillStyle = 'rgba(0,0,0,0.45)'; for (let x = -10; x <= 10; x += 2.5) g.fillRect(X(x) - 2, wy0, 4, wy1 - wy0); // pillars
+      const glc = `${ar.glow >> 16 & 255},${ar.glow >> 8 & 255},${ar.glow & 255}`;
+      for (let x = -8.75; x <= 8.75; x += 2.5) { const lx = X(x), ly = wy1 - 0.9 * P, lg = g.createRadialGradient(lx, ly, 0, lx, ly, 0.9 * P); lg.addColorStop(0, `rgba(${glc},0.9)`); lg.addColorStop(1, `rgba(${glc},0)`); g.fillStyle = lg; g.fillRect(lx - P, ly - P, 2 * P, 2 * P); g.fillStyle = '#e8f4ff'; g.fillRect(lx - 5, ly - 2, 10, 4); }
+      g.fillStyle = 'rgba(232,185,35,0.75)'; for (let x = 0; x < ww; x += 28) { g.beginPath(); g.moveTo(wx0 + x, wy1 - 10); g.lineTo(wx0 + x + 14, wy1 - 10); g.lineTo(wx0 + x + 6, wy1); g.lineTo(wx0 + x - 8, wy1); g.fill(); } // hazard skirt at its foot
+      const fg = g.createLinearGradient(0, wy0, 0, wy0 + 1.5 * P); fg.addColorStop(0, 'rgba(0,0,0,0.85)'); fg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = fg; g.fillRect(wx0, wy0, ww, 1.5 * P);
+    }
     // soft vignette
     const vg = g.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * 0.3, cv.width / 2, cv.height / 2, cv.height * 0.75);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
     g.fillStyle = vg; g.fillRect(0, 0, cv.width, cv.height);
     // the far edges melt into the backdrop art
     g.save(); g.globalCompositeOperation = 'destination-out';
-    for (const [y0, y1] of [[0, 1.6 * P], [cv.height, cv.height - 1.6 * P]]) { const fg = g.createLinearGradient(0, y0, 0, y1); fg.addColorStop(0, 'rgba(0,0,0,1)'); fg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = fg; g.fillRect(0, Math.min(y0, y1), cv.width, 1.6 * P); }
+    for (const [y0, y1] of [[cv.height, cv.height - 1.6 * P]]) { const fg = g.createLinearGradient(0, y0, 0, y1); fg.addColorStop(0, 'rgba(0,0,0,1)'); fg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = fg; g.fillRect(0, Math.min(y0, y1), cv.width, 1.6 * P); }
     g.restore();
     return cv;
   }
@@ -273,6 +283,7 @@
     g.fillStyle = tg;
     g.beginPath(); V.forEach(([x, y], i) => (i ? g.lineTo(X(x), Y(y + E)) : g.moveTo(X(x), Y(y + E)))); g.closePath(); g.fill();
     if (wallPat) { g.save(); g.clip(); g.globalAlpha = dead ? 0.5 : 0.62; g.fillStyle = wallPat; g.fill(); g.restore(); } // roof plating
+    if (!dead) { g.save(); g.clip(); g.globalCompositeOperation = 'overlay'; g.fillStyle = team[0]; g.globalAlpha = 0.55; g.fill(); g.restore(); } // the roof carries the team colour
     g.strokeStyle = dead ? '#1d1f22' : '#e9f0f6'; g.lineWidth = 3; g.stroke();
     if (dead) {
       g.strokeStyle = '#111'; g.lineWidth = 3;
@@ -639,8 +650,8 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.1, aspect: 0.2 / (w + 0.1), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
-    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.12 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.34 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
+    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.22 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
   }
@@ -649,7 +660,7 @@
     b.bg.hidden = b.fill.hidden = false;
     b.bg.x = x; b.bg.y = y;
     const w = Math.max(0.01, b.w * f);
-    b.fill.sz = w; b.fill.aspect = 0.12 / w;
+    b.fill.sz = w; b.fill.aspect = 0.22 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     if (color != null) b.fill.color = color;
   }
@@ -677,7 +688,7 @@
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.75 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
-    u.bar = makeBar(clamp(u.r * 2.2, 0.8, 1.7), teamHex(side));
+    u.bar = makeBar(clamp(u.r * 2.6, 1.0, 2.0), teamHex(side));
     G.ents.push(u);
     return u;
   }
@@ -795,6 +806,7 @@
     t.hp -= amt;
     t.hitT = 0.1;
     if (t.kind === 'tower' && t.type !== 'bld') t.dmgAcc = (t.dmgAcc || 0) + Math.min(amt, t.hp + amt); // shown as floating numbers (render)
+    else if (t.kind === 'troop' && amt >= 100 && G.time - (t.numT || -1) > 0.3) { t.numT = G.time; const q = toScreen(t.x + rnd(-0.2, 0.2), sy(t) + (t.bodyH || 1.5) + 0.2); UI.dmgNum(q[0], q[1], Math.round(amt), t.side); } // heavy blows on troops pop a number too
     if (G.stats && src && src.side) {
       const st = G.stats[src.side], d = Math.min(amt, t.hp + amt);
       st.dmg += d;
@@ -2702,6 +2714,7 @@
     fieldMesh = quad(null, 0xffffff, 1, false, -10);
     fieldMesh.material.transparent = true; // its far edges fade into the backdrop
     fieldMesh.scale.set(FX_.x1 - FX_.x0, (FX_.z1 - FX_.z0) * TILT, 1);
+    fieldMesh.position.set((FX_.x0 + FX_.x1) / 2, (FX_.z0 + FX_.z1) / 2 * TILT, 0); // (the canvas is no longer centred on the river)
     scene.add(fieldMesh);
     setArena(0);
     zoneCv = document.createElement('canvas');
@@ -2709,7 +2722,7 @@
     zoneTex = new THREE.CanvasTexture(zoneCv);
     zoneTex.magFilter = THREE.NearestFilter;
     zoneMesh = quad(zoneTex, 0xffffff, 1, false, 1);
-    zoneMesh.scale.copy(fieldMesh.scale);
+    zoneMesh.scale.copy(fieldMesh.scale); zoneMesh.position.copy(fieldMesh.position);
     zoneMesh.visible = false;
     scene.add(zoneMesh);
     buildAmbient();
