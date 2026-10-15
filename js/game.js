@@ -72,7 +72,8 @@
       g.save(); g.globalCompositeOperation = 'color';
       g.fillStyle = 'rgba(70,120,175,0.2)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(165,70,55,0.09)'; g.fillRect(fx0, fy0, tw, 16 * P);
-      g.fillStyle = 'rgba(30,26,26,0.18)'; g.fillRect(fx0, fy0, tw, 16 * P); // the far plates are quieter: the fight reads first
+      g.save(); g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,0.35)'; g.fillRect(fx0, fy0, tw, 16 * P); g.restore(); // the far plates lose some colour so red units stand out on them
+      g.fillStyle = 'rgba(30,26,26,0.14)'; g.fillRect(fx0, fy0, tw, 16 * P);
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(255,170,140,0.12)'; g.fillRect(fx0, fy0, tw, 16 * P); // the far half a touch lighter: dark iron units stand out
@@ -706,7 +707,7 @@
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.8 / TROOP_K;
     if (isIron(card.rig)) u.tintMul = 1.2;
-    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(0.8, 0.18, 0.18, 0.5); } // the enemy rim is a soft dark red: it frames, it does not scribble // outlines tuned per side: cyan-white reads on the blue deck, warm red on the far half // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(1, 0.3, 0.3, 0.7); } // the enemy rim: a clear red edge at moderate strength // outlines tuned per side: cyan-white reads on the blue deck, warm red on the far half // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
     G.ents.push(u);
