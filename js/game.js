@@ -7,7 +7,7 @@
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 2.85;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 3.2;       // troops are drawn larger than the tower guards (readable on phones)
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -306,7 +306,7 @@
       g.fillStyle = team[2]; g.globalAlpha = 0.55;
       g.beginPath(); g.ellipse(X(0), Y(E), r * 0.5 * P, r * 0.5 * TILT * P, 0, 0, Math.PI * 2); g.fill();
       g.globalAlpha = 1;
-      if (type === 'king' && emblem && emblem.naturalWidth) {
+      if (false && type === 'king' && emblem && emblem.naturalWidth) { // (the commander badge cluttered the king's front with the sandbags; the HUD shows the commander)
         // the faction's commander on a badge set into the bunker's front corner
         const bx = X(0), by = Y(-r * TILT * 0.45 + E * 0.42), br = 0.66 * P;
         g.save();
@@ -664,7 +664,7 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.44 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.38 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.7 });
     const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.3 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
@@ -700,7 +700,7 @@
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.1, u.r * 3.6), aspect: TILT, color: teamHex(side), alpha: 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.2, u.r * 3.8), aspect: TILT, color: teamHex(side), alpha: 0.42, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
-    u.fxk *= 1.75 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    u.fxk *= 1.8 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3, 1.5, 2.3), teamHex(side));
     G.ents.push(u);
@@ -1048,8 +1048,8 @@
     FX.particle({ x, y, life: 0.08, size: 0.2, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.6 }); // a short star flash
     FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
     if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
-    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.95 * big)) return;
-    FX.hit(x, y, a.color, 0.8);
+    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.75 * big)) return;
+    FX.hit(x, y, a.color, 0.6);
   }
 
   function hit(src, a, t, px, pz, dmg) {
@@ -2153,7 +2153,7 @@
           e.dmgAcc = 0;
         }
         if (e.aura) e.aura.alpha = !e.alive ? 0 : !e.active ? 0.08 : (e.target ? 0.45 : 0.22) + Math.sin(amb.t * 3 + e.x) * 0.1;
-        const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r) * TILT - 0.55) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + 0.35);
+        const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r) * TILT - 0.55) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + (e.type === 'king' ? 0.45 : 0.35));
         const lt = `translate(${Math.round(p[0])}px,${Math.round(p[1])}px)`;
         if (e.labelT !== lt) { e.labelT = lt; e.label.style.transform = lt; } // written only when it moves (shake)
         if (e.alive) {
