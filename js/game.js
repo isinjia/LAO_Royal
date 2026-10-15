@@ -7,7 +7,7 @@
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 3.2;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 3.5;       // troops are drawn larger than the tower guards (readable on phones)
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -703,9 +703,9 @@
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.6), aspect: TILT * 0.75, color: 0x000000, alpha: 0.7, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(2.1, u.r * 5.6), aspect: TILT, color: teamHex(side), alpha: 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
-    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: 0.7, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
+    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.32 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
-    u.fxk *= 1.8 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    u.fxk *= 1.85 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.2;
     if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(1, 0.3, 0.3, 0.7); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
@@ -1754,7 +1754,7 @@
   }
   function pushApart(a, b) {
     const dx = a.x - b.x, dz = a.z - b.z;
-    const min = b.kind === 'tower' ? a.r + b.r : (a.r + b.r) * 1.3; // troops keep a little more room: the larger sprites no longer pile into one blob
+    const min = b.kind === 'tower' ? a.r + b.r : (a.r + b.r) * 1.4; // troops keep a little more room: the larger sprites no longer pile into one blob
     if (dx > min || dx < -min || dz > min || dz < -min) return;
     const d = Math.hypot(dx, dz) || 0.001;
     if (d >= min) return;
