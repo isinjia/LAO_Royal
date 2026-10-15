@@ -504,3 +504,8 @@ button:disabled { cursor: default; }
 
 .dmgn{font-size:19px;-webkit-text-stroke:2px #000}
 .dmgn.big{font-size:26px}
+
+/* bottom-left tray: emote + your crowns on one framed plate that mirrors the top bar */
+.bl{padding:4px 8px 4px 4px;border-radius:12px;background:linear-gradient(#1a2633,#0e151d);border:1px solid #2f4a63;box-shadow:0 2px 0 rgba(58,168,255,.25),0 4px 10px rgba(0,0,0,.5)}
+.bl .ibtn.emo{width:32px;height:32px;border-radius:9px;background:linear-gradient(#2a4058,#16222f);border-color:#3f6688}
+.bl .crowns i{width:24px;height:18px}

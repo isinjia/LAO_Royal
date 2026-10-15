@@ -667,8 +667,8 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.38 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.7 });
-    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.3 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.46 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.7 });
+    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.36 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
   }
@@ -677,7 +677,7 @@
     b.bg.hidden = b.fill.hidden = false;
     b.bg.x = x; b.bg.y = y;
     const w = Math.max(0.01, b.w * f);
-    b.fill.sz = w; b.fill.aspect = 0.3 / w;
+    b.fill.sz = w; b.fill.aspect = 0.36 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     if (color != null) b.fill.color = color;
   }
