@@ -521,3 +521,8 @@ button:disabled { cursor: default; }
 .tlabel .bar{background:linear-gradient(#4a525c,#353b43)}
 .tlabel.red .bar i{background:linear-gradient(#ff8a96,#e2283a)}
 .tlabel.blue .bar i{background:linear-gradient(#9ad8ff,#2a8ce6)}
+
+/* elixir: brighter fill with a shimmer travelling along its leading edge */
+.ebar i{background:linear-gradient(#ffc4ff,#d55cf5 55%,#9a33c4);box-shadow:0 0 10px rgba(230,110,255,.75);position:relative}
+.ebar i::after{content:'';position:absolute;right:0;top:0;bottom:0;width:10px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9));animation:eedge 1s ease-in-out infinite alternate}
+@keyframes eedge{from{opacity:.35}to{opacity:1}}
