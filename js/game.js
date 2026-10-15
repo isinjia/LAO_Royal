@@ -705,7 +705,7 @@
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.8 / TROOP_K;
     if (isIron(card.rig)) u.tintMul = 1.2;
-    if (u.sd) { const c = new THREE.Color(teamHex(side)); u.sd.setRim(c.r, c.g, c.b, 0.9); } // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.85); else u.sd.setRim(1, 0.33, 0.33, 0.85); } // outlines tuned per side: cyan-white reads on the blue deck, warm red on the far half // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
     G.ents.push(u);
@@ -736,7 +736,7 @@
     const gk = type === 'princess' ? (isIron(guard.rig) ? 1.7 : 2.05) : 1.45; // the orca gunners stand as large as the iron emplacements
     attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
-    if (t.sd) { const c = new THREE.Color(teamHex(side)); t.sd.setRim(c.r, c.g, c.b, 0.8); }
+
     t.label = document.createElement('div');
     t.label.className = 'tlabel ' + side + ' ' + type;
     t.label.style.transform = 'translate(-999px,-999px)'; // placed by render()
@@ -2168,7 +2168,7 @@
           UI.dmgNum(q[0], q[1], Math.round(e.dmgAcc), e.side);
           e.dmgAcc = 0;
         }
-        if (e.aura) e.aura.alpha = !e.alive ? 0 : !e.active ? 0.08 : (e.target ? 0.45 : 0.22) + Math.sin(amb.t * 3 + e.x) * 0.1;
+        if (e.aura) e.aura.alpha = !e.alive ? 0 : !e.active ? 0.06 : (e.target ? 0.26 : 0.14) + Math.sin(amb.t * 3 + e.x) * 0.05; // a soft pool, not a slab
         const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r) * TILT - 0.55) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + (e.type === 'king' ? 0.45 : 0.35));
         const lt = `translate(${Math.round(p[0])}px,${Math.round(p[1])}px)`;
         if (e.labelT !== lt) { e.labelT = lt; e.label.style.transform = lt; } // written only when it moves (shake)
