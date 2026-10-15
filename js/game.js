@@ -864,7 +864,10 @@
         if (!spawnStatic('simple_explosion', e.x, y, e.fxk * 0.45)) FX.explosion(e.x, y, 0.5, 0xff8a40);
         FX.sparks(e.x, y, 0xffa040, 6, 3, 0.12, 0.4);
       } else {
+        // a bioroid is pulled out in a column of light: a ring, rising motes in the team colour, a soft flash
         FX.particle({ x: e.x, y, life: 0.5, size: 0.6, size1: 1.6, color: teamHex(e.side), tex: FX.tex.glow, alpha: 0.6 });
+        FX.groundRing(e.x, e.z * TILT, 0.2, 1.6, teamHex(e.side), 0.5, 0.9);
+        for (let i = 0; i < 10; i++) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(-0.3, 0.5), vy: rnd(1.2, 2.6), life: rnd(0.5, 0.9), size: rnd(0.12, 0.22), size1: 0, color: i % 2 ? 0xffffff : teamHex(e.side), tex: FX.tex.dot });
         FX.sparks(e.x, y, 0xffffff, 5, 2.2, 0.1, 0.4);
       }
       if (G.stats && src && src.side && G.stats[src.side]) G.stats[src.side].kills++;

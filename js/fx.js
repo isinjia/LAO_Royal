@@ -314,13 +314,15 @@
   }
 
   function explosion(x, y, r, color, big = false) {
-    particle({ x, y, life: 0.35, size: r * 0.6, size1: r * 2.6, color, tex: tex.glow, alpha: 1 });
-    particle({ x, y, life: 0.45, size: r * 1.2, size1: r * 2.4, color: 0xffffff, frames: sheets.fire, alpha: 1 });
-    particle({ x, y, life: 0.4, size: r * 0.4, size1: r * 2.2, color, tex: tex.ring, alpha: 0.9 });
+    // three beats: a white-hot flash, an orange fireball, then dark smoke and flying debris
+    particle({ x, y, life: 0.09, size: r * 0.8, size1: r * 1.6, color: 0xfff6d8, tex: tex.glow, alpha: 1 });
+    particle({ x, y, life: 0.5, size: r * 1.1, size1: r * 2.5, color: 0xff9a40, frames: sheets.fire, alpha: 1, spin: rnd(-1, 1) });
+    particle({ x, y, life: 0.35, size: r * 0.5, size1: r * 2.6, color, tex: tex.ring, alpha: 0.9 });
     const n = big ? 6 : 3;
     for (let i = 0; i < n; i++) {
-      particle({ x: x + rnd(-r, r) * 0.4, y: y + rnd(-r, r) * 0.4, vx: rnd(-0.6, 0.6), vy: rnd(0.2, 0.9), life: rnd(0.6, 1.0), size: r * 0.8, size1: r * 1.8, color: 0x556070, frames: sheets.smoke, alpha: 0.45, normal: true, order: L.FX - 1, spin: rnd(-1, 1) });
+      particle({ x: x + rnd(-r, r) * 0.4, y: y + rnd(-r, r) * 0.4, vx: rnd(-0.6, 0.6), vy: rnd(0.3, 1.0), life: rnd(0.7, 1.2), size: r * 0.8, size1: r * 2, color: 0x2c2a2a, frames: sheets.smoke, alpha: 0.6, normal: true, order: L.FX - 1, spin: rnd(-1, 1), fadeIn: 0.12 });
     }
+    for (let i = 0; i < (big ? 10 : 6); i++) { const a = rnd(0.2, Math.PI - 0.2), v = rnd(3, 6) * Math.max(0.6, r); particle({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, grav: 9, life: rnd(0.5, 0.8), size: 0.14, size1: 0.1, color: 0x3a3028, tex: tex.dot, normal: true, spin: rnd(-6, 6) }); } // debris
     sparks(x, y, color, big ? 18 : 8, 4 * r, 0.16, 0.55);
     if (big) shake(0.18);
   }
