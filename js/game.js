@@ -2152,12 +2152,16 @@
         if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.7) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
           e.smkT = !e.alive ? 0.32 : e.hp < e.max * 0.35 ? 0.2 : 0.38;
           FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + (e.alive ? TOWER_E[e.type] : 0.5) + rnd(0, 0.4), vx: rnd(-0.15, 0.25), vy: rnd(0.6, 1.1), life: rnd(2.2, 3.2), size: 0.7, size1: 3.4, color: 0x6a6e74, alpha: 0.7, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.FX - 1 });
-          if (e.alive && e.hp < e.max * 0.35) for (let fi = 0; fi < 3; fi++) FX.particle({ x: e.x + rnd(-0.7, 0.7), y: e.z * TILT + TOWER_E[e.type] + rnd(-0.2, 0.4), vx: rnd(-0.2, 0.2), vy: rnd(1, 1.8), life: rnd(0.45, 0.8), size: 0.7, size1: 1.4, color: 0xff7a2a, alpha: 0.95, frames: FX.sheets.fire, spin: rnd(-2, 2), order: L.FX }); // the tower burns in plain sight
+          if (e.alive && e.hp < e.max * 0.35) for (let fi = 0; fi < 3; fi++) { // tall flickering tongues of flame with a yellow core, rising well above the tower
+            const fx0 = e.x + rnd(-0.75, 0.75), fy0 = e.z * TILT + TOWER_E[e.type] + rnd(-0.1, 0.4);
+            FX.particle({ x: fx0, y: fy0, vx: rnd(-0.15, 0.15), vy: rnd(2.2, 3.4), life: rnd(0.5, 0.8), size: 0.9, size1: 0.35, aspect: 1.6, color: 0xff6a1a, alpha: 0.95, frames: FX.sheets.fire, spin: rnd(-1, 1), order: L.FX });
+            FX.particle({ x: fx0, y: fy0 + 0.2, vy: rnd(1.6, 2.4), life: 0.32, size: 0.45, size1: 0.1, color: 0xffe27a, tex: FX.tex.glow, alpha: 0.9, order: L.FX + 1 });
+          }
           if (e.alive && Math.random() < 0.25) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 0.3), vy: rnd(0.4, 0.9), life: 0.5, size: 0.3, size1: 0, color: 0xff9040, tex: FX.tex.dot }); // embers
         }
         e.dmgT = (e.dmgT || 0) - dt;
         if (e.dmgAcc >= 1 && e.dmgT <= 0) {
-          e.dmgT = 0.35;
+          e.dmgT = 0.6; // hits are summed into one number about twice a second
           const q = toScreen(e.x + rnd(-0.6, 0.6), e.z * TILT + TOWER_E[e.type] + 1.2);
           UI.dmgNum(q[0], q[1], Math.round(e.dmgAcc), e.side);
           e.dmgAcc = 0;

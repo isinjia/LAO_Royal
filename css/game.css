@@ -501,3 +501,6 @@ button:disabled { cursor: default; }
 .dmgn{color:#ffd24a}
 .dmgn.blue{color:#ff7070}
 .dmgn.big{color:#ff9a2a;font-size:24px}
+
+.dmgn{font-size:19px;-webkit-text-stroke:2px #000}
+.dmgn.big{font-size:26px}
