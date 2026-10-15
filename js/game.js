@@ -399,7 +399,7 @@
   // ── rigs ──────────────────────────────────────────────
   const isIron = (rig) => rig.startsWith('e_');
   const placeholderTex = {};
-  const TINTS = [[0.95, 0.95, 0.95], [0.55, 0.85, 1.3], [2.1, 2.0, 2.0], [1.1, 1.1, 0.6], [1.2, 0.8, 0.8], [1.2, 1.05, 0.8]];
+  const TINTS = [[0.95, 0.95, 0.95], [0.55, 0.85, 1.3], [1.55, 1.5, 1.5], [1.1, 1.1, 0.6], [1.2, 0.8, 0.8], [1.2, 1.05, 0.8]];
   const animCache = {};
   function animInfo(rig, c, clipName = 'atk') {
     const key = rig + ':' + clipName;
@@ -1058,7 +1058,7 @@
     const n = GENERIC_HIT[a.fx];
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
     const heavy = G.time - (e.hfxT || -1) > 0.16; // a fast shooter gets the full burst a few times a second, otherwise just the core (no permanent confetti cloud)
-    if (!heavy) { FX.particle({ x, y, life: 0.07, size: 0.15, size1: 0.35, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.5 }); return; }
+    if (!heavy) { FX.particle({ x, y, life: 0.1, size: 0.25, size1: 0.55, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.75 }); FX.sparks(x, y, a.color, 2, 3, 0.14, 0.22); return; } // between full bursts, sustained fire still flickers and sprays
     e.hfxT = G.time;
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
@@ -1755,7 +1755,7 @@
   }
   function pushApart(a, b) {
     const dx = a.x - b.x, dz = a.z - b.z;
-    const min = b.kind === 'tower' ? a.r + b.r : (a.r + b.r) * 1.4; // troops keep a little more room: the larger sprites no longer pile into one blob
+    const min = b.kind === 'tower' ? a.r + b.r : (a.r + b.r) * 1.6; // troops keep a little more room: the larger sprites no longer pile into one blob
     if (dx > min || dx < -min || dz > min || dz < -min) return;
     const d = Math.hypot(dx, dz) || 0.001;
     if (d >= min) return;
