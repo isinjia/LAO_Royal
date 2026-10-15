@@ -463,3 +463,15 @@ button:disabled { cursor: default; }
 /* wide screens: the arena art fills the bands beside the game column, blurred and dark */
 #bgFill{position:fixed;inset:-40px;z-index:0;pointer-events:none;background:#05070a center/cover no-repeat;filter:blur(22px) brightness(.32) saturate(.8)}
 #app{z-index:1}
+
+/* battle top bar: a metal plate with a lit edge, a framed opponent portrait, a timer capsule */
+#hud{background:linear-gradient(180deg,#2a1d23 0%,#170f13 60%,#100a0d 100%);border-bottom:2px solid #6a2a36;box-shadow:0 2px 0 rgba(255,90,110,.25),0 6px 14px rgba(0,0,0,.55)}
+#hud .av{width:46px;height:46px;border-radius:10px;border:2px solid #ff5a6a;box-shadow:0 0 0 2px #2a0f15,0 0 12px rgba(255,74,90,.55);background-color:#2a1418}
+#hud .fname{font-size:14px;font-weight:800;text-shadow:0 1px 2px #000}
+#timer{background:linear-gradient(#0d1218,#1c2530);border:1px solid #3c4a58;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 2px 6px rgba(0,0,0,.5);padding:5px 12px}
+#timer b{font-size:24px;text-shadow:0 0 8px rgba(120,200,255,.35)}
+#timer.last{border-color:#ff4a5a;box-shadow:0 0 12px rgba(255,74,90,.6)}
+/* spell and building cards: the icon sits on a lit tech panel so the hand reads as one set with the portrait cards */
+.card.spell{background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.16),transparent 58%),repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 5px,transparent 5px 11px),linear-gradient(#22344a,#0c1118 80%)}
+.card.spell .art{inset:4% 6% 21% 6%;background-size:contain;background-position:center;filter:drop-shadow(0 3px 5px rgba(0,0,0,.6))}
+.card.spell .nm{background:linear-gradient(#1c2a3a,#0c1118)}

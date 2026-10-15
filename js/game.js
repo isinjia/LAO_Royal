@@ -670,6 +670,7 @@
     u.disc = FX.sprite({ x, y: z * TILT, size: u.r * 3, aspect: TILT, color: teamHex(side), alpha: 0.95, tex: FX.tex.ring, order: L.GROUND + 1 });
     u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 3.4, aspect: TILT, color: teamHex(side), alpha: 0.32, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
+    u.fxk *= 1.7 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 2.2, 0.8, 1.7), teamHex(side));
     G.ents.push(u);
@@ -2381,7 +2382,7 @@
     fieldTex.anisotropy = 4;
     fieldMesh.material.map = fieldTex;
     fieldMesh.material.needsUpdate = true;
-    if (amb.river) { amb.river.material.color.setHex(ARENAS[a].glow); amb.lamps.forEach((l) => { l.color = ARENAS[a].glow; }); }
+    if (amb.river) { amb.river.material.color.setHex(ARENAS[a].glow); if (amb.river2) amb.river2.material.color.setHex(ARENAS[a].glow); amb.lamps.forEach((l) => { l.color = ARENAS[a].glow; }); }
     setBackdrop(a);
     const bf = document.getElementById('bgFill'); if (bf) bf.style.backgroundImage = `url(${ARENAS[a].bg})`;
     // per-arena colour grade: a tinted vignette over the 3D view (DOM, costs no GPU pass)
@@ -2447,6 +2448,11 @@
     amb.river = quad(tx, ARENAS[0].glow, 0.55, true, -9);
     amb.river.scale.set(18, BAL.river * 2 * TILT * 0.9, 1);
     scene.add(amb.river);
+    // a second, slower current the other way: the chasm reads as flowing energy with depth
+    const tx2 = tx.clone(); tx2.needsUpdate = true; tx2.repeat.set(1.6, 1);
+    amb.river2 = quad(tx2, ARENAS[0].glow, 0.35, true, -9.5);
+    amb.river2.scale.set(18, BAL.river * 2 * TILT * 0.75, 1);
+    scene.add(amb.river2);
     // a soft diagonal light sweep that crosses the floor now and then
     const sc = document.createElement('canvas'); sc.width = 128; sc.height = 4;
     const sg = sc.getContext('2d'), sgr = sg.createLinearGradient(0, 0, 128, 0);
@@ -2464,7 +2470,8 @@
   function updateAmbient(dt) {
     amb.t += dt;
     if (aimMarks.length) aimMarks[0].alpha = 0.65 + 0.3 * Math.sin(amb.t * 9); // the aim reticle pulses
-    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = 0.45 + Math.sin(amb.t * 2.1) * 0.12; }
+    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = 0.6 + Math.sin(amb.t * 2.1) * 0.15; }
+    if (amb.river2) { amb.river2.material.map.offset.x += dt * 0.05; amb.river2.material.opacity = 0.35 + Math.sin(amb.t * 1.3 + 1) * 0.1; }
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)
     if (amb.back && amb.back.visible && amb.backS) { const k = 1.04 + 0.02 * Math.sin(amb.t * 0.11); amb.back.scale.set(amb.backS[0] * k, amb.backS[1] * k, 1); amb.back.position.x = Math.sin(amb.t * 0.07) * 0.45;
