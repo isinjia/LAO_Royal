@@ -192,6 +192,26 @@
       }
       out.runs.push(['mutator checks', DATA.MUTATORS.map((m) => m.key).join(',')]);
     } finally { DATA.mutatorOf = real; }
+    // every way a match can end renders its result screen: a draw on equal tower health, a win on crowns at time-out
+    for (const [label, setup, cls, title] of [
+      ['draw', () => { G.overtime = true; G.clock = 0.05; }, 'draw', '무승부'],
+      ['crowns', () => { G.sides.blue.crowns = 1; G.clock = 0.05; }, 'win', '승리!'],
+    ]) {
+      Object.assign(UI.save, { faction: 'orca', mode: 0, trophy: 0, diff: 1 });
+      document.getElementById('result').className = 'screen';
+      document.getElementById('btnBattle').click();
+      if (!await until(() => G.phase === 'countdown', 45000)) { out.errors.push('result-path load timeout ' + label); continue; }
+      GAME._run(3.2);
+      G.sides.red.ai.t = 1e9;
+      setup();
+      GAME._run(0.3);
+      await until(() => document.getElementById('result').classList.contains('on'), 5000);
+      const el = document.getElementById('result');
+      ok(el.classList.contains(cls) && document.getElementById('resTitle').textContent === title && document.getElementById('resReason').textContent, `result screen for a ${label} ending (${el.className} / ${document.getElementById('resTitle').textContent})`);
+      document.getElementById('btnHome').click();
+      await wait(200);
+    }
+    out.runs.push(['result paths', 'draw, crowns']);
     // a real-time run (requestAnimationFrame, not the test stepper): the clock must move on its own
     Object.assign(UI.save, { faction: 'orca', mode: 0, trophy: 0, diff: 0 });
     document.getElementById('btnBattle').click();
