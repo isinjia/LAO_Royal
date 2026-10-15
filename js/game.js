@@ -74,7 +74,7 @@
       g.fillStyle = 'rgba(165,70,55,0.13)'; g.fillRect(fx0, fy0, tw, 16 * P);
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(230,110,80,0.06)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.fillStyle = 'rgba(255,170,140,0.12)'; g.fillRect(fx0, fy0, tw, 16 * P); // the far half a touch lighter: dark iron units stand out
       // original props along the walls, clear of the lanes and the tower pads (the deck reads as a place)
       const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.filter = 'brightness(0.72) saturate(0.8)'; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
       for (const s of [-1, 1]) { // a cluster per corner: home side crates and sandbag lines, the far side iron wreckage
@@ -185,10 +185,11 @@
       g.fillStyle = '#2a3036'; g.fillRect(bx0, by1, bx1 - bx0, 0.32 * P); // side face
       g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(bx0, by1, bx1 - bx0, 3);
       const bg = g.createLinearGradient(bx0, 0, bx1, 0);
-      bg.addColorStop(0, '#56616b'); bg.addColorStop(0.5, '#8794a0'); bg.addColorStop(1, '#56616b');
+      bg.addColorStop(0, '#6a7682'); bg.addColorStop(0.5, '#a9b6c2'); bg.addColorStop(1, '#6a7682');
       g.fillStyle = bg; g.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
       g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 2;
       for (let yy = by0 + 12; yy < by1; yy += 14) { g.beginPath(); g.moveTo(bx0 + 12, yy); g.lineTo(bx1 - 12, yy); g.stroke(); }
+      for (const ey of [by0, by1 - 10]) for (let xx = bx0; xx < bx1; xx += 14) { g.fillStyle = ((xx - bx0) / 14) % 2 ? '#e8b923' : '#1b1b1b'; g.fillRect(xx, ey, Math.min(14, bx1 - xx), 10); } // hazard-striped ends
       for (const ex of [bx0 + 4, bx1 - 4]) {
         g.strokeStyle = '#1c2126'; g.lineWidth = 7; g.beginPath(); g.moveTo(ex, by0); g.lineTo(ex, by1); g.stroke();
         g.strokeStyle = '#b8c6d2'; g.lineWidth = 3; g.beginPath(); g.moveTo(ex, by0); g.lineTo(ex, by1); g.stroke(); // rail
@@ -698,7 +699,7 @@
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: u.r * 2.8, aspect: TILT * 0.75, color: 0x000000, alpha: 0.62, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.1, u.r * 3.6), aspect: TILT, color: teamHex(side), alpha: 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
-    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.2, u.r * 3.8), aspect: TILT, color: teamHex(side), alpha: 0.42, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
+    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.2, u.r * 3.8), aspect: TILT, color: teamHex(side), alpha: 0.55, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.8 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
@@ -2511,7 +2512,7 @@
   function updateAmbient(dt) {
     amb.t += dt;
     if (aimMarks.length) aimMarks[0].alpha = 0.65 + 0.3 * Math.sin(amb.t * 9); // the aim reticle pulses
-    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = 0.6 + Math.sin(amb.t * 2.1) * 0.15; }
+    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = 0.75 + Math.sin(amb.t * 2.1) * 0.15; }
     if (amb.river2) { amb.river2.material.map.offset.x += dt * 0.05; amb.river2.material.opacity = 0.35 + Math.sin(amb.t * 1.3 + 1) * 0.1; }
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)

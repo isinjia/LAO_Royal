@@ -308,7 +308,7 @@
   }
 
   function hit(x, y, color, scale = 1) {
-    particle({ x, y, life: 0.22, size: 0.55 * scale, size1: 0.9 * scale, color, tex: tex.glow, alpha: 0.9 });
+    particle({ x, y, life: 0.16, size: 0.35 * scale, size1: 0.6 * scale, color, tex: tex.glow, alpha: 0.5 }); // a small tinted core (the star and sparks carry the hit)
     particle({ x, y, life: 0.2, size: 0.5 * scale, size1: 0.2, color: 0xffffff, tex: tex.cross, rot: Math.random() * 3 });
     sparks(x, y, color, 4, 2.5 * scale, 0.12 * scale, 0.3);
   }
