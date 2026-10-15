@@ -141,7 +141,7 @@
       g.strokeStyle = `rgba(${team(sz)},0.35)`; g.lineWidth = 3; g.stroke();
     }
     // centre emblem
-    g.save(); g.globalAlpha = 0.08; g.strokeStyle = '#fff'; g.lineWidth = 6;
+    g.save(); g.globalAlpha = 0.16; g.strokeStyle = '#fff'; g.lineWidth = 6;
     for (const sz of [-1, 1]) { g.beginPath(); g.arc(X(0), Y(sz * 6.5), 2.2 * P, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(X(0), Y(sz * 6.5), 1.2 * P, 0, Math.PI * 2); g.stroke(); }
     g.restore();
     // raised bulkhead walls around the arena (dark steel with a lit top edge), casting a shadow onto the deck
@@ -295,6 +295,8 @@
     g.beginPath(); V.forEach(([x, y], i) => (i ? g.lineTo(X(x), Y(y + E)) : g.moveTo(X(x), Y(y + E)))); g.closePath(); g.fill();
     if (wallPat) { g.save(); g.clip(); g.globalAlpha = dead ? 0.5 : 0.62; g.fillStyle = wallPat; g.fill(); g.restore(); } // roof plating
     if (!dead) { g.save(); g.clip(); g.globalCompositeOperation = 'overlay'; g.fillStyle = team[0]; g.globalAlpha = 0.55; g.fill(); g.restore(); } // the roof carries the team colour
+    if (!dead && type !== 'bld') { g.save(); g.strokeStyle = team[1]; g.lineWidth = 3; g.shadowColor = team[0]; g.shadowBlur = 14; g.stroke(); g.restore(); } // a lit team rim around the roof
+    if (!dead && type !== 'bld' && faction === 'iron') for (const i of [0, 2, 4]) { const [vx, vy] = V[i], bx = X(vx * 0.92), by = Y(vy * 0.92 + E); const bg2 = g.createRadialGradient(bx, by, 0, bx, by, 16); bg2.addColorStop(0, 'rgba(255,90,90,1)'); bg2.addColorStop(1, 'rgba(255,40,40,0)'); g.fillStyle = bg2; g.fillRect(bx - 16, by - 16, 32, 32); g.fillStyle = '#ffd0d0'; g.beginPath(); g.arc(bx, by, 3.5, 0, Math.PI * 2); g.fill(); } // beacon lamps
     g.strokeStyle = dead ? '#1d1f22' : '#e9f0f6'; g.lineWidth = 3; g.stroke();
     if (dead) {
       g.strokeStyle = '#111'; g.lineWidth = 3;
@@ -989,8 +991,8 @@
     }
     const P = (o2) => G.projs.push(Object.assign({ x: mx, y: my, src: e, side: e.side, atk: a, target: t, tx: t.x, tz: t.z, ty, dmg, t: 0, gen: GENERIC_HIT[a.fx], k: e.fxk || 0.2 }, o2));
     switch (a.fx) {
-      case 'bullet': P({ speed: 24, kind: 'bullet' }); break;
-      case 'snipe': FX.beam(mx, my, tx, ty, 0.06, a.color, 0.16); if (real) { hit(e, a, t, t.x, t.z, dmg); hitFx(e, a, tx, ty); } break;
+      case 'bullet': P({ speed: 24, kind: 'bullet' }); FX.beam(mx, my, tx, ty, 0.035, a.color, 0.07); break; // a faint tracer shows who is shooting whom
+      case 'snipe': FX.beam(mx, my, tx, ty, 0.1, a.color, 0.2); if (real) { hit(e, a, t, t.x, t.z, dmg); hitFx(e, a, tx, ty); } break;
       case 'grenade': P({ speed: 8.5, kind: 'grenade', arc: 1.8, point: true }); break;
       case 'missile': P({ speed: 10, kind: 'missile', arc: 1.2, point: true }); break;
       case 'fireball': P({ speed: 9, kind: 'fireball', arc: 0.6, point: true }); break;
@@ -1121,7 +1123,7 @@
       const yy = p.y + (p.arc ? Math.sin(prog * Math.PI) * p.arc : 0);
       const c = p.atk.color;
       switch (p.kind) {
-        case 'bullet': FX.trail(p.x, yy, c, 0.22); break;
+        case 'bullet': FX.trail(p.x, yy, c, 0.34); break;
         case 'grenade': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.3, size1: 0.15, color: 0xffd080, tex: FX.tex.glow, order: L.PROJ }); break;
         case 'missile': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.35, size1: 0.1, color: c, tex: FX.tex.glow, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.5, size: 0.2, size1: 0.6, color: 0x777777, alpha: 0.4, normal: true, frames: FX.sheets.smoke, order: L.LOW }); break;
         case 'fireball': FX.particle({ x: p.x, y: yy, life: 0.18, size: 0.8, size1: 0.3, color: c, frames: FX.sheets.fire, rot: Math.random() * 6, order: L.PROJ }); break;
