@@ -144,11 +144,11 @@
 
   // trophy road: each arena re-skins the floor, raises the opponent's card level and unlocks cards
   const ARENAS = [
-    { name: '훈련 구역', bg: 'assets/bg/arena0.jpg', trophy: 0, lvl: 1, home: ['#34424f', '#2f3c48'], away: ['#463a40', '#40353b'], rim: '#151a20', river: '#0d3446', glow: 0x55ddff },
-    { name: '폐허 도시', bg: 'assets/bg/arena1.jpg', trophy: 300, lvl: 2, home: ['#3d4440', '#383f3b'], away: ['#4a4038', '#443a33'], rim: '#1a1c19', river: '#163a2c', glow: 0x7dffb0 },
-    { name: '철충 둥지', bg: 'assets/bg/arena2.jpg', trophy: 800, lvl: 3, home: ['#3a3446', '#342f40'], away: ['#55303a', '#4d2a33'], rim: '#1b1218', river: '#3a0f22', glow: 0xff5a8a },
-    { name: '오르카 호 갑판', bg: 'assets/bg/arena3.jpg', trophy: 1500, lvl: 4, home: ['#2c3e58', '#283850'], away: ['#4a3a46', '#433440'], rim: '#0d1422', river: '#0b2d55', glow: 0x6ab8ff },
-    { name: '최종 결전', bg: 'assets/bg/arena4.jpg', trophy: 2500, lvl: 5, home: ['#2a2a32', '#26262e'], away: ['#3c2626', '#352222'], rim: '#0a0a0e', river: '#3a2a08', glow: 0xffc040 },
+    { name: '훈련 구역', bg: 'assets/bg/arena0.jpg', floor: 'assets/bg/floor0.jpg', floorDim: 0.05, trophy: 0, lvl: 1, home: ['#34424f', '#2f3c48'], away: ['#463a40', '#40353b'], rim: '#151a20', river: '#0d3446', glow: 0x55ddff },
+    { name: '폐허 도시', bg: 'assets/bg/arena1.jpg', floor: 'assets/bg/floor1.jpg', trophy: 300, lvl: 2, home: ['#3d4440', '#383f3b'], away: ['#4a4038', '#443a33'], rim: '#1a1c19', river: '#163a2c', glow: 0x7dffb0 },
+    { name: '철충 둥지', bg: 'assets/bg/arena2.jpg', floor: 'assets/bg/floor2.jpg', trophy: 800, lvl: 3, home: ['#3a3446', '#342f40'], away: ['#55303a', '#4d2a33'], rim: '#1b1218', river: '#3a0f22', glow: 0xff5a8a },
+    { name: '오르카 호 갑판', bg: 'assets/bg/arena3.jpg', floor: 'assets/bg/floor3.jpg', floorDim: 0.42, trophy: 1500, lvl: 4, home: ['#2c3e58', '#283850'], away: ['#4a3a46', '#433440'], rim: '#0d1422', river: '#0b2d55', glow: 0x6ab8ff },
+    { name: '최종 결전', bg: 'assets/bg/arena4.jpg', floor: 'assets/bg/floor4.jpg', floorDim: 0.26, trophy: 2500, lvl: 5, home: ['#2a2a32', '#26262e'], away: ['#3c2626', '#352222'], rim: '#0a0a0e', river: '#3a2a08', glow: 0xffc040 },
   ];
   const arenaOf = (trophy) => { let a = 0; ARENAS.forEach((r, i) => { if (trophy >= r.trophy) a = i; }); return a; };
 

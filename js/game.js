@@ -3,11 +3,11 @@
 // x / y plane with y = z * TILT (+ height): characters stand upright on the tilted floor.
 (function () {
   const { BAL, FACTIONS, ARENAS, LEVEL, card: CARD } = DATA;
-  const TILT = 0.74;
+  const TILT = 0.6;         // floor squash: a flatter view lets the 18 x 32 arena fill a phone's width
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 1.5;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 1.9;       // troops are drawn larger than the tower guards (readable on phones)
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -60,8 +60,23 @@
       g.fillRect(X(x) + 1, Y(z + 2) + 1, 3 * P - 2, 2 * P - 2);
       g.fillStyle = 'rgba(255,255,255,0.03)'; g.fillRect(X(x) + 4, Y(z + 2) + 4, 4, 4); g.fillRect(X(x + 3) - 8, Y(z + 2) + 4, 4, 4);
     }
-    // floor tiles
-    for (let z = -16; z < 16; z++) for (let x = -9; x < 9; x++) {
+    const fl = ar.floor && floorImg[ar.floor];
+    if (fl) {
+      // the arena's original floor material, mirror-tiled down the field (seamless), then shaded per half
+      const fx0 = X(-9), fy0 = Y(16), tw = 18 * P, th = fl.height * tw / fl.width, H = 32 * P;
+      g.save(); g.beginPath(); g.rect(fx0, fy0, tw, H); g.clip();
+      for (let y = 0, i = 0; y < H; y += th, i++) { g.save(); if (i % 2) { g.translate(0, fy0 + y + th); g.scale(1, -1); g.drawImage(fl, fx0, 0, tw, th); } else g.drawImage(fl, fx0, fy0 + y, tw, th); g.restore(); }
+      g.restore();
+      g.fillStyle = 'rgba(0,0,0,' + (ar.floorDim || 0.18) + ')'; g.fillRect(fx0, fy0, tw, H);
+      g.fillStyle = 'rgba(40,110,200,0.10)'; g.fillRect(fx0, Y(0), tw, 16 * P); // home half
+      g.fillStyle = 'rgba(200,50,60,0.10)'; g.fillRect(fx0, fy0, tw, 16 * P); // away half
+      // a faint tile grid keeps distances readable
+      g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = 1;
+      for (let x = -9; x <= 9; x++) { g.beginPath(); g.moveTo(X(x), fy0); g.lineTo(X(x), fy0 + H); g.stroke(); }
+      for (let z = -16; z <= 16; z++) { g.beginPath(); g.moveTo(fx0, Y(z)); g.lineTo(fx0 + tw, Y(z)); g.stroke(); }
+    }
+    // floor tiles (procedural fallback until the floor art has loaded)
+    if (!fl) for (let z = -16; z < 16; z++) for (let x = -9; x < 9; x++) {
       const home = z < 0, odd = (x + z + 100) % 2;
       g.fillStyle = (home ? ar.home : ar.away)[odd];
       g.fillRect(X(x), Y(z + 1), P, P);
@@ -70,7 +85,7 @@
       if ((x * 7 + z * 13 + 200) % 11 === 0) { g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(X(x) + 8, Y(z + 1) + 8, P - 16, 3); g.fillRect(X(x) + 8, Y(z + 1) + 14, P - 22, 3); }
     }
     // large deck plates (3x2 tiles) with bevelled seams and corner bolts
-    for (let z = -16; z < 16; z += 2) for (let x = -9; x < 9; x += 3) {
+    if (!fl) for (let z = -16; z < 16; z += 2) for (let x = -9; x < 9; x += 3) {
       const px = X(x), py = Y(z + 2), w = 3 * P, h = 2 * P;
       g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 3; g.strokeRect(px + 1.5, py + 1.5, w - 3, h - 3);
       g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1; g.strokeRect(px + 4, py + 4, w - 8, h - 8);
@@ -80,7 +95,7 @@
       for (const [bx, by] of [[7, 7], [w - 7, 7], [7, h - 7], [w - 7, h - 7]]) { g.beginPath(); g.arc(px + bx - 0.6, py + by - 0.6, 1, 0, Math.PI * 2); g.fill(); }
     }
     // grime and wear
-    for (let i = 0; i < 900; i++) {
+    for (let i = 0; i < (fl ? 250 : 900); i++) {
       const x = rnd(-9, 9), z = rnd(-16, 16);
       g.fillStyle = Math.random() < 0.7 ? `rgba(0,0,0,${rnd(0.05, 0.14)})` : `rgba(255,255,255,${rnd(0.02, 0.05)})`;
       g.fillRect(X(x), Y(z), rnd(1, 4), rnd(1, 3));
@@ -177,7 +192,8 @@
   }
 
   // hexagonal bunker drawn in screen space; returns { tex, w, h, cy } (plane size, centre height over the ground point)
-  function towerCanvas(type, side, dead, emblem) {
+  const PROPS = {}; // original battlefield props (BG_OBJ): sandbags, a supply container, iron wrecks
+  function towerCanvas(type, side, dead, emblem, faction) {
     const P = 64, r = BAL.tower[type].r + 0.35, E = dead ? 0.45 : TOWER_E[type];
     const top = E + r * TILT + (type === 'king' && !dead ? 0.7 : 0.25), bot = -r * TILT - 0.25, half = r + 0.25;
     const cv = document.createElement('canvas');
@@ -241,6 +257,16 @@
           g.beginPath(); g.arc(X(px), Y(py + 0.8), 7, 0, Math.PI * 2); g.fill(); g.shadowBlur = 0;
         }
       }
+    }
+    // dress the bunker with the original props: orca sandbag lines and supply containers, iron wreckage; rubble on a ruin
+    const prop = (im, cx, by, w) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth; g.drawImage(im, X(cx) - w * P / 2, Y(by) - h * P, w * P, h * P); };
+    if (dead) prop(PROPS.wreck2, 0.05, -r * TILT * 0.55, r * 1.75);
+    else if (type !== 'bld' && faction === 'orca') {
+      if (type === 'king') for (const sx of [-1, 1]) prop(PROPS.crate, sx * r * 0.66, -r * TILT * 0.2, r * 0.72);
+      prop(PROPS.sandbag2, 0, -r * TILT - 0.14, r * 2.05);
+    } else if (type !== 'bld') {
+      prop(PROPS.wreck, -r * 0.68, -r * TILT * 0.62, r * 0.9);
+      prop(PROPS.wreck2, r * 0.7, -r * TILT * 0.5, r * 0.8);
     }
     const tex = new THREE.CanvasTexture(cv);
     return { tex, w: half * 2, h: top - bot, cy: (top + bot) / 2 };
@@ -605,7 +631,7 @@
       target: null, face: side === 'blue' ? 1 : -1, slowK: 1, slowT: 0, stunT: 0, freezeT: 0, hitT: 0, cd: 0, elev: TOWER_E[type],
     };
     const tkey = side + type + S.faction;
-    const tc = towerTex[tkey] || (towerTex[tkey] = towerCanvas(type, side, false, emblems[S.faction]));
+    const tc = towerTex[tkey] || (towerTex[tkey] = towerCanvas(type, side, false, emblems[S.faction], S.faction));
     t.base = quad(tc.tex, 0xffffff, 1, false, 0);
     t.base.scale.set(tc.w, tc.h, 1);
     t.base.position.set(x, z * TILT + tc.cy, 0);
@@ -2078,7 +2104,7 @@
     view.w = w; view.h = h;
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
-    const fw = 18.6, top = 16.2 * TILT + 4.4, bot = -16.4 * TILT - 0.3, fh = top - bot;
+    const fw = 18.4, top = 16.2 * TILT + 4.7, bot = -16.4 * TILT - 0.3, fh = top - bot;
     const k = Math.min(w / fw, h / fh);
     const cw = w / k, ch = h / k, cy = (top + bot) / 2;
     camera.left = -cw / 2; camera.right = cw / 2; camera.top = cy + ch / 2; camera.bottom = cy - ch / 2;
@@ -2269,7 +2295,10 @@
     if (labelsEl) labelsEl.innerHTML = '';
   }
 
+  const floorImg = {}; // floor art by url (null while loading)
   function setArena(a) {
+    const fu = location.protocol !== 'file:' && ARENAS[a].floor; // (from file:// the image would taint the floor texture: keep the drawn floor there)
+    if (fu && !(fu in floorImg)) { floorImg[fu] = null; const im = new Image(); im.onload = () => { floorImg[fu] = im; if (G.arenaDrawn === a) { G.arenaDrawn = -1; setArena(a); } }; im.src = fu; } // redrawn with the art once it arrives
     if (G.arenaDrawn === a) return;
     G.arenaDrawn = a;
     if (fieldTex) fieldTex.dispose();
@@ -2561,6 +2590,7 @@
     await Promise.all(Object.entries(FACTIONS).map(([k, f]) => new Promise((res) => {
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = (window.IMG && IMG[f.banner]) || ''; emblems[k] = im;
     })));
+    if (location.protocol !== 'file:') await Promise.all(['sandbag', 'sandbag2', 'crate', 'wreck', 'wreck2'].map((n) => new Promise((res) => { const im = new Image(); im.onload = im.onerror = () => res(); im.src = 'assets/prop/' + n + '.png'; PROPS[n] = im; }))); // (file://: they would taint the tower textures)
     FX.setGround(TILT);
     if (THREE.EffectComposer && THREE.UnrealBloomPass) {
       composer = new THREE.EffectComposer(renderer);
