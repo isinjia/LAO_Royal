@@ -701,9 +701,10 @@
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.1, u.r * 3.6), aspect: TILT, color: teamHex(side), alpha: 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.2, u.r * 3.8), aspect: TILT, color: teamHex(side), alpha: 0.55, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
-    u.fxk *= 1.8 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    u.fxk *= 1.8 / TROOP_K;
+    if (isIron(card.rig)) u.tintMul = 1.2; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
-    u.bar = makeBar(clamp(u.r * 3, 1.5, 2.3), teamHex(side));
+    u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
     G.ents.push(u);
     return u;
   }
@@ -729,7 +730,9 @@
     scene.add(t.holder);
     // the team ring on the tower top breathes (brighter while the tower is firing)
     t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: 0.25, tex: FX.tex.glow, order: 1150 });
-    attachRig(t, guard.rig, guard.k * 1.45, guard.h && guard.h * 1.45, false); // a defender you can actually see on its tower
+    const gk = type === 'princess' ? 1.7 : 1.45;
+    attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
+    if (isIron(guard.rig)) t.tintMul = 1.35;
     t.label = document.createElement('div');
     t.label.className = 'tlabel ' + side + ' ' + type;
     t.label.style.transform = 'translate(-999px,-999px)'; // placed by render()
@@ -1343,7 +1346,7 @@
   }
   // status tint toward its target: a hit flash snaps on, everything else eases (freeze / stun / shield read smoothly)
   function tintTo(e, tk, dt) {
-    const T = TINTS[tk];
+    const m = e.tintMul || 1, T0 = TINTS[tk], T = m === 1 ? T0 : [T0[0] * m, T0[1] * m, T0[2] * m]; // dark iron rigs are lifted a little so they read on the deck
     if (!e.tintC) { e.tintC = T.slice(); e.sd.setTint(T[0], T[1], T[2]); e.tintK = tk; return; } // first frame: written once (a pooled rig may carry an old tint)
     const c = e.tintC, k = tk === 2 ? 1 : Math.min(1, dt * 12);
     let ch = false;

@@ -501,7 +501,7 @@
     const el = dmgPool.pop() || document.createElement('span'); // nodes are reused (no DOM churn in big fights)
     el.className = 'dmgn ' + side + (n >= 300 ? ' big' : '');
     el.textContent = '-' + n;
-    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.left = (x + (Math.random() - 0.5) * 26) + 'px'; el.style.top = (y - (dmgLive % 3) * 12) + 'px'; // spread so quick hits never stack on one spot
     box.appendChild(el);
     dmgLive++;
     setTimeout(() => { el.remove(); dmgLive--; if (dmgPool.length < 24) dmgPool.push(el); }, 900);

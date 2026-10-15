@@ -493,3 +493,8 @@ button:disabled { cursor: default; }
 #hand .card.poor .cost{filter:none;opacity:.8}
 /* speech bubbles open at near full size with an overshoot */
 @keyframes bub{0%{transform:scale(.8);opacity:0}10%{transform:scale(1.1);opacity:1}18%,85%{transform:scale(1);opacity:1}100%{transform:scale(.9);opacity:0}}
+
+/* damage numbers by context: hits on the enemy in warm white-gold, hits on yours in red; a thick outline */
+.dmgn{color:#fff3c4;-webkit-text-stroke:1px #000;paint-order:stroke fill}
+.dmgn.blue{color:#ff8a8a}
+.dmgn.big{color:#ffb240}
