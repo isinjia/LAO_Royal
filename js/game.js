@@ -71,7 +71,8 @@
       // strong side identity: cool blue-grey steel at home, rusted red plating across the chasm
       g.save(); g.globalCompositeOperation = 'color';
       g.fillStyle = 'rgba(70,120,175,0.2)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(165,70,55,0.13)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.fillStyle = 'rgba(165,70,55,0.09)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.fillStyle = 'rgba(30,26,26,0.18)'; g.fillRect(fx0, fy0, tw, 16 * P); // the far plates are quieter: the fight reads first
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(255,170,140,0.12)'; g.fillRect(fx0, fy0, tw, 16 * P); // the far half a touch lighter: dark iron units stand out
@@ -699,7 +700,7 @@
     };
     u.holder = new THREE.Group();
     scene.add(u.holder);
-    u.shadow = FX.sprite({ x, y: z * TILT, size: u.r * 2.8, aspect: TILT * 0.75, color: 0x000000, alpha: 0.62, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
+    u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.6), aspect: TILT * 0.75, color: 0x000000, alpha: 0.7, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(2.1, u.r * 5.6), aspect: TILT, color: teamHex(side), alpha: 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: 0.7, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
@@ -2119,7 +2120,7 @@
         e.shadow.x = e.disc.x = e.glow.x = e.x; e.shadow.y = e.disc.y = e.glow.y = e.z * TILT;
         if (e.halo) { e.halo.x = e.x; e.halo.y = y + e.bodyH * 0.5; if (e.alive) e.halo.alpha = e.deployT > 0 ? 0.08 : 0.2; }
         const fall = e.dropT > 0 ? 1 - e.elev / 3 : 1;
-        e.shadow.sz = e.r * 2.8 * (0.5 + 0.5 * fall);
+        e.shadow.sz = Math.max(1.3, e.r * 3.6) * (0.5 + 0.5 * fall);
         if (e.alive) {
           const show = e.deployT > 0 || e.hp < e.max;
           if (show) {
@@ -2532,7 +2533,7 @@
   function updateAmbient(dt) {
     amb.t += dt;
     if (aimMarks.length) aimMarks[0].alpha = 0.65 + 0.3 * Math.sin(amb.t * 9); // the aim reticle pulses
-    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = 0.75 + Math.sin(amb.t * 2.1) * 0.15; }
+    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = 0.58 + Math.sin(amb.t * 2.1) * 0.12; }
     if (amb.river2) { amb.river2.material.map.offset.x += dt * 0.05; amb.river2.material.opacity = 0.35 + Math.sin(amb.t * 1.3 + 1) * 0.1; }
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)
