@@ -620,6 +620,8 @@
     u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 4, aspect: TILT, color: teamHex(side), alpha: 0.16, tex: FX.tex.glow, order: L.GROUND + 1 }); // team light on the floor
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
+    // a soft team-coloured backlight behind the body: units separate from the floor and read as friend / foe at a glance
+    u.halo = FX.sprite({ x, y: z * TILT + u.bodyH * 0.5, size: u.bodyH * 1.5, aspect: 1.2, color: teamHex(side), alpha: 0.2, tex: FX.tex.glow, order: L.UNIT - 900 });
     u.bar = makeBar(clamp(u.r * 2.2, 0.8, 1.7), teamHex(side));
     G.ents.push(u);
     return u;
@@ -661,7 +663,7 @@
     if (e.sd) { if (e.pooled) SD.release(e.sd); else e.sd.dispose(); e.sd = null; }
     if (e.placeholder) { e.placeholder.material.dispose(); e.placeholder = null; } // the texture is cached per portrait
     scene.remove(e.holder);
-    [e.shadow, e.disc, e.aura, e.glow].forEach((p) => p && FX.kill(p));
+    [e.shadow, e.disc, e.aura, e.glow, e.halo].forEach((p) => p && FX.kill(p));
     if (e.base) { scene.remove(e.base); e.base.material.dispose(); }
     if (e.deadTex) e.deadTex.dispose();
     if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); }
@@ -1513,7 +1515,7 @@
       }
       if (u.sd) { u.sd.update(dt); if (u.dieT > fade0) u.sd.setOpacity(Math.max(0, 1 - (u.dieT - fade0) / 0.4)); }
       if (u.placeholder) { u.placeholder.material.opacity = Math.max(0, 1 - u.dieT / u.dieDur); u.placeholder.position.y = 0.75 - u.dieT * 0.4; }
-      u.shadow.alpha = Math.max(0, 0.62 - u.dieT); u.disc.alpha = Math.max(0, 0.5 - u.dieT);
+      u.shadow.alpha = Math.max(0, 0.62 - u.dieT); u.disc.alpha = Math.max(0, 0.5 - u.dieT); if (u.halo) u.halo.alpha = Math.max(0, 0.2 - u.dieT);
       u.glow.alpha = Math.max(0, 0.16 - u.dieT * 0.3);
       return u.dieT > u.dieDur;
     }
@@ -2002,6 +2004,7 @@
           }
         }
         e.shadow.x = e.disc.x = e.glow.x = e.x; e.shadow.y = e.disc.y = e.glow.y = e.z * TILT;
+        if (e.halo) { e.halo.x = e.x; e.halo.y = y + e.bodyH * 0.5; if (e.alive) e.halo.alpha = e.deployT > 0 ? 0.08 : 0.2; }
         const fall = e.dropT > 0 ? 1 - e.elev / 3 : 1;
         e.shadow.sz = e.r * 2.8 * (0.5 + 0.5 * fall);
         if (e.alive) {
