@@ -205,6 +205,9 @@
     g.beginPath(); g.ellipse(X(0.15), Y(-0.08), (r + 0.15) * P, (r + 0.15) * TILT * P, 0, 0, Math.PI * 2); g.fill();
     const V = [];
     for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; V.push([Math.cos(a) * r, Math.sin(a) * r * TILT]); }
+    const wim = faction && PROPS['wall_' + faction];
+    let wallPat = null;
+    if (wim && wim.naturalWidth) { wallPat = g.createPattern(wim, 'repeat'); if (wallPat.setTransform) wallPat.setTransform(new DOMMatrix().scale(0.32)); }
     for (let i = 0; i < 6; i++) {
       const a = V[i], b = V[(i + 1) % 6];
       const mid = Math.PI / 6 + (i + 0.5) * Math.PI / 3;
@@ -213,6 +216,7 @@
       const c = Math.round(70 + 90 * shadeK);
       g.fillStyle = dead ? `rgb(${c * 0.45},${c * 0.45},${c * 0.47})` : `rgb(${c * 0.78},${c * 0.86},${c * 0.95})`;
       g.beginPath(); g.moveTo(X(a[0]), Y(a[1])); g.lineTo(X(b[0]), Y(b[1])); g.lineTo(X(b[0]), Y(b[1] + E)); g.lineTo(X(a[0]), Y(a[1] + E)); g.closePath(); g.fill();
+      if (wallPat) { g.save(); g.clip(); g.globalAlpha = 0.9; g.fillStyle = wallPat; g.fill(); g.globalAlpha = 1; g.fillStyle = `rgba(0,0,0,${(0.75 - shadeK * 0.6).toFixed(2)})`; g.fill(); g.restore(); } // the faction's original wall art, lit per face
       if (!dead) {
         g.fillStyle = team[0]; g.globalAlpha = 0.85;
         g.beginPath(); g.moveTo(X(a[0]), Y(a[1] + E * 0.72)); g.lineTo(X(b[0]), Y(b[1] + E * 0.72)); g.lineTo(X(b[0]), Y(b[1] + E * 0.82)); g.lineTo(X(a[0]), Y(a[1] + E * 0.82)); g.fill();
@@ -227,6 +231,7 @@
     tg.addColorStop(0, dead ? '#4a4d52' : '#c9d3dc'); tg.addColorStop(1, dead ? '#2c2e31' : '#8b98a5');
     g.fillStyle = tg;
     g.beginPath(); V.forEach(([x, y], i) => (i ? g.lineTo(X(x), Y(y + E)) : g.moveTo(X(x), Y(y + E)))); g.closePath(); g.fill();
+    if (wallPat) { g.save(); g.clip(); g.globalAlpha = dead ? 0.5 : 0.62; g.fillStyle = wallPat; g.fill(); g.restore(); } // roof plating
     g.strokeStyle = dead ? '#1d1f22' : '#e9f0f6'; g.lineWidth = 3; g.stroke();
     if (dead) {
       g.strokeStyle = '#111'; g.lineWidth = 3;
@@ -1437,7 +1442,7 @@
       spawnT: c.spawn ? 1.2 : 0, lv: lvlOf(side, c),
     };
     const tk = side + (c.wall ? 'wall' : 'bld');
-    const tc = towerTex[tk] || (towerTex[tk] = c.wall ? wallCanvas(side) : towerCanvas('bld', side, false));
+    const tc = towerTex[tk] || (towerTex[tk] = c.wall ? wallCanvas(side) : towerCanvas('bld', side, false, null, G.sides[side].faction));
     b.base = quad(tc.tex, 0xffffff, 1, false, 0);
     b.base.scale.set(tc.w, tc.h, 1);
     b.base.position.set(x, z * TILT + tc.cy, 0);
@@ -2590,7 +2595,7 @@
     await Promise.all(Object.entries(FACTIONS).map(([k, f]) => new Promise((res) => {
       const im = new Image(); im.onload = im.onerror = () => res(); im.src = (window.IMG && IMG[f.banner]) || ''; emblems[k] = im;
     })));
-    if (location.protocol !== 'file:') await Promise.all(['sandbag', 'sandbag2', 'crate', 'wreck', 'wreck2'].map((n) => new Promise((res) => { const im = new Image(); im.onload = im.onerror = () => res(); im.src = 'assets/prop/' + n + '.png'; PROPS[n] = im; }))); // (file://: they would taint the tower textures)
+    if (location.protocol !== 'file:') await Promise.all(['sandbag', 'sandbag2', 'crate', 'wreck', 'wreck2', 'wall_orca', 'wall_iron'].map((n) => new Promise((res) => { const im = new Image(); im.onload = im.onerror = () => res(); im.src = 'assets/prop/' + n + (n.startsWith('wall') ? '.jpg' : '.png'); PROPS[n] = im; }))); // (file://: they would taint the tower textures)
     FX.setGround(TILT);
     if (THREE.EffectComposer && THREE.UnrealBloomPass) {
       composer = new THREE.EffectComposer(renderer);
@@ -2599,6 +2604,14 @@
       const bloomSize = bloom.setSize.bind(bloom);
       bloom.setSize = (w, h) => bloomSize(Math.max(2, Math.round(w * 0.5)), Math.max(2, Math.round(h * 0.5)));
       composer.addPass(bloom);
+      // colour grade: richer saturation and contrast so units and effects stand off the floor (one cheap full-screen pass)
+      if (THREE.ShaderPass) composer.addPass(new THREE.ShaderPass({
+        uniforms: { tDiffuse: { value: null }, sat: { value: 1.2 }, con: { value: 1.1 }, warm: { value: new THREE.Vector3(1.03, 1.0, 0.96) } },
+        vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'uniform sampler2D tDiffuse; uniform float sat; uniform float con; uniform vec3 warm; varying vec2 vUv;\n' +
+          'void main() { vec4 c = texture2D(tDiffuse, vUv); float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));\n' +
+          '  vec3 col = mix(vec3(l), c.rgb, sat); col = (col - 0.5) * con + 0.5; gl_FragColor = vec4(clamp(col * warm, 0.0, 1.0), c.a); }',
+      }));
     }
     fieldMesh = quad(null, 0xffffff, 1, false, -10);
     fieldMesh.material.transparent = true; // its far edges fade into the backdrop
