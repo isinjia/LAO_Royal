@@ -7,7 +7,7 @@
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 3.5;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 4.1;       // troops are drawn larger than the tower guards (readable on phones)
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
