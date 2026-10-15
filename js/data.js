@@ -136,7 +136,7 @@
     iron: {
       name: '철충', color: '#ff4a5a', hex: 0xff4a5a, banner: 'e_IronPrince_N',
       king: { rig: 'e_IronPrince_N', h: 2.5, fx: 'holy', color: 0xff5050, sfx: 'energy' },
-      princess: { rig: 'e_Executioner_EW', h: 2.3, fx: 'bullet', color: 0xffa070, sfx: 'rifle' },
+      princess: { rig: 'e_Fortress_N', h: 2.0, fx: 'bullet', color: 0xffa070, sfx: 'cannon' }, // an artillery walker reads as a gun emplacement (the dark scythe guard read as debris)
       deck: ['nightchick', 'drone', 'legion', 'centurion', 'intruder', 'predator', 'gigantes', 'i_strike'],
       emotes: [['e_NightChick_N', '삐빅!'], ['e_IronPrince_N', '하찮군'], ['e_Drone_N', '오류 발생'], ['e_BlackKnight_N', '섬멸한다']],
     },
