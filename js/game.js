@@ -848,6 +848,7 @@
       if (e.casting > 0 && !e.skillFired && e.card.skill) G.sides[e.side].elixir = Math.min(BAL.elixirMax, G.sides[e.side].elixir + skillCost(e));
       e.casting = 0;
       hideBar(e.bar);
+      if (!e.air) scorch(e.x, e.z * TILT, e.r * 1.1); // a mark stays where it fell
       const y = sy(e) + e.bodyH * 0.35;
       if (isIron(e.card.rig)) {
         if (!spawnStatic('simple_explosion', e.x, y, e.fxk * 0.45)) FX.explosion(e.x, y, 0.5, 0xff8a40);
@@ -1048,6 +1049,7 @@
   function hit(src, a, t, px, pz, dmg) {
     if (!dmg) return;
     if (a.splash) {
+      if (G.time - (src.scT || -1) > 0.7) { src.scT = G.time; scorch(px, pz * TILT, a.splash * 0.45); } // blasts leave scorch marks that fade over a few seconds
       for (const o of enemiesNear(src.side, px, pz, a.splash)) { // only the other side's units and structures near the blast
         if (!canHit(a, o)) continue;
         if (Math.hypot(o.x - px, o.z - pz) <= a.splash + o.r * 0.5) applyHit(o, dmg, a, src);
@@ -1503,7 +1505,8 @@
       });
       FX.groundRing(x, z * TILT, 0.2, 1.6, FACTIONS[S.faction].hex, 0.5);
       SFX.play(c.rarity >= 3 ? 'genSS' : c.rarity >= 2 ? 'genS' : 'genB', 0.3);
-      if (c.rarity >= 3) FX.later(0.3, () => FX.summonBurst(x, z * TILT + 0.3, 3, FACTIONS[S.faction].hex));
+      FX.later(0.25, () => FX.summonBurst(x, z * TILT + 0.3, c.rarity >= 3 ? 3 : c.rarity >= 1 ? 2 : 1, teamHex(side))); // every deploy lands with a team-coloured burst (bigger for rarer cards)
+      FX.particle({ x, y: z * TILT, life: 1.4, size: 1.2, size1: 2.6, aspect: TILT, color: teamHex(side), tex: FX.tex.ring, alpha: 0.55, order: L.GROUND + 3 }); // a lingering drop circle
     } else if (c.type === 'building') {
       out.push(makeBuilding(side, c, x, z));
       SFX.play('reinforce', 0.5);
