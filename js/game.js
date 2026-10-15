@@ -71,7 +71,7 @@
       // strong side identity: cool blue-grey steel at home, rusted red plating across the chasm
       g.save(); g.globalCompositeOperation = 'color';
       g.fillStyle = 'rgba(70,120,175,0.2)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(165,70,55,0.2)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.fillStyle = 'rgba(165,70,55,0.13)'; g.fillRect(fx0, fy0, tw, 16 * P);
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(230,110,80,0.06)'; g.fillRect(fx0, fy0, tw, 16 * P);
@@ -328,13 +328,13 @@
     // battle damage: under half health the bunker darkens and cracks, under a quarter it is scorched and broken
     if (stage && !dead) {
       g.save(); g.globalCompositeOperation = 'source-atop';
-      g.fillStyle = stage === 2 ? 'rgba(20,10,5,0.42)' : 'rgba(10,10,12,0.22)'; g.fillRect(0, 0, cv.width, cv.height);
-      for (let i = 0; i < (stage === 2 ? 7 : 4); i++) {
+      g.fillStyle = stage === 2 ? 'rgba(20,10,5,0.45)' : 'rgba(10,10,12,0.32)'; g.fillRect(0, 0, cv.width, cv.height);
+      for (let i = 0; i < (stage === 2 ? 8 : 6); i++) {
         let x = X(rnd(-r * 0.7, r * 0.7)), y = Y(E + rnd(-r * TILT * 0.5, r * TILT * 0.5));
         const pts = [[x, y]];
         for (let k = 0; k < 4; k++) { x += rnd(-14, 14); y += rnd(8, 22); pts.push([x, y]); }
         const line = () => { g.beginPath(); pts.forEach(([px, py], j) => (j ? g.lineTo(px, py) : g.moveTo(px, py))); g.stroke(); };
-        g.strokeStyle = stage === 2 ? 'rgba(255,140,50,0.9)' : 'rgba(255,220,180,0.55)'; g.lineWidth = stage === 2 ? 8 : 6; if (stage === 2) { g.shadowColor = '#ff7a20'; g.shadowBlur = 10; } line(); // a hot / lit edge
+        g.strokeStyle = stage === 2 ? 'rgba(255,140,50,0.9)' : 'rgba(255,230,190,0.85)'; g.lineWidth = stage === 2 ? 8 : 7; if (stage === 2) { g.shadowColor = '#ff7a20'; g.shadowBlur = 10; } line(); // a hot / lit edge
         g.shadowBlur = 0; g.strokeStyle = 'rgba(0,0,0,0.95)'; g.lineWidth = stage === 2 ? 4 : 3; line();
       }
       if (stage === 2) { for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.beginPath(); g.arc(X(rnd(-r, r)), Y(rnd(0, E)), rnd(5, 11), 0, Math.PI * 2); g.fill(); } } // blown-out chunks
@@ -947,7 +947,8 @@
   }
   // a dark burn mark that fades out slowly (the floor remembers the fight)
   function scorch(x, y, r) {
-    FX.particle({ x, y, life: 7, size: r * 2, size1: r * 2.1, aspect: TILT, color: 0x000000, alpha: 0.45, tex: FX.tex.dot, normal: true, order: L.GROUND - 1 });
+    FX.particle({ x, y, life: 9, size: r * 3, size1: r * 3.1, aspect: TILT, color: 0x000000, alpha: 0.6, tex: FX.tex.dot, normal: true, order: L.GROUND - 1 });
+    FX.particle({ x, y, life: 1.1, size: r * 2.6, size1: r * 3.2, aspect: TILT, color: 0xff7a2a, alpha: 0.55, tex: FX.tex.ring, order: L.GROUND }); // an ember rim that cools off
   }
 
   // ── attacks ───────────────────────────────────────────
@@ -1038,7 +1039,8 @@
   function hitFx(e, a, x, y) {
     const n = GENERIC_HIT[a.fx];
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
-    FX.sparks(x, y, a.color, Math.round(3 + big * 3), 3 + big * 1.5, 0.13, 0.32); // a spray of sparks sells every blow
+    FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
+    FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
     FX.particle({ x, y, life: 0.09, size: 0.25, size1: 0.75 * big, color: 0xffffff, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash
     FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
     if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
@@ -2131,8 +2133,8 @@
           if (e.stage !== st) { e.stage = st; const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
         }
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
-        if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.5) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
-          e.smkT = !e.alive ? 0.32 : e.hp < e.max * 0.25 ? 0.22 : 0.45;
+        if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.7) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
+          e.smkT = !e.alive ? 0.32 : e.hp < e.max * 0.35 ? 0.2 : 0.38;
           FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + (e.alive ? TOWER_E[e.type] : 0.5) + rnd(0, 0.4), vx: rnd(-0.15, 0.25), vy: rnd(0.6, 1.1), life: rnd(1.4, 2.2), size: 0.6, size1: 2.4, color: 0x6a6e74, alpha: 0.7, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.FX - 1 });
           if (e.alive && e.hp < e.max * 0.25) FX.particle({ x: e.x + rnd(-0.45, 0.45), y: e.z * TILT + TOWER_E[e.type] + rnd(-0.1, 0.3), vx: rnd(-0.2, 0.2), vy: rnd(0.8, 1.4), life: rnd(0.4, 0.7), size: 0.45, size1: 0.9, color: 0xff7a2a, alpha: 0.9, frames: FX.sheets.fire, spin: rnd(-2, 2), order: L.FX }); // burning
           if (e.alive && Math.random() < 0.25) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 0.3), vy: rnd(0.4, 0.9), life: 0.5, size: 0.3, size1: 0, color: 0xff9040, tex: FX.tex.dot }); // embers
