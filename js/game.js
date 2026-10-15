@@ -1062,8 +1062,9 @@
     e.hfxT = G.time;
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
-    FX.particle({ x, y, life: 0.08, size: 0.2, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.6 }); // a short star flash
-    FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
+    FX.particle({ x, y, life: 0.12, size: 0.35, size1: 1.05 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.9 }); // a short star flash
+    FX.particle({ x, y, life: 0.14, size: 0.5 * big, size1: 0.95 * big, color: a.color, tex: FX.tex.glow, alpha: 0.55 }); // a tinted pop behind the star
+    FX.ring(x, y, 0.15, 1.05 * big, a.color, 0.22, 0.85);
     // streaks carry on along the shot: the hit reads as coming from the shooter
     { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
     if (EXPLOSIVE[a.fx]) { for (let k = 0; k < 6; k++) { const aa = rnd(0.3, Math.PI - 0.3), v = rnd(2.5, 5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 10, life: rnd(0.4, 0.65), size: 0.16, size1: 0.12, color: 0x4a3a2c, tex: FX.tex.dot, normal: true }); } scorch(x, y - 0.3, 0.5 * big); } // shells and grenades throw chunks and scar the deck; guns spark; blades cut
