@@ -537,3 +537,5 @@ button:disabled { cursor: default; }
 .tlabel b{font-size:14px;line-height:18px}
 .tlabel.king b{font-size:15px;line-height:20px}
 .tlabel .crown{left:-68px}
+.card .nm{font-size:12px}
+.bl{background:rgba(10,16,24,.55);border-color:rgba(63,102,136,.5);box-shadow:none}
