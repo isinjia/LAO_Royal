@@ -224,6 +224,9 @@
     { key: 'swift', name: '전격전', desc: '모든 유닛 이동 속도 +35%, 에너지 회복 +50%.', speed: 1.35, elixir: 1.5 },
     { key: 'titans', name: '거인의 전장', desc: '모든 유닛·건물 체력 +60% (공격력은 그대로). 오래 버티는 쪽이 이깁니다.', hp: 1.6 },
     { key: 'sudden', name: '단기 결전', desc: '경기 시간 90초, 처음부터 에너지 2배.', time: 90, rush: true },
+    // combined rules
+    { key: 'heroblitz', name: '영웅 전격전', desc: '전격전 + 영웅의 날: 이동 속도 +35%, 챔피언 스킬 에너지 -1·재사용 40% 단축.', speed: 1.35, skillCost: -1, skillCd: 0.6 },
+    { key: 'titanmirror', name: '거인 거울전', desc: '거울 작전 + 거인의 전장: 같은 덱, 모든 체력 +60%.', mirror: true, hp: 1.6 },
   ];
   // the day turns at midnight Korean time (UTC+9)
   const dayIndex = (date) => Math.floor(((date || Date.now()) + 9 * 3600000) / 86400000);

@@ -195,7 +195,7 @@
     const nextR = DATA.ROAD.find((r) => r.trophy > save.trophy);
     $('roadNext').textContent = nextR ? `다음 보상 ${nextR.trophy}: ${nextR.chest ? CH[nextR.chest].name : '부품 ' + nextR.gold}` : '';
     if (save.pendingReveal != null) setTimeout(() => { if ($('title').classList.contains('on')) revealArena(); }, 300);
-    $('firstWin').textContent = save.firstWin === new Date().toDateString() ? '' : '★ 오늘의 첫 승리 보너스가 기다리고 있습니다';
+    $('firstWin').textContent = save.firstWin === 'd' + DATA.dayIndex() ? '' : '★ 오늘의 첫 승리 보너스가 기다리고 있습니다';
     ensureMissions();
     const cl = claimable();
     $('mBadge').textContent = cl;
@@ -345,6 +345,7 @@
     $('elixirNum').textContent = Math.floor(e);
     costPrev();
     $('elixir').classList.toggle('full', e >= BAL.elixirMax - 1e-3);
+    $('elixir').classList.toggle('near', e >= BAL.elixirMax - 1.2 && e < BAL.elixirMax - 1e-3); // about to leak: spend soon
     for (const el of $('hand').children) {
       const c = CARD[S.hand[+el.dataset.i]];
       const lack = c.cost - e;
@@ -375,15 +376,16 @@
     const champs = G.phase === 'play' ? GAME.champions('blue').slice(0, 3) : [];
     const key = champs.map((u) => u.id).join();
     const bar = $('skillBar');
-    if (key !== skillKey) {
+    if (key !== skillKey && !aim) { // (not while a button is held for aiming: it would vanish under the finger)
       skillKey = key;
       bar.innerHTML = '';
-      champs.forEach((u) => {
+      champs.forEach((u, i) => {
         const b = document.createElement('button');
         b.className = 'skb';
         b.dataset.id = u.id;
-        b.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><span class="cd"></span><b>${esc(u.card.skill.name)}</b><span class="cost-s">${GAME.skillState(u).cost}</span>`;
-        b.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (!GAME.useSkill(u)) { SFX.play('fail', 0.3); toast(u.skillCd > 0 ? '스킬 재사용 대기 중' : '에너지가 부족합니다'); } });
+        b.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><span class="cd"></span><b>${esc(u.card.skill.name)}</b><span class="cost-s">${GAME.skillState(u).cost}</span>${HOVER ? `<i class="hk">${'QWE'[i]}</i>` : ''}`;
+        if (GAME.aimable(u)) b.title = '탭: 자동 조준 · 전장으로 끌기: 직접 조준';
+        b.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (GAME.aimable(u) && GAME.skillState(u).ready && !aim) { startAim(u, b, ev); return; } fireSkill(u); });
         bar.appendChild(b);
       });
     }
@@ -440,12 +442,25 @@
     el.classList.add('pop');
     if (n <= 0) setTimeout(() => { el.className = ''; }, 1000);
   }
+  // battle overlays end with their own CSS animation (which a pause freezes: #stage.paused); a slow fallback covers a tab that never animates
+  function pausedRemove(el) {
+    el.addEventListener('animationend', (ev) => { if (ev.target === el) el.remove(); });
+    const check = () => { if (!el.isConnected) return; if (GAME.G.paused) setTimeout(check, 1000); else el.remove(); };
+    setTimeout(check, 6000);
+  }
+  const HOVER = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches; // a mouse: show the Q / W / E keys
+  const FULL_ART = new Set(['empress', 'sleipnir', 'labiata', 'titania', 'tiamat', 'constantia', 'fafnir', 'ramiel', 'goltarion', 'nidhogg']);
+  const PANEL_ART = new Set(['blackknight', 'juggernaut', 'executioner', 'emperorchick']); // original boss panels (no full-body art)
   function skillCut(u) {
     const el = document.createElement('div');
-    el.className = 'skcut ' + u.side;
-    el.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>`;
+    // one cut-in per side at a time; the opponent's is a compact banner that keeps the field readable
+    document.querySelectorAll('.skcut.' + u.side).forEach((x) => x.remove());
+    el.className = 'skcut ' + u.side + (u.side === 'red' ? ' mini' : '');
+    // champions with original full-body art step into the cut-in; the rest keep the portrait chip
+    const face = u.side === 'red' && FULL_ART.has(u.card.id) ? `<span class="pf face" style="background-image:url(assets/full/${u.card.id}.png)"></span>` : u.side === 'red' && PANEL_ART.has(u.card.id) ? `<span class="pf face panel-face" style="background-image:url(assets/full/${u.card.id}_panel.png)"></span>` : '';
+    el.innerHTML = face ? face + `<b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>` : (u.side === 'blue' && PANEL_ART.has(u.card.id) ? `<img class="panel" alt="" src="assets/full/${u.card.id}_panel.png">` : u.side === 'blue' && FULL_ART.has(u.card.id) ? `<img class="full" alt="" src="assets/full/${u.card.id}.png">` : `<span class="pf" style="background-image:url(${art(u.card)})"></span>`) + `<b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>`;
     $('stage').appendChild(el);
-    setTimeout(() => el.remove(), 1500);
+    pausedRemove(el);
   }
   function emote(side, i) {
     const G = GAME.G;
@@ -459,7 +474,7 @@
     el.innerHTML = `<span class="pf" style="background-image:url(${IMG[em[0]]})"></span><b>${esc(em[1])}</b>`;
     $('stage').appendChild(el);
     SFX.play('click', 0.4);
-    setTimeout(() => el.remove(), 2200);
+    pausedRemove(el);
   }
   function dragCard(d, x, y, over) {
     const el = $('dragCard');
@@ -482,6 +497,51 @@
     setTimeout(() => { el.remove(); dmgLive--; if (dmgPool.length < 24) dmgPool.push(el); }, 900);
   }
   const dmgPool = [];
+  // champion skills: tap = auto aim; barrage / laser / dash can also be dragged onto the field to aim them
+  let aim = null;
+  function fireSkill(u, spot) {
+    if (GAME.useSkill(u, spot)) return;
+    const G = GAME.G;
+    if (G.phase !== 'play' || G.paused) return; // the match ended or paused under the finger: nothing to say
+    SFX.play('fail', 0.3);
+    toast(!u.alive ? '챔피언이 쓰러졌습니다' : u.stunT > 0 || u.freezeT > 0 ? '기절·빙결 중에는 스킬을 쓸 수 없습니다' : u.casting > 0 ? '스킬 시전 중입니다' : u.deployT > 0 ? '배치가 끝나면 쓸 수 있습니다'
+      : u.skillCd > 0 ? '스킬 재사용 대기 중' : '에너지가 부족합니다');
+  }
+  // where the aim would land: null when the pointer is off the field or back over the skill bar (= cancel)
+  function aimSpot(ev) {
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (el && el.closest('#skillBar, #hand, #hud')) return null;
+    return GAME.clientToField(ev.clientX, ev.clientY);
+  }
+  function startAim(u, b, ev) {
+    try { b.setPointerCapture(ev.pointerId); } catch (e) { /* synthetic events */ } // the field never sees this pointer (no card drop / ghost drag)
+    aim = { u, pid: ev.pointerId, x0: ev.clientX, y0: ev.clientY, f: null, dragged: false };
+    // the preview is redrawn while the finger rests, not only when it moves
+    // until the finger moves, show where a tap would land (auto aim); the preview follows the champion while held
+    aim.timer = setInterval(() => { if (!aim) return; const p = aim.f || (!aim.dragged && GAME.autoSpot(aim.u)); if (p) GAME.aimPreview(aim.u, p.x, p.z); }, 100);
+    const p0 = GAME.autoSpot(u); if (p0) GAME.aimPreview(u, p0.x, p0.z);
+  }
+  window.addEventListener('pointermove', (ev) => {
+    if (!aim || ev.pointerId !== aim.pid) return;
+    aim.dragged = aim.dragged || Math.hypot(ev.clientX - aim.x0, ev.clientY - aim.y0) > 18;
+    if (!aim.dragged) return;
+    const f = aimSpot(ev), moved = !aim.f || !f || Math.hypot(f.x - aim.f.x, f.z - aim.f.z) > 0.25;
+    aim.f = f;
+    $('skillBar').classList.toggle('cancel', !f);
+    if (f && moved) GAME.aimPreview(aim.u, f.x, f.z); else if (!f) GAME.aimHide();
+  });
+  const endAim = (ev, cancel) => {
+    if (!aim || ev.pointerId !== aim.pid) return; // another finger: not this aim
+    const a = aim; aim = null;
+    clearInterval(a.timer); GAME.aimHide();
+    $('skillBar').classList.remove('cancel');
+    if (cancel) return;
+    const f = a.dragged ? aimSpot(ev) : null;
+    if (a.dragged && !f) { toast('조준을 취소했습니다'); return; } // dropped back off the field
+    fireSkill(a.u, f);
+  };
+  window.addEventListener('pointerup', (ev) => endAim(ev));
+  window.addEventListener('pointercancel', (ev) => endAim(ev, true));
   let dmgLive = 0;
   function elixirShake() { const el = $('elixir'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
 
@@ -496,6 +556,7 @@
       foe = opts.foe || DATA.COMMANDERS[ff][0];
       const st = DATA.STYLES[foe.style] || DATA.STYLES.balanced;
       const myDeck = (GAME.G.sides && GAME.G.sides.blue.deck) || opts.deck;
+      if (GAME.G.sides) for (const s of ['blue', 'red']) for (const id of GAME.G.sides[s].deck) if (FULL_ART.has(id)) new Image().src = `assets/full/${id}.png`; else if (PANEL_ART.has(id)) new Image().src = `assets/full/${id}_panel.png`; // cut-in art ready before the first skill
       const vd = $('vsDeck'); vd.innerHTML = ''; myDeck.forEach((id) => vd.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
       $('vsMe').style.backgroundImage = `url(${IMG[FACTIONS[opts.faction].banner]})`;
       $('vsFoe').style.backgroundImage = `url(${IMG[foe.img]})`;
@@ -506,6 +567,8 @@
       $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? DATA.mutatorOf().name : BAL.modes[opts.mode].name}`;
       $('vsArena').textContent = ARENAS[opts.arena].name;
       const hs = GAME.G.hints || []; $('vsHint').textContent = hs.length ? '정보: 상대가 ' + hs[0] : ''; $('vsHint').hidden = !hs.length;
+      const mr = opts.mode === 3 ? DATA.mutatorOf() : null; // today's rule, explained before the fight
+      $('vsRule').hidden = !mr; if (mr) $('vsRule').innerHTML = `<b>오늘의 작전 · ${esc(mr.name)}</b>${esc(mr.desc)}`;
       el.style.backgroundImage = `radial-gradient(ellipse at center, rgba(12,18,28,.55), rgba(5,7,10,.95) 75%), url(${ARENAS[opts.arena].bg})`;
       $('foeName').textContent = foe.name;
       $('foeName').className = 'fname f-' + ff;
@@ -519,8 +582,10 @@
   }
   function loaded() { $('loading').hidden = true; }
   function pause(on) {
+    if (on && aim) { clearInterval(aim.timer); GAME.aimHide(); aim = null; $('skillBar').classList.remove('cancel'); } // pausing drops a skill aim
     if (on && GAME.G.phase !== 'play' && GAME.G.phase !== 'countdown') return;
     GAME.pause(on);
+    $('stage').classList.toggle('paused', !!on && GAME.G.paused);
     SFX.pauseMusic(on);
     $('pauseOv').hidden = !on;
     $('btnSurrender').textContent = '항복';
@@ -565,27 +630,8 @@
   }
 
   // ── supply crates ─────────────────────────────────────
-  // crate icons drawn once (an armoured supply case with the rarity colour on its bands and emblem)
-  function crateArt(col) {
-    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 112;
-    const g = cv.getContext('2d');
-    const box = (x, y, w, h, top, side) => {
-      g.fillStyle = side; g.beginPath(); g.moveTo(x + w, y + 14); g.lineTo(x + w + 18, y); g.lineTo(x + w + 18, y + h - 14); g.lineTo(x + w, y + h); g.fill();
-      g.fillStyle = top; g.beginPath(); g.moveTo(x, y + 14); g.lineTo(x + 18, y); g.lineTo(x + w + 18, y); g.lineTo(x + w, y + 14); g.fill();
-    };
-    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(64, 104, 54, 7, 0, 0, Math.PI * 2); g.fill();
-    box(12, 44, 88, 58, '#7a8794', '#3c4650');
-    const fg = g.createLinearGradient(0, 58, 0, 102); fg.addColorStop(0, '#5f6b77'); fg.addColorStop(1, '#3a434c');
-    g.fillStyle = fg; g.fillRect(12, 58, 88, 44);
-    box(8, 26, 96, 30, '#9aa7b3', '#4d5862'); // lid
-    g.fillStyle = '#6d7984'; g.fillRect(8, 40, 96, 18);
-    g.fillStyle = col; [[8, 40, 96, 4], [12, 76, 88, 5], [26, 40, 6, 62], [80, 40, 6, 62]].forEach(([x, y, w, h]) => g.fillRect(x, y, w, h));
-    g.shadowColor = col; g.shadowBlur = 12; g.fillStyle = col;
-    g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; g.lineTo(56 + Math.cos(a) * 11, 66 + Math.sin(a) * 11); } g.fill();
-    g.shadowBlur = 0; g.fillStyle = '#fff'; g.beginPath(); g.arc(56, 66, 4, 0, Math.PI * 2); g.fill();
-    return cv.toDataURL();
-  }
-  DATA.CHESTS.forEach((c) => document.documentElement.style.setProperty('--crate-' + c.key, `url(${crateArt(c.color)})`));
+  // the original supply-box icons from the item atlas: wooden (normal), blue case (rare), golden chest (epic)
+  DATA.CHESTS.forEach((c) => document.documentElement.style.setProperty('--crate-' + c.key, `url(${new URL(`assets/icon/crate_${c.key}.png`, location.href).href})`));
   const CH = Object.fromEntries(DATA.CHESTS.map((c) => [c.key, c]));
   // remaining unlock seconds (null: not started); a clock moved backwards never stretches it past the full time
   const chestLeft = (c) => (c.t0 ? Math.min(CH[c.k].time, Math.max(0, CH[c.k].time - (Date.now() - c.t0) / 1000)) : null);
@@ -650,6 +696,8 @@
     ov.hidden = false;
     renderTitle();
   }
+  // original cut-scene art behind the result, varied per match
+  const WIN_ART = { orca: ['win_orca', 'win_orca2', 'win_orca3', 'win_orca4'], iron: ['win_iron', 'win_iron2', 'win_iron3'] };
   function result(winner, b, r, stats, reason) {
     const win = winner === 'blue', draw = winner === 'draw';
     const G = GAME.G, d = BAL.diffs[G.opts.diff];
@@ -671,7 +719,7 @@
     $('resReason').textContent = REASON[reason] || '';
     // the winning side's original cut-scene art behind the result
     const wf = (win || draw ? G.sides.blue : G.sides.red).faction;
-    el.style.backgroundImage = `linear-gradient(rgba(4,6,10,.5), rgba(4,6,10,.88)), url(assets/bg/win_${wf}.jpg)`;
+    el.style.backgroundImage = `linear-gradient(rgba(4,6,10,.5), rgba(4,6,10,.88)), url(assets/bg/${WIN_ART[wf][Math.floor(Math.random() * WIN_ART[wf].length)]}.jpg)`;
     $('resHero').style.backgroundImage = `url(${IMG[FACTIONS[(win || draw ? G.sides.blue : G.sides.red).faction].banner]})`;
     $('resCrowns').innerHTML = `<div class="rc blue"><small>${FACTIONS[G.sides.blue.faction].name}</small><span>${[0, 1, 2].map((i) => `<i class="${i < b ? 'on' : ''}"></i>`).join('')}</span></div>
       <div class="rc red"><small>${esc(foe ? foe.name : FACTIONS[G.sides.red.faction].name)}</small><span>${[0, 1, 2].map((i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</span></div>`;
@@ -699,7 +747,7 @@
     if (mDone) notes.push(`<b>임무 완료 ${mDone}개!</b> 메인 화면에서 보상을 받으세요`);
     if (win && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
     // the day's first win pays a bonus (parts and a handful of cards)
-    const today = new Date().toDateString();
+    const today = 'd' + (G.opDay != null ? G.opDay : DATA.dayIndex()); // the same (KST) day as the daily operation
     if (win && save.firstWin !== today) {
       save.firstWin = today;
       const bg = 80 + arena() * 30;
@@ -709,7 +757,7 @@
       setTimeout(() => SFX.play('pickSS', 0.6), 1200);
     }
     // the daily operation: its first clear of the day pays a crate, and clearing on consecutive days grows the parts bonus
-    const day = DATA.dayIndex();
+    const day = G.opDay != null ? G.opDay : DATA.dayIndex();
     if (win && G.opts.mode === 3 && save.opDay !== day) {
       save.opStreak = save.opDay === day - 1 ? save.opStreak + 1 : 1;
       save.opDay = day;
@@ -743,7 +791,7 @@
     ['c_BR_Leprechaun_N', '에너지', '에너지는 2.8초마다 1씩 차고 최대 10까지 모입니다. 가득 찬 채로 두면 낭비! 남은 1분은 2배로 찹니다.'],
     ['c_PECS_Empress_N', '타워 공략', '적 프린세스 타워를 부수면 크라운 1개. 킹 타워를 부수면 즉시 승리합니다. 건물만 노리는 유닛으로 압박하세요.'],
     ['c_BR_Leprechaun_N', '건물과 주문', '건물은 아군 진영에만 지을 수 있고 시간이 지나면 무너집니다. 포탑·방벽은 건물만 노리는 적을 끌어당기고, 기지는 유닛을 계속 보냅니다. 주문은 전장 어디에나 쓸 수 있습니다.'],
-    ['c_3P_Labiata_N', '챔피언 스킬', 'SS 등급 챔피언이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요!'],
+    ['c_3P_Labiata_N', '챔피언 스킬', 'SS 등급 챔피언이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요! 포격·레이저·돌진 스킬은 버튼을 전장으로 끌어 직접 조준할 수 있습니다.'],
   ];
   let tutI = 0;
   function showTut(i) {
@@ -913,6 +961,6 @@
     } else if (!e.target.closest || !e.target.closest('#emotePanel')) { const p = $('emotePanel'); if (p) p.hidden = true; }
   }, true);
 
-  window.UI = { _sync: () => syncCollection(), init, dmgNum, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal };
+  window.UI = { _sync: () => syncCollection(), init, dmgNum, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
   window.addEventListener('DOMContentLoaded', init);
 })();

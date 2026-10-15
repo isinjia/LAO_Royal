@@ -1,3 +1,4 @@
+[hidden] { display: none !important; } /* the hidden attribute always wins over a display rule */
 :root {
   --bg: #0b0e12; --panel: #141b24; --panel2: #1c2531; --line: #2c3a4a;
   --y: #ffc81e; --blue: #3aa8ff; --red: #ff4a5a; --en: #d65cff; --txt: #e8eef4; --dim: #8796a6; --gold: #ffd34d;
@@ -407,3 +408,30 @@ button:disabled { cursor: default; }
 .rchart .bar i::after{content:'';position:absolute;inset:0;width:var(--w);border-radius:4px;background:linear-gradient(90deg,#3a9bff,#7fe3ff);transform-origin:left;animation:barGrow .8s .4s both}
 .rchart .bar b{text-align:right;color:#fff;font-size:11px}
 @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+.vsrule{display:block;margin:10px auto 0;max-width:230px;font-size:11px;line-height:1.4;font-weight:600;color:#e8f2ff;background:linear-gradient(rgba(40,30,8,.85),rgba(20,14,4,.85));border:1px solid #f0b440;border-radius:10px;padding:6px 10px;letter-spacing:0;animation:vsHintIn .5s .9s both}
+.vsrule b{display:block;color:#ffd36a;font-size:12px;margin-bottom:2px}
+#elixir.near{animation:elixNear .5s ease-in-out infinite alternate}
+@keyframes elixNear{from{filter:none}to{filter:brightness(1.35) drop-shadow(0 0 6px rgba(255,90,220,.8))}}
+
+#skillBar.cancel .skb{box-shadow:0 0 0 2px #ff4050,0 0 14px rgba(255,64,80,.7)}
+#skillBar.cancel::after{content:'놓으면 취소';position:absolute;left:50%;top:-26px;transform:translateX(-50%);white-space:nowrap;font-size:12px;font-weight:800;color:#fff;background:#d8303f;border-radius:10px;padding:3px 10px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+@media (max-width:430px){#skillBar .skb{width:56px;height:56px}#skillBar .skb b{font-size:9px}}
+
+.skcut .full{height:190px;width:auto;max-width:46%;object-fit:contain;align-self:flex-end;margin:0 0 -6px -6px;flex:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7));animation:fullIn .45s cubic-bezier(.2,.9,.3,1.2) both}
+.skcut.red .full{margin:0 -6px -6px 0;transform:scaleX(-1);animation-name:fullInR}
+.skcut:has(.full){height:96px}
+@keyframes fullIn{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:none}}
+@keyframes fullInR{from{opacity:0;transform:translateX(60px) scaleX(-1)}to{opacity:1;transform:scaleX(-1)}}
+
+.skcut .panel{height:88px;width:auto;flex:none;clip-path:polygon(14% 0,100% 0,86% 100%,0 100%);filter:drop-shadow(0 3px 8px rgba(0,0,0,.6));animation:fullIn .4s cubic-bezier(.2,.9,.3,1.2) both}
+.skcut.mini{top:9%;height:48px;left:auto;width:min(300px,70%);padding:0 12px;gap:8px}
+.skcut.mini .pf{width:40px;height:40px;border-radius:8px}
+.skcut.mini b{font-size:16px}
+.skcut.mini small{font-size:10px}
+
+#stage.paused .skcut,#stage.paused .skcut *,#stage.paused .bubble{animation-play-state:paused}
+.skcut .pf.face{background-size:190%;background-position:50% 6%;background-color:#1a1418}
+.skcut .pf.face.panel-face{background-size:cover;background-position:60% 40%}
+
+.skb .hk{position:absolute;left:-4px;top:-4px;width:18px;height:18px;border-radius:5px;background:#0d1218;border:1px solid #6a7a8a;color:#cfe3ff;font:800 10px/16px var(--kr);font-style:normal;text-align:center;pointer-events:none}

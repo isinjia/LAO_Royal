@@ -117,8 +117,23 @@
       // isolate from the previous champions' stuns / freezes (and keep it alive for the check)
       Object.assign(u, { skillCd: 0, stunT: 0, freezeT: 0, casting: 0 });
       if (!u.alive) { out.errors.push('check: champion died before its skill test: ' + c.id); continue; }
-      ok(GAME.useSkill(u), `skill fires: ${c.id} (deploy ${u.deployT.toFixed(2)})`);
+      // aimable skills are fired the player's way (dragged onto a spot); the rest auto-aim
+      if (GAME.aimable(u)) { const n0 = GAME.info.fx; for (let k = 0; k < 5; k++) GAME.aimPreview(u, u.x + k, u.z + 2); const n1 = GAME.info.fx; GAME.aimHide(); ok(n1 - n0 <= 8, `aim preview reuses its marks (${n0} -> ${n1})`); }
+      const aimed = GAME.aimable(u) ? { x: u.x + 2, z: u.z + (side === 'blue' ? 3 : -3) } : undefined;
+      ok(GAME.useSkill(u, aimed), `skill fires: ${c.id} (deploy ${u.deployT.toFixed(2)})`);
+      if (aimed) ok(u.skillSpot && Math.hypot(u.skillSpot[0] - aimed.x, u.skillSpot[1] - aimed.z) < 0.01, 'aimed skill keeps the dragged spot: ' + c.id);
       GAME._run(1.2);
+    }
+    // a ground dash aimed straight across the chasm (off the bridges) stops on the bank
+    {
+      const ex = put('red', 'executioner', 0, 3.4)[0];
+      GAME._run(1.3);
+      Object.assign(ex, { skillCd: 0, stunT: 0, freezeT: 0, casting: 0, x: 0, z: 3.4 });
+      G.sides.red.elixir = 10;
+      GAME.useSkill(ex, { x: 0, z: -5 });
+      GAME._run(1);
+      const inChasm = Math.abs(ex.z) < BAL.river && Math.abs(Math.abs(ex.x) - BAL.bridgeX) > BAL.bridgeW;
+      ok(!ex.alive || !inChasm, `dash across the chasm stops on the bank (at ${ex.x.toFixed(2)}, ${ex.z.toFixed(2)})`);
     }
     G.lastBlue = { lane: -1, t: G.time, cost: 5 };
     G.sides.blue.elixir = 1; G.sides.red.elixir = 7; G.sides.red.ai.t = 0;
@@ -182,6 +197,9 @@
     document.getElementById('btnBattle').click();
     if (await until(() => G.phase === 'countdown' || G.phase === 'play', 45000)) {
       // progress = countdown spent + match time; judged against how many animation frames the browser actually gave
+      // a normal match after the operations: no rule chip, no stale rule card (what is actually displayed)
+      const shown = (id) => getComputedStyle(document.getElementById(id)).display !== 'none';
+      ok(!shown('mutTag') && !shown('vsRule'), 'normal match shows no daily-operation chip or card');
       const prog = () => G.time + (3 - Math.max(0, G.cdT || 0));
       let raf = 0, live = true; const tick = () => { raf++; if (live) requestAnimationFrame(tick); }; requestAnimationFrame(tick);
       const p0 = prog();
