@@ -3,11 +3,11 @@
 // x / y plane with y = z * TILT (+ height): characters stand upright on the tilted floor.
 (function () {
   const { BAL, FACTIONS, ARENAS, LEVEL, card: CARD } = DATA;
-  const TILT = 0.6;         // floor squash: a flatter view lets the 18 x 32 arena fill a phone's width
+  const TILT = 0.52;        // floor squash: a flatter view lets the 18 x 32 arena fill the whole column width
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 1.9;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 2.05;       // troops are drawn larger than the tower guards (readable on phones)
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -68,12 +68,22 @@
       for (let y = 0, i = 0; y < H; y += th, i++) { g.save(); if (i % 2) { g.translate(0, fy0 + y + th); g.scale(1, -1); g.drawImage(fl, fx0, 0, tw, th); } else g.drawImage(fl, fx0, fy0 + y, tw, th); g.restore(); }
       g.restore();
       g.fillStyle = 'rgba(0,0,0,' + (ar.floorDim || 0.18) + ')'; g.fillRect(fx0, fy0, tw, H);
-      g.fillStyle = 'rgba(40,110,200,0.10)'; g.fillRect(fx0, Y(0), tw, 16 * P); // home half
-      g.fillStyle = 'rgba(200,50,60,0.10)'; g.fillRect(fx0, fy0, tw, 16 * P); // away half
-      // a faint tile grid keeps distances readable
-      g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = 1;
-      for (let x = -9; x <= 9; x++) { g.beginPath(); g.moveTo(X(x), fy0); g.lineTo(X(x), fy0 + H); g.stroke(); }
-      for (let z = -16; z <= 16; z++) { g.beginPath(); g.moveTo(fx0, Y(z)); g.lineTo(fx0 + tw, Y(z)); g.stroke(); }
+      // strong side identity: cool blue-grey steel at home, rusted red plating across the chasm
+      g.save(); g.globalCompositeOperation = 'color';
+      g.fillStyle = 'rgba(70,120,175,0.42)'; g.fillRect(fx0, Y(0), tw, 16 * P);
+      g.fillStyle = 'rgba(165,70,55,0.42)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.restore();
+      g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
+      g.fillStyle = 'rgba(230,110,80,0.06)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      // deck decals: maintenance hatches and stencilled numbers
+      g.save();
+      for (const [hx, hz, n] of [[-6.5, -9, '01'], [6.5, -9, '02'], [-6.5, 9, '03'], [6.5, 9, '04'], [0, -4.2, 'A'], [0, 4.2, 'B']]) {
+        const cx = X(hx), cy = Y(hz);
+        g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(cx - 0.7 * P, cy - 0.45 * P, 1.4 * P, 0.9 * P);
+        g.strokeStyle = 'rgba(255,255,255,0.1)'; g.lineWidth = 2; g.strokeRect(cx - 0.7 * P, cy - 0.45 * P, 1.4 * P, 0.9 * P);
+        g.fillStyle = 'rgba(255,255,255,0.13)'; g.font = `bold ${Math.round(0.42 * P)}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(n, cx, cy);
+      }
+      g.restore();
     }
     // floor tiles (procedural fallback until the floor art has loaded)
     if (!fl) for (let z = -16; z < 16; z++) for (let x = -9; x < 9; x++) {
@@ -100,10 +110,12 @@
       g.fillStyle = Math.random() < 0.7 ? `rgba(0,0,0,${rnd(0.05, 0.14)})` : `rgba(255,255,255,${rnd(0.02, 0.05)})`;
       g.fillRect(X(x), Y(z), rnd(1, 4), rnd(1, 3));
     }
-    // lane walkways and tower pads
-    g.fillStyle = 'rgba(170,185,200,0.13)';
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.fillRect(X(sx * BAL.bridgeX - 1.1), Y(sz > 0 ? 14.5 : -1.4), 2.2 * P, 13.1 * P);
-    for (const sz of [-1, 1]) g.fillRect(X(-6.6), Y(sz * 13.3 + 1.1), 13.2 * P, 2.2 * P);
+    // lanes: worn, darker tracks toward the bridges (not light boxes)
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const lx = X(sx * BAL.bridgeX), ly0 = Y(sz > 0 ? 14.5 : -1.4), lh = 13.1 * P, wg = g.createLinearGradient(lx - 1.2 * P, 0, lx + 1.2 * P, 0);
+      wg.addColorStop(0, 'rgba(0,0,0,0)'); wg.addColorStop(0.5, 'rgba(0,0,0,0.16)'); wg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = wg; g.fillRect(lx - 1.2 * P, ly0, 2.4 * P, lh);
+    }
     // chevrons along the lanes, pointing at the bridges
     g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 4;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let k = 3; k <= 7; k += 2) {
@@ -122,13 +134,19 @@
     g.save(); g.globalAlpha = 0.08; g.strokeStyle = '#fff'; g.lineWidth = 6;
     for (const sz of [-1, 1]) { g.beginPath(); g.arc(X(0), Y(sz * 6.5), 2.2 * P, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(X(0), Y(sz * 6.5), 1.2 * P, 0, Math.PI * 2); g.stroke(); }
     g.restore();
-    // hazard trim around the arena
-    g.save();
-    g.lineWidth = 8; g.strokeStyle = '#0b0e12'; g.strokeRect(X(-9) - 4, Y(16) - 4, 18 * P + 8, 32 * P + 8);
-    g.beginPath(); g.rect(X(-9) - 12, Y(16) - 12, 18 * P + 24, 32 * P + 24); g.rect(X(-9) - 4, Y(16) - 4, 18 * P + 8, 32 * P + 8);
-    g.clip('evenodd');
-    for (let i = -40; i < 80; i++) { g.fillStyle = i % 2 ? '#e8b923' : '#1b1b1b'; g.beginPath(); const s = i * 18; g.moveTo(s, 0); g.lineTo(s + 18, 0); g.lineTo(s + 18 - cv.height, cv.height); g.lineTo(s - cv.height, cv.height); g.fill(); }
-    g.restore();
+    // raised bulkhead walls around the arena (dark steel with a lit top edge), casting a shadow onto the deck
+    {
+      const fx0 = X(-9), fy0 = Y(16), fw = 18 * P, fh = 32 * P, wt = 0.55 * P;
+      g.save(); g.beginPath(); g.rect(fx0 - wt, fy0 - wt, fw + wt * 2, fh + wt * 2); g.rect(fx0, fy0, fw, fh); g.clip('evenodd');
+      const bw = g.createLinearGradient(fx0 - wt, 0, fx0 + fw + wt, 0); bw.addColorStop(0, '#2b323a'); bw.addColorStop(0.5, '#3a434d'); bw.addColorStop(1, '#22282e');
+      g.fillStyle = bw; g.fillRect(fx0 - wt, fy0 - wt, fw + wt * 2, fh + wt * 2);
+      g.fillStyle = 'rgba(0,0,0,0.35)'; for (let z = -16; z < 16; z += 2) { g.fillRect(fx0 - wt, Y(z), wt, 2); g.fillRect(fx0 + fw, Y(z), wt, 2); } // panel seams
+      g.restore();
+      g.strokeStyle = 'rgba(200,215,230,0.55)'; g.lineWidth = 2; g.strokeRect(fx0 - wt + 1, fy0 - wt + 1, fw + wt * 2 - 2, fh + wt * 2 - 2); // lit top edge
+      g.strokeStyle = '#0b0e12'; g.lineWidth = 3; g.strokeRect(fx0, fy0, fw, fh);
+      for (const [x0, y0, x1, y1] of [[fx0, 0, fx0 + 0.6 * P, 0], [fx0 + fw, 0, fx0 + fw - 0.6 * P, 0]]) { const sg = g.createLinearGradient(x0, y0, x1, y1); sg.addColorStop(0, 'rgba(0,0,0,0.45)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sg; g.fillRect(Math.min(x0, x1), fy0, 0.6 * P, fh); } // inner shadow
+      const tsg = g.createLinearGradient(0, fy0, 0, fy0 + 0.8 * P); tsg.addColorStop(0, 'rgba(0,0,0,0.5)'); tsg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = tsg; g.fillRect(fx0, fy0, fw, 0.8 * P);
+    }
     // energy chasm (the river)
     const ry0 = Y(BAL.river), ry1 = Y(-BAL.river);
     const gr = g.createLinearGradient(0, ry0, 0, ry1);
@@ -143,18 +161,29 @@
       g.globalAlpha = 0.18 + (i % 3) * 0.12; g.stroke();
     }
     g.globalAlpha = 1;
+    // glowing energy along both lips of the chasm
+    g.save(); g.shadowColor = gl; g.shadowBlur = 18; g.strokeStyle = gl; g.lineWidth = 3; g.globalAlpha = 0.85;
+    for (const yy of [ry0 + 6, ry1 - 6]) { g.beginPath(); g.moveTo(X(-9), yy); g.lineTo(X(9), yy); g.stroke(); }
+    g.restore();
     for (const yy of [ry0, ry1]) { g.fillStyle = '#9aa7b3'; g.fillRect(X(-9), yy - 3, 18 * P, 6); g.fillStyle = '#5e6a75'; g.fillRect(X(-9), yy + (yy === ry0 ? 3 : -5), 18 * P, 2); }
     // bridges
     for (const s of [-1, 1]) {
       const bx = s * BAL.bridgeX, w = BAL.bridgeW;
-      const bx0 = X(bx - w), bx1 = X(bx + w), by0 = Y(BAL.river + 0.45), by1 = Y(-BAL.river - 0.45);
-      g.fillStyle = '#000'; g.globalAlpha = 0.4; g.fillRect(bx0 + 6, by0 + 8, bx1 - bx0, by1 - by0); g.globalAlpha = 1;
+      const bx0 = X(bx - w - 0.15), bx1 = X(bx + w + 0.15), by0 = Y(BAL.river + 0.8), by1 = Y(-BAL.river - 0.8);
+      // a chunky steel span: drop shadow, a side face toward the camera, a plated deck and railings with posts
+      g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(bx0 + 8, by0 + 12, bx1 - bx0, by1 - by0);
+      g.fillStyle = '#2a3036'; g.fillRect(bx0, by1, bx1 - bx0, 0.32 * P); // side face
+      g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(bx0, by1, bx1 - bx0, 3);
       const bg = g.createLinearGradient(bx0, 0, bx1, 0);
-      bg.addColorStop(0, '#5d6872'); bg.addColorStop(0.5, '#7d8994'); bg.addColorStop(1, '#5d6872');
+      bg.addColorStop(0, '#56616b'); bg.addColorStop(0.5, '#8794a0'); bg.addColorStop(1, '#56616b');
       g.fillStyle = bg; g.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
-      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 2;
-      for (let yy = by0 + 12; yy < by1; yy += 14) { g.beginPath(); g.moveTo(bx0 + 10, yy); g.lineTo(bx1 - 10, yy); g.stroke(); }
-      for (const ex of [bx0, bx1 - 8]) for (let yy = by0; yy < by1; yy += 16) { g.fillStyle = ((yy - by0) / 16) % 2 ? '#e8b923' : '#222'; g.fillRect(ex, yy, 8, 16); }
+      g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 2;
+      for (let yy = by0 + 12; yy < by1; yy += 14) { g.beginPath(); g.moveTo(bx0 + 12, yy); g.lineTo(bx1 - 12, yy); g.stroke(); }
+      for (const ex of [bx0 + 4, bx1 - 4]) {
+        g.strokeStyle = '#1c2126'; g.lineWidth = 7; g.beginPath(); g.moveTo(ex, by0); g.lineTo(ex, by1); g.stroke();
+        g.strokeStyle = '#b8c6d2'; g.lineWidth = 3; g.beginPath(); g.moveTo(ex, by0); g.lineTo(ex, by1); g.stroke(); // rail
+        for (let yy = by0 + 4; yy < by1; yy += 18) { g.fillStyle = '#dfe8f0'; g.fillRect(ex - 3, yy, 6, 6); } // posts
+      }
     }
     // deploy lines
     g.setLineDash([10, 8]); g.strokeStyle = 'rgba(120,200,255,0.45)'; g.lineWidth = 2; g.shadowColor = '#3aa8ff'; g.shadowBlur = 8;
@@ -617,11 +646,9 @@
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: u.r * 2.8, aspect: TILT * 0.75, color: 0x000000, alpha: 0.62, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: u.r * 2.6, aspect: TILT, color: teamHex(side), alpha: 0.65, tex: FX.tex.ring, order: L.GROUND + 1 });
-    u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 4, aspect: TILT, color: teamHex(side), alpha: 0.16, tex: FX.tex.glow, order: L.GROUND + 1 }); // team light on the floor
+    u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 3.4, aspect: TILT, color: teamHex(side), alpha: 0.32, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
-    // a soft team-coloured backlight behind the body: units separate from the floor and read as friend / foe at a glance
-    u.halo = FX.sprite({ x, y: z * TILT + u.bodyH * 0.5, size: u.bodyH * 1.5, aspect: 1.2, color: teamHex(side), alpha: 0.2, tex: FX.tex.glow, order: L.UNIT - 900 });
     u.bar = makeBar(clamp(u.r * 2.2, 0.8, 1.7), teamHex(side));
     G.ents.push(u);
     return u;
@@ -647,7 +674,7 @@
     scene.add(t.holder);
     // the team ring on the tower top breathes (brighter while the tower is firing)
     t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: 0.25, tex: FX.tex.glow, order: 1150 });
-    attachRig(t, guard.rig, guard.k, guard.h, false);
+    attachRig(t, guard.rig, guard.k * 1.45, guard.h && guard.h * 1.45, false); // a defender you can actually see on its tower
     t.label = document.createElement('div');
     t.label.className = 'tlabel ' + side + ' ' + type;
     t.label.style.transform = 'translate(-999px,-999px)'; // placed by render()
@@ -2112,7 +2139,7 @@
     view.w = w; view.h = h;
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
-    const fw = 18.4, top = 16.2 * TILT + 4.7, bot = -16.4 * TILT - 0.3, fh = top - bot;
+    const fw = 18.3, top = 16.2 * TILT + 4.9, bot = -16.4 * TILT - 0.2, fh = top - bot;
     const k = Math.min(w / fw, h / fh);
     const cw = w / k, ch = h / k, cy = (top + bot) / 2;
     camera.left = -cw / 2; camera.right = cw / 2; camera.top = cy + ch / 2; camera.bottom = cy - ch / 2;
@@ -2345,7 +2372,7 @@
   // ── living arena: scrolling energy in the chasm, light sweeps, rim lamps ──
   const amb = { river: null, sweep: null, lamps: [], t: 0, sweepT: 4, back: null };
   function buildAmbient() {
-    amb.back = quad(null, 0x5a6470, 1, false, -20);
+    amb.back = quad(null, 0x3a4149, 1, false, -20); // dimmed hard: the art frames the arena, it must not compete with it
     amb.back.material.transparent = false;
     amb.back.visible = false;
     scene.add(amb.back);
