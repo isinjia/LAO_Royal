@@ -337,7 +337,11 @@
         g.strokeStyle = stage === 2 ? 'rgba(255,140,50,0.9)' : 'rgba(255,230,190,0.85)'; g.lineWidth = stage === 2 ? 8 : 7; if (stage === 2) { g.shadowColor = '#ff7a20'; g.shadowBlur = 10; } line(); // a hot / lit edge
         g.shadowBlur = 0; g.strokeStyle = 'rgba(0,0,0,0.95)'; g.lineWidth = stage === 2 ? 4 : 3; line();
       }
-      if (stage === 2) { for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.beginPath(); g.arc(X(rnd(-r, r)), Y(rnd(0, E)), rnd(5, 11), 0, Math.PI * 2); g.fill(); } } // blown-out chunks
+      if (stage === 2) {
+        for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.beginPath(); g.arc(X(rnd(-r, r)), Y(rnd(0, E)), rnd(5, 11), 0, Math.PI * 2); g.fill(); } // blown-out chunks
+        g.globalCompositeOperation = 'destination-out'; g.beginPath(); const cx = X(r * 0.55), cy = Y(E + r * TILT * 0.4); g.moveTo(cx - 26, cy - 10); g.lineTo(cx + 30, cy - 24); g.lineTo(cx + 34, cy + 14); g.lineTo(cx + 8, cy + 26); g.lineTo(cx - 14, cy + 12); g.closePath(); g.fill(); // a corner of the roof is gone
+        g.globalCompositeOperation = 'source-atop';
+      }
       g.restore();
     }
     // dress the bunker with the original props: orca sandbag lines and supply containers, iron wreckage; rubble on a ruin
@@ -390,7 +394,7 @@
   // ── rigs ──────────────────────────────────────────────
   const isIron = (rig) => rig.startsWith('e_');
   const placeholderTex = {};
-  const TINTS = [[0.95, 0.95, 0.95], [0.55, 0.85, 1.3], [1.6, 1.5, 1.5], [1.1, 1.1, 0.6], [1.2, 0.8, 0.8], [1.2, 1.05, 0.8]];
+  const TINTS = [[0.95, 0.95, 0.95], [0.55, 0.85, 1.3], [2.1, 2.0, 2.0], [1.1, 1.1, 0.6], [1.2, 0.8, 0.8], [1.2, 1.05, 0.8]];
   const animCache = {};
   function animInfo(rig, c, clipName = 'atk') {
     const key = rig + ':' + clipName;
@@ -1061,6 +1065,7 @@
   function applyHit(o, dmg, a, src) {
     damage(o, dmg, src);
     if (!o.alive) return;
+    if (o.kind === 'troop' && src && !o.air) { const dx = o.x - src.x, dz = o.z - src.z, L = Math.hypot(dx, dz) || 1, k = clamp(dmg / 600, 0.06, 0.22); o.kx = dx / L * k; o.kz = dz / L * k; } // a visual recoil (the simulated position is untouched)
     if (a.slow) { o.slowT = Math.max(o.slowT, a.slowDur || 2); o.slowAmt = a.slow; }
     if (a.stun) stun(o, a.stun);
     if (a.freeze) { o.freezeT = Math.max(o.freezeT, a.freeze); o.target = o.kind === 'troop' ? null : o.target; }
@@ -2083,7 +2088,8 @@
     for (const e of G.ents) {
       const y = sy(e);
       if (e.kind === 'troop') {
-        e.holder.position.set(e.x, y, 0);
+        if (e.kx || e.kz) { const d = Math.max(0, 1 - dt * 14); e.kx *= d; e.kz *= d; if (Math.abs(e.kx) + Math.abs(e.kz) < 0.004) e.kx = e.kz = 0; }
+        e.holder.position.set(e.x + (e.kx || 0), y + (e.kz || 0) * TILT, 0);
         e.holder.scale.x = e.face * e.natural;
         const order = L.UNIT - e.z * TILT * 10 + (e.air ? 400 : 0) + (e.dropT > 0 ? 500 : 0);
         if (e.sd) {
@@ -2135,7 +2141,7 @@
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
         if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.7) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
           e.smkT = !e.alive ? 0.32 : e.hp < e.max * 0.35 ? 0.2 : 0.38;
-          FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + (e.alive ? TOWER_E[e.type] : 0.5) + rnd(0, 0.4), vx: rnd(-0.15, 0.25), vy: rnd(0.6, 1.1), life: rnd(1.4, 2.2), size: 0.6, size1: 2.4, color: 0x6a6e74, alpha: 0.7, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.FX - 1 });
+          FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + (e.alive ? TOWER_E[e.type] : 0.5) + rnd(0, 0.4), vx: rnd(-0.15, 0.25), vy: rnd(0.6, 1.1), life: rnd(2.2, 3.2), size: 0.7, size1: 3.4, color: 0x6a6e74, alpha: 0.7, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.FX - 1 });
           if (e.alive && e.hp < e.max * 0.25) FX.particle({ x: e.x + rnd(-0.45, 0.45), y: e.z * TILT + TOWER_E[e.type] + rnd(-0.1, 0.3), vx: rnd(-0.2, 0.2), vy: rnd(0.8, 1.4), life: rnd(0.4, 0.7), size: 0.45, size1: 0.9, color: 0xff7a2a, alpha: 0.9, frames: FX.sheets.fire, spin: rnd(-2, 2), order: L.FX }); // burning
           if (e.alive && Math.random() < 0.25) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 0.3), vy: rnd(0.4, 0.9), life: 0.5, size: 0.3, size1: 0, color: 0xff9040, tex: FX.tex.dot }); // embers
         }
