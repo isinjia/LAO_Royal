@@ -669,8 +669,8 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.46 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.7 });
-    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.36 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.6 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
+    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.46 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
   }
@@ -679,7 +679,7 @@
     b.bg.hidden = b.fill.hidden = false;
     b.bg.x = x; b.bg.y = y;
     const w = Math.max(0.01, b.w * f);
-    b.fill.sz = w; b.fill.aspect = 0.36 / w;
+    b.fill.sz = w; b.fill.aspect = 0.46 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     if (color != null) b.fill.color = color;
   }
@@ -706,7 +706,7 @@
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.32 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.85 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
-    if (isIron(card.rig)) u.tintMul = 1.2;
+    if (isIron(card.rig)) u.tintMul = 1.4;
     if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(0.85, 0.22, 0.2, 0.42); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
@@ -1063,7 +1063,7 @@
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
     FX.particle({ x, y, life: 0.12, size: 0.35, size1: 1.05 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.9 }); // a short star flash
-    FX.particle({ x, y, life: 0.14, size: 0.5 * big, size1: 0.95 * big, color: a.color, tex: FX.tex.glow, alpha: 0.55 }); // a tinted pop behind the star
+    FX.particle({ x, y, life: 0.14, size: 0.5 * big, size1: 0.95 * big, color: a.color, tex: FX.tex.glow, alpha: 0.35 }); // a tinted pop behind the star
     FX.ring(x, y, 0.15, 1.05 * big, a.color, 0.22, 0.85);
     // streaks carry on along the shot: the hit reads as coming from the shooter
     { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
