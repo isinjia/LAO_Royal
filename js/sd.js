@@ -116,19 +116,23 @@
           'vec3 transformed = vec3(sk, 0.0);',
         ].join('\n'));
     }
-    stShader(sh);
+    stShader(sh, mat);
   }
-  function stShader(sh) {
+  function stShader(sh, mat) {
+    const rim = mat && mat.userData && mat.userData.rim;
+    if (rim) { const im = mat.map && mat.map.image; if (im && im.width) mat.userData.texel.value.set(1 / im.width, 1 / im.height); sh.uniforms.sdRim = rim; sh.uniforms.sdTexel = mat.userData.texel; }
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec4 st;\nattribute vec4 trect;\nvarying vec4 vSt;\nvarying vec4 vRect;')
       .replace('#include <uv_vertex>', '#include <uv_vertex>\nvSt = st;\nvRect = trect;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec4 vSt;\nvarying vec4 vRect;')
+      .replace('#include <common>', '#include <common>\nvarying vec4 vSt;\nvarying vec4 vRect;' + (rim ? '\nuniform vec4 sdRim;\nuniform vec2 sdTexel;' : ''))
       .replace('#include <map_fragment>', [
         'vec2 uvx = vUv;',
         'if (vSt.x != 0.0) { vec2 l = (vUv - vRect.xy) / vRect.zw; uvx = vRect.xy + fract(l * vSt.xy + vSt.zw) * vRect.zw; }',
         'vec4 texelColor = mapTexelToLinear(texture2D(map, uvx));',
         'diffuseColor *= texelColor;',
+        // team rim: where the sprite's own alpha ends, an outline in the team colour (outer edge of each part)
+        rim ? 'if (sdRim.a > 0.0) { vec2 d = sdTexel * 2.5; float n = max(max(texture2D(map, uvx + vec2(d.x, 0.0)).a, texture2D(map, uvx - vec2(d.x, 0.0)).a), max(texture2D(map, uvx + vec2(0.0, d.y)).a, texture2D(map, uvx - vec2(0.0, d.y)).a)); float e = clamp((n - texelColor.a) * 1.6, 0.0, 1.0) * sdRim.a; diffuseColor.rgb = mix(diffuseColor.rgb, sdRim.rgb, e); diffuseColor.a = max(diffuseColor.a, e * opacity); }' : '',
       ].join('\n'));
   }
 
@@ -679,11 +683,12 @@
           map: tpl.atlas.tex, vertexColors: true, transparent: true, depthTest: false, depthWrite: false,
           alphaTest: 0.02, side, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
         });
+        if (!add) { const img = tpl.atlas.tex.image; m.userData.rim = { value: new THREE.Vector4(0, 0, 0, 0) }; m.userData.texel = { value: new THREE.Vector2(1 / ((img && img.width) || 1024), 1 / ((img && img.height) || 1024)) }; }
         if (this.gpu) {
           m.userData.sd = this.sdU;
           m.onBeforeCompile = (sh) => sdShader(sh, m);
-          m.customProgramCacheKey = () => 'sdgpu';
-        } else m.onBeforeCompile = stShader;
+          m.customProgramCacheKey = () => (add ? 'sdgpu' : 'sdgpu-rim');
+        } else { m.onBeforeCompile = (sh) => stShader(sh, m); m.customProgramCacheKey = () => (add ? 'sdcpu' : 'sdcpu-rim'); }
         return m;
       };
       // material index = additive + 2 * cull mode (see matIndex)
@@ -1165,6 +1170,9 @@
 
     setOpacity(a) { for (const m of this.mats) m.opacity = a; }
 
+    // a team-coloured outline around the sprite (a = strength, 0 = off)
+    setRim(r, g, b, a) { for (const m of this.mats) if (m.userData.rim) m.userData.rim.value.set(r, g, b, a); }
+
     dispose() {
       this.root.parent && this.root.parent.remove(this.root);
       this.geo.setIndex(null); // shared with the template (also the re-sorted ones)
@@ -1243,7 +1251,7 @@
       if (p && p.length) {
         const c = p.pop();
         c.speed = 1; c.onEnd = null; c.loop = false;
-        c.setTint(1, 1, 1); c.setOpacity(1);
+        c.setTint(1, 1, 1); c.setOpacity(1); c.setRim(0, 0, 0, 0);
         c.root.position.set(0, 0, 0); c.root.scale.set(1, 1, 1); c.root.visible = true;
         c.clip = null; // a reused instance starts clean (no crossfade from its previous life)
         c.play('idle');

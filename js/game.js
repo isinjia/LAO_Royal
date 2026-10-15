@@ -704,7 +704,8 @@
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: 0.7, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.8 / TROOP_K;
-    if (isIron(card.rig)) u.tintMul = 1.2; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    if (isIron(card.rig)) u.tintMul = 1.2;
+    if (u.sd) { const c = new THREE.Color(teamHex(side)); u.sd.setRim(c.r, c.g, c.b, 0.9); } // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
     G.ents.push(u);
@@ -735,6 +736,7 @@
     const gk = type === 'princess' ? (isIron(guard.rig) ? 1.7 : 2.05) : 1.45; // the orca gunners stand as large as the iron emplacements
     attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
+    if (t.sd) { const c = new THREE.Color(teamHex(side)); t.sd.setRim(c.r, c.g, c.b, 0.8); }
     t.label = document.createElement('div');
     t.label.className = 'tlabel ' + side + ' ' + type;
     t.label.style.transform = 'translate(-999px,-999px)'; // placed by render()
