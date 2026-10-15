@@ -1133,7 +1133,7 @@
       const yy = p.y + (p.arc ? Math.sin(prog * Math.PI) * p.arc : 0);
       const c = p.atk.color;
       switch (p.kind) {
-        case 'bullet': FX.trail(p.x, yy, c, 0.34); break;
+        case 'bullet': FX.trail(p.x, yy, c, 0.5); FX.particle({ x: p.x, y: yy, life: 0.05, size: 0.22, size1: 0.1, color: 0xffffff, tex: FX.tex.glow, alpha: 0.9, order: L.PROJ }); break; // a bright head on a thicker trail
         case 'grenade': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.3, size1: 0.15, color: 0xffd080, tex: FX.tex.glow, order: L.PROJ }); break;
         case 'missile': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.35, size1: 0.1, color: c, tex: FX.tex.glow, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.5, size: 0.2, size1: 0.6, color: 0x777777, alpha: 0.4, normal: true, frames: FX.sheets.smoke, order: L.LOW }); break;
         case 'fireball': FX.particle({ x: p.x, y: yy, life: 0.18, size: 0.8, size1: 0.3, color: c, frames: FX.sheets.fire, rot: Math.random() * 6, order: L.PROJ }); break;
@@ -1750,7 +1750,7 @@
   }
   function pushApart(a, b) {
     const dx = a.x - b.x, dz = a.z - b.z;
-    const min = a.r + b.r;
+    const min = b.kind === 'tower' ? a.r + b.r : (a.r + b.r) * 1.3; // troops keep a little more room: the larger sprites no longer pile into one blob
     if (dx > min || dx < -min || dz > min || dz < -min) return;
     const d = Math.hypot(dx, dz) || 0.001;
     if (d >= min) return;
