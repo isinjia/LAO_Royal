@@ -70,8 +70,8 @@
       g.fillStyle = 'rgba(0,0,0,' + (ar.floorDim || 0.18) + ')'; g.fillRect(fx0, fy0, tw, H);
       // strong side identity: cool blue-grey steel at home, rusted red plating across the chasm
       g.save(); g.globalCompositeOperation = 'color';
-      g.fillStyle = 'rgba(70,120,175,0.42)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(165,70,55,0.42)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.fillStyle = 'rgba(70,120,175,0.26)'; g.fillRect(fx0, Y(0), tw, 16 * P);
+      g.fillStyle = 'rgba(165,70,55,0.26)'; g.fillRect(fx0, fy0, tw, 16 * P);
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(230,110,80,0.06)'; g.fillRect(fx0, fy0, tw, 16 * P);
@@ -304,12 +304,13 @@
     if (stage && !dead) {
       g.save(); g.globalCompositeOperation = 'source-atop';
       g.fillStyle = stage === 2 ? 'rgba(20,10,5,0.42)' : 'rgba(10,10,12,0.22)'; g.fillRect(0, 0, cv.width, cv.height);
-      g.strokeStyle = 'rgba(0,0,0,0.85)'; g.lineWidth = stage === 2 ? 4 : 3;
       for (let i = 0; i < (stage === 2 ? 7 : 4); i++) {
         let x = X(rnd(-r * 0.7, r * 0.7)), y = Y(E + rnd(-r * TILT * 0.5, r * TILT * 0.5));
-        g.beginPath(); g.moveTo(x, y);
-        for (let k = 0; k < 4; k++) { x += rnd(-14, 14); y += rnd(8, 22); g.lineTo(x, y); }
-        g.stroke();
+        const pts = [[x, y]];
+        for (let k = 0; k < 4; k++) { x += rnd(-14, 14); y += rnd(8, 22); pts.push([x, y]); }
+        const line = () => { g.beginPath(); pts.forEach(([px, py], j) => (j ? g.lineTo(px, py) : g.moveTo(px, py))); g.stroke(); };
+        g.strokeStyle = stage === 2 ? 'rgba(255,140,50,0.9)' : 'rgba(255,220,180,0.55)'; g.lineWidth = stage === 2 ? 8 : 6; if (stage === 2) { g.shadowColor = '#ff7a20'; g.shadowBlur = 10; } line(); // a hot / lit edge
+        g.shadowBlur = 0; g.strokeStyle = 'rgba(0,0,0,0.95)'; g.lineWidth = stage === 2 ? 4 : 3; line();
       }
       if (stage === 2) { for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.beginPath(); g.arc(X(rnd(-r, r)), Y(rnd(0, E)), rnd(5, 11), 0, Math.PI * 2); g.fill(); } } // blown-out chunks
       g.restore();
@@ -1011,7 +1012,8 @@
     const n = GENERIC_HIT[a.fx];
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
     FX.sparks(x, y, a.color, Math.round(3 + big * 3), 3 + big * 1.5, 0.13, 0.32); // a spray of sparks sells every blow
-    FX.particle({ x, y, life: 0.1, size: 0.2, size1: 0.45 * big, color: a.color, tex: FX.tex.glow, alpha: 0.35 });
+    FX.particle({ x, y, life: 0.09, size: 0.25, size1: 0.75 * big, color: 0xffffff, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash
+    FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
     if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 1.15 * big)) return;
     FX.hit(x, y, a.color, 1.05);
   }
@@ -2100,7 +2102,7 @@
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
         if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.5) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
           e.smkT = !e.alive ? 0.32 : e.hp < e.max * 0.25 ? 0.22 : 0.45;
-          FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + (e.alive ? TOWER_E[e.type] : 0.5) + rnd(0, 0.4), vx: rnd(-0.15, 0.25), vy: rnd(0.6, 1.1), life: rnd(1.4, 2.2), size: 0.6, size1: 2.2, color: 0x1e2226, alpha: 0.75, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.FX - 1 });
+          FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + (e.alive ? TOWER_E[e.type] : 0.5) + rnd(0, 0.4), vx: rnd(-0.15, 0.25), vy: rnd(0.6, 1.1), life: rnd(1.4, 2.2), size: 0.6, size1: 2.4, color: 0x6a6e74, alpha: 0.7, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.FX - 1 });
           if (e.alive && e.hp < e.max * 0.25) FX.particle({ x: e.x + rnd(-0.45, 0.45), y: e.z * TILT + TOWER_E[e.type] + rnd(-0.1, 0.3), vx: rnd(-0.2, 0.2), vy: rnd(0.8, 1.4), life: rnd(0.4, 0.7), size: 0.45, size1: 0.9, color: 0xff7a2a, alpha: 0.9, frames: FX.sheets.fire, spin: rnd(-2, 2), order: L.FX }); // burning
           if (e.alive && Math.random() < 0.25) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 0.3), vy: rnd(0.4, 0.9), life: 0.5, size: 0.3, size1: 0, color: 0xff9040, tex: FX.tex.dot }); // embers
         }
@@ -2119,7 +2121,7 @@
           const w = (e.hp / e.max * 100).toFixed(1) + '%';
           if (e.labelW !== w) { e.labelW = w; e.label.firstChild.firstChild.style.width = w; }
           const hv = Math.ceil(e.hp);
-          if (e.hpShown !== hv) { e.hpShown = hv; e.label.children[1].textContent = hv; const low = e.hp < e.max * 0.3; if (e.labelLow !== low) { e.labelLow = low; e.label.classList.toggle('low', low); } } // a plate under 30% pulses
+          if (e.hpShown !== hv) { if (e.hpShown > hv && G.time - (e.plateT || -1) > 0.25) { e.plateT = G.time; e.label.classList.remove('hit'); void e.label.offsetWidth; e.label.classList.add('hit'); } e.hpShown = hv; e.label.children[1].textContent = hv; const low = e.hp < e.max * 0.3; if (e.labelLow !== low) { e.labelLow = low; e.label.classList.toggle('low', low); } } // a plate under 30% pulses
         }
       }
     }
