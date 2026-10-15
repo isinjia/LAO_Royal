@@ -470,9 +470,9 @@
     $('stage').appendChild(el);
     pausedRemove(el);
   }
-  function emote(side, i) {
+  function emote(side, i, atEnd) {
     const G = GAME.G;
-    if (!G.sides || G.phase !== 'play') return; // (a delayed AI taunt never lands on the end banner)
+    if (!G.sides || (G.phase !== 'play' && !(atEnd && G.phase === 'ended'))) return; // only in play (the victory taunt excepted)
     const f = FACTIONS[G.sides[side].faction], em = f.emotes[i];
     if (!em) return;
     const old = document.querySelector('.bubble.' + side);

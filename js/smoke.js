@@ -118,7 +118,7 @@
       Object.assign(u, { skillCd: 0, stunT: 0, freezeT: 0, casting: 0 });
       if (!u.alive) { out.errors.push('check: champion died before its skill test: ' + c.id); continue; }
       // aimable skills are fired the player's way (dragged onto a spot); the rest auto-aim
-      if (GAME.aimable(u)) { const n0 = GAME.info.fx; for (let k = 0; k < 5; k++) GAME.aimPreview(u, u.x + k, u.z + 2); const n1 = GAME.info.fx; GAME.aimHide(); ok(n1 - n0 <= 8, `aim preview reuses its marks (${n0} -> ${n1})`); }
+      if (GAME.aimable(u)) { const n0 = GAME.info.fx; for (let k = 0; k < 5; k++) GAME.aimPreview(u, u.x + k, u.z + 2); const n1 = GAME.info.fx; GAME.aimHide(); ok(n1 - n0 <= 9, `aim preview reuses its marks (${n0} -> ${n1})`); }
       const aimed = GAME.aimable(u) ? { x: u.x + 2, z: u.z + (side === 'blue' ? 3 : -3) } : undefined;
       ok(GAME.useSkill(u, aimed), `skill fires: ${c.id} (deploy ${u.deployT.toFixed(2)})`);
       if (aimed) ok(u.skillSpot && Math.hypot(u.skillSpot[0] - aimed.x, u.skillSpot[1] - aimed.z) < 0.01, 'aimed skill keeps the dragged spot: ' + c.id);

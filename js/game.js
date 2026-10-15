@@ -1195,11 +1195,12 @@
     if (!aimMarks.length) {
       aimMarks.push(FX.sprite({ x, y: z * TILT, size: 1, aspect: TILT, color: sk.color, tex: FX.tex.ring, alpha: 0.9, order: L.GROUND + 60 }));
       for (let i = 1; i <= 7; i++) aimMarks.push(FX.sprite({ x, y: z * TILT, size: 1, aspect: TILT, color: sk.color, tex: FX.tex.glow, alpha: 0, order: L.GROUND + 55 }));
+      aimMarks.push(FX.sprite({ x, y: z * TILT, size: 1, aspect: TILT, color: 0xffffff, tex: FX.tex.ring, alpha: 0, order: L.GROUND + 58 })); // [8]: where the finger is, when the dash stops short of it
     }
     const put = (p, mx, mz, r, a) => { p.x = mx; p.y = mz * TILT; p.sz = r * 2; p.alpha = a; p.aspect = TILT; p.rot = 0; };
     if (sk.kind === 'barrage') {
       put(aimMarks[0], x, z, sk.radius * 1.5, 0.9); put(aimMarks[1], x, z, sk.radius * 1.4, 0.3);
-      for (let i = 2; i <= 7; i++) aimMarks[i].alpha = 0;
+      for (let i = 2; i <= 8; i++) aimMarks[i].alpha = 0;
       return;
     }
     const dx = x - u.x, dz = z - u.z, Ln = Math.hypot(dx, dz) || 1, reach = sk.kind === 'laser' ? sk.reach : dashPath(u, x, z)[2];
@@ -1208,6 +1209,7 @@
     const lane = aimMarks[1]; lane.x = (u.x + ex) / 2; lane.y = (u.z + ez) / 2 * TILT; lane.sz = len * 1.08; lane.aspect = Math.min(1, w * 1.6 * TILT / (len * 1.08)); lane.rot = Math.atan2(sy2, sx); lane.alpha = 0.45;
     for (let i = 2; i <= 7; i++) { const f = (i - 1) / 6; put(aimMarks[i], u.x + dx / Ln * reach * f, u.z + dz / Ln * reach * f, w * 0.35, 0.7); }
     put(aimMarks[0], u.x + dx / Ln * reach, u.z + dz / Ln * reach, (sk.width || sk.radius) * 1.1, 0.9); // where it ends
+    put(aimMarks[8], x, z, 0.3, sk.kind === 'dash' && Ln - reach > 1.3 ? 0.4 : 0);
   }
   // a champion skill landing: a beat of hit-stop, a camera punch and a colour flash (lighter for the opponent's)
   function impact(u, x, z, color) {
@@ -1264,7 +1266,7 @@
             const y = z * TILT;
             if (sk.pillar) { FX.pillar(x, y, 0.6, sk.color); spawnStatic('Azazel_skill1_Hit_m', x, y + 0.3, 0.2); }
             else FX.meteor(x, y, null, sk.color);
-            FX.later(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { spawnStatic('simple_explosion', x, y + 0.3, 0.22); scorch(x, y, sk.radius * 0.5); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
+            FX.later(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { spawnStatic('simple_explosion', x, y + 0.3, 0.22 * rnd(0.85, 1.2)); scorch(x, y, sk.radius * 0.5); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
           });
         }
         break;
@@ -1697,7 +1699,7 @@
       if (e.side === winner) { e.sd.speed = 1; e.sd.play(e.sd.has('win') ? 'win' : 'idle', null, true); }
       else { e.sd.speed = 1; e.sd.play('idle', null, true); } // the losers (towers too) stop fighting
     }
-    if (winner === 'red') aiEmote(1, 0.9);
+    if (winner === 'red') aiEmote(1, 0.9, true); // the victory taunt is allowed after the final whistle
     SFX.music(null);
     SFX.play(winner === 'blue' ? 'win' : winner === 'draw' ? 'clear' : 'fail');
     const cb = G.sides.blue.crowns, cr = G.sides.red.crowns, stats = G.stats, opts = G.opts;
@@ -1708,11 +1710,11 @@
   }
 
   // ── AI ────────────────────────────────────────────────
-  function aiEmote(i, chance) {
+  function aiEmote(i, chance, atEnd) {
     const S = G.sides && G.sides.red;
     if (!S || !S.ai || Math.random() > chance || G.time - (S.ai.emoteT || -99) < 6) return;
     S.ai.emoteT = G.time;
-    setTimeout(() => UI.emote('red', i), 400 + Math.random() * 600);
+    FX.later(0.4 + Math.random() * 0.6, () => UI.emote('red', i, atEnd)); // on the game clock: a pause holds it back
   }
   // a playable random deck: a win condition, a spell, air defence and splash, then anything unlocked
   let hints = []; // what the opponent's deck was built to answer (shown on the VS screen)
@@ -1813,7 +1815,7 @@
     // finish a weak tower with a spell
     for (const o of hand) {
       if (o.c.type !== 'spell' || !o.c.dmg) continue;
-      const t = blueT.find((tt) => tt.hp <= o.c.dmg * LEVEL.mult(S.lvl) * (o.c.towerK || 0.35));
+      const t = blueT.find((tt) => tt.hp <= o.c.dmg * (o.c.spell === 'zone' ? o.c.dur || 1 : 1) * LEVEL.mult(S.lvl) * (o.c.towerK || 0.35)); // a zone burns dps x duration
       if (t && smart) { playCard('red', o.i, t.x, t.z); return; }
     }
     // defend: troops coming at the AI's towers
@@ -1956,7 +1958,7 @@
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
           } else hideBar(e.bar);
-          if ((e.shieldT > 0 || e.hasteT > 0) && Math.random() < 0.3) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot });
+          if ((e.shieldT > 0 || e.hasteT > 0) && (e.spkT = (e.spkT || 0) - dt) <= 0 && (e.spkT = 0.055)) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot });
           // your champion's skill is ready: a pulsing ring at its feet points to the button
           if (e.side === 'blue' && e.card.skill && (e.readyT = (e.readyT || 0) - dt) <= 0 && skillReady(e) && G.sides.blue.elixir >= skillCost(e)) {
             e.readyT = 0.7;
@@ -1974,10 +1976,10 @@
             const tk = e.freezeT > 0 ? 1 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.hasteT > 0 ? 5 : 0; // cached like the troops'
             if (e.tintK !== tk) { e.tintK = tk; e.sd.setTint(...TINTS[tk]); }
           }
-          if (e.hasteT > 0 && Math.random() < 0.3) FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 1.2), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.hasteColor || 0xd65cff, tex: FX.tex.dot });
+          if (e.hasteT > 0 && (e.spkT = (e.spkT || 0) - dt) <= 0 && (e.spkT = 0.055)) FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 1.2), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.hasteColor || 0xd65cff, tex: FX.tex.dot });
         }
-        const hb = e.hitT > 0 ? 1.25 : 1;
-        if (e.baseB !== hb) { e.baseB = hb; e.base.material.color.setScalar(hb); }
+        const hb = 1 + 0.25 * clamp(e.hitT / 0.1, 0, 1); // eases back from the hit flash
+        if (Math.abs((e.baseB || 1) - hb) > 0.01) { e.baseB = hb; e.base.material.color.setScalar(hb); }
         e.dmgT = (e.dmgT || 0) - dt;
         if (e.dmgAcc >= 1 && e.dmgT <= 0) {
           e.dmgT = 0.35;
@@ -2214,11 +2216,11 @@
   // the side's champions on the field (newest first)
   // the side's champions on the field, newest first (computed once per frame for the HUD)
   // one cache per side, invalidated by the step clock and by any new spawn (G.nextId) in between
-  const champCache = { blue: { k: '', list: [] }, red: { k: '', list: [] } };
+  const champCache = { blue: { t: -1, n: -1, list: [] }, red: { t: -1, n: -1, list: [] } };
   function champions(side) {
-    const c = champCache[side], k = G.time + ':' + G.nextId;
-    if (c.k === k) return c.list;
-    c.k = k;
+    const c = champCache[side];
+    if (c.t === G.time && c.n === G.nextId) return c.list;
+    c.t = G.time; c.n = G.nextId;
     return (c.list = G.ents.filter((e) => e.side === side && e.kind === 'troop' && e.alive && e.card.skill).reverse());
   }
 
@@ -2341,12 +2343,13 @@
     if (amb.back && amb.back.visible && amb.backS) { const k = 1.04 + 0.02 * Math.sin(amb.t * 0.11); amb.back.scale.set(amb.backS[0] * k, amb.backS[1] * k, 1); amb.back.position.x = Math.sin(amb.t * 0.07) * 0.45;
     }
     // the haze drifts one way behind the deck and the veil the other way over it (true parallax: different layers, speeds and scales)
+    if (amb.back2 && amb.back2.material.map) amb.back2.visible = amb.veil.visible = !!QUALITY[perf.level].bloom; // both fog layers are off on low quality (fill rate)
     if (amb.back2 && amb.back2.visible) {
       const cw = camera.right - camera.left, ch = camera.top - camera.bottom, cy = (camera.top + camera.bottom) / 2;
       amb.back2.scale.set(cw * 1.1, ch * 1.1, 1); amb.back2.position.set(0, cy, 0);
       amb.back2.material.map.offset.set(amb.t * 0.006, amb.t * 0.0025); amb.back2.material.opacity = 0.09 + 0.03 * Math.sin(amb.t * 0.3);
       amb.veil.scale.set(cw * 1.05, ch * 1.05, 1); amb.veil.position.set(0, cy, 0);
-      amb.veil.material.map.offset.set(-amb.t * 0.011, amb.t * 0.004); amb.veil.visible = !!QUALITY[perf.level].bloom; amb.veil.material.opacity = 0.035; // off (not just transparent) on low quality: no full-screen pass
+      amb.veil.material.map.offset.set(-amb.t * 0.011, amb.t * 0.004); amb.veil.material.opacity = 0.035;
     }
     // drifting motes in the arena's light colour
     amb.moteT = (amb.moteT || 0) - dt;
