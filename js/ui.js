@@ -183,7 +183,7 @@
     row.innerHTML = '';
     save.decks[save.faction].forEach((id) => row.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
     $('avgCost').textContent = avg(save.decks[save.faction]);
-    const foe = save.faction === 'orca' ? 'iron' : 'orca';
+    const foe = foeFaction({ faction: save.faction, mode: save.mode });
     $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>`;
     const up = DATA.byFaction(save.faction).some((c) => canUpgrade(c));
     $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id] && CARD[id].faction === save.faction)));
@@ -562,7 +562,7 @@
   // VS loading screen (the commander is picked when the battle starts: opts.foe)
   let foe = null;
   // mirror operation: the opponent fights with the player's own faction (and one of its commanders)
-  const foeFaction = (o) => o.mode === 3 && DATA.mutatorOf().mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca';
+  const foeFaction = (o) => o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca';
   function loading(f, opts) {
     const el = $('loading');
     if (el.hidden && opts) {
@@ -578,17 +578,17 @@
       $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 트로피 ${save.trophy}`;
       $('vsFoeName').textContent = foe.name;
       const rl = GAME.G.sides && GAME.G.sides.red.lvl;
-      $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? DATA.mutatorOf().name : BAL.modes[opts.mode].name}`;
+      $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? (opts.mut || DATA.mutatorOf()).name : BAL.modes[opts.mode].name}`;
       $('vsArena').textContent = ARENAS[opts.arena].name;
       const hs = GAME.G.hints || []; $('vsHint').textContent = hs.length ? '정보: 상대가 ' + hs[0] : ''; $('vsHint').hidden = !hs.length;
-      const mr = opts.mode === 3 ? DATA.mutatorOf() : null; // today's rule, explained before the fight
+      const mr = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null; // today's rule, explained before the fight
       $('vsRule').hidden = !mr; if (mr) $('vsRule').innerHTML = `<b>오늘의 작전 · ${esc(mr.name)}</b>${esc(mr.desc)}`;
       el.style.backgroundImage = `radial-gradient(ellipse at center, rgba(12,18,28,.55), rgba(5,7,10,.95) 75%), url(${ARENAS[opts.arena].bg})`;
       $('foeName').textContent = foe.name;
       $('foeName').className = 'fname f-' + ff;
       $('foeAv').style.backgroundImage = `url(${IMG[foe.img]})`;
       $('foeLv').textContent = st.name;
-      const mu = opts.mode === 3 ? DATA.mutatorOf() : null; // today's operation rule stays visible during the battle
+      const mu = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null; // today's operation rule stays visible during the battle
       $('mutTag').hidden = !mu; $('mutTag').textContent = mu ? mu.name : ''; $('mutTag').title = mu ? mu.desc : '';
     }
     el.hidden = false;
@@ -717,12 +717,12 @@
     const G = GAME.G, d = BAL.diffs[G.opts.diff];
     const a0 = arena();
     const floor = ARENAS[a0].trophy;
+    const rw = rollRewards(win, b); // rolled at the arena the match was played in (before trophies move)
     let delta = draw ? 0 : win ? Math.round((26 + b * 3) * d.trophy) : -Math.round(18 + a0 * 3);
     if (!win && save.trophy + delta < floor) delta = floor - save.trophy; // never drop out of a reached arena
     save.trophy += delta;
     save.best = Math.max(save.best, save.trophy);
     if (win) { save.wins++; save.streak++; } else if (draw) save.draws++; else { save.losses++; save.streak = 0; }
-    const rw = rollRewards(win, b);
     save.gold += rw.gold;
     const a1 = arena();
     syncCollection();
@@ -832,8 +832,9 @@
     const levels = {};
     save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
     DATA.CARDS.forEach((c) => { if (!(c.id in levels) && save.cards[c.id]) levels[c.id] = save.cards[c.id].lv; });
-    const ff = foeFaction({ faction: save.faction, mode: save.mode }), cs = DATA.COMMANDERS[ff];
-    GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] });
+    const mut = save.mode === 3 ? DATA.mutatorOf() : null; // drawn once: the commander, the VS screen and the battle all use the same rule (no midnight race)
+    const ff = foeFaction({ faction: save.faction, mode: save.mode, mut }), cs = DATA.COMMANDERS[ff];
+    GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] });
   }
   function init() {
     syncCollection();

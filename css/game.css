@@ -526,3 +526,14 @@ button:disabled { cursor: default; }
 .ebar i{background:linear-gradient(#ffc4ff,#d55cf5 55%,#9a33c4);box-shadow:0 0 10px rgba(230,110,255,.75);position:relative}
 .ebar i::after{content:'';position:absolute;right:0;top:0;bottom:0;width:10px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9));animation:eedge 1s ease-in-out infinite alternate}
 @keyframes eedge{from{opacity:.35}to{opacity:1}}
+
+/* the emote button lives in the top bar now; its panel opens under it */
+#hud .ibtn.emo{width:40px;height:40px}
+#emotePanel{left:auto;right:8px;top:8px;bottom:auto}
+.bl{padding:4px 8px}
+/* tower HP plates: larger numbers */
+.tlabel .bar{width:84px;height:18px}
+.tlabel.king .bar{width:108px;height:20px}
+.tlabel b{font-size:14px;line-height:18px}
+.tlabel.king b{font-size:15px;line-height:20px}
+.tlabel .crown{left:-68px}

@@ -705,9 +705,9 @@
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(2.1, u.r * 5.6), aspect: TILT, color: teamHex(side), alpha: 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: 0.7, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
-    u.fxk *= 1.8 / TROOP_K;
+    u.fxk *= 1.8 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.2;
-    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(1, 0.3, 0.3, 0.7); } // the enemy rim: a clear red edge at moderate strength // outlines tuned per side: cyan-white reads on the blue deck, warm red on the far half // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(1, 0.3, 0.3, 0.7); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
     G.ents.push(u);
@@ -718,7 +718,7 @@
     const S = G.sides[side], sp = BAL.tower[type], fac = FACTIONS[S.faction], guard = fac[type];
     // towers grow with the side's card levels (the deck's average for the player, the opponent's level for the AI)
     const tl = S.levels ? Math.round(S.deck.reduce((s, id) => s + (S.levels[id] || 1), 0) / S.deck.length) : S.lvl || 1;
-    const m = LEVEL.mult(tl), hp = Math.round(sp.hp * m);
+    const m = LEVEL.mult(tl), hp = Math.round(sp.hp * m * (G.mut && G.mut.hp || 1)); // (the titans rule toughens towers as well)
     const t = {
       id: G.nextId++, kind: 'tower', type, side, x, z, r: sp.r, hp, max: hp, air: false, alive: true, active: type !== 'king', lv: tl,
       atk: { dmg: sp.dmg * m, rate: sp.rate, range: sp.range, hits: 'all', splash: 0, fx: guard.fx, color: guard.color, sfx: guard.sfx },
@@ -2573,7 +2573,7 @@
     G.opts = opts;
     G.arena = opts.arena || 0;
     setArena(G.arena);
-    G.mut = opts.mode === 3 ? DATA.mutatorOf() : null;
+    G.mut = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null;
     G.opDay = DATA.dayIndex(); // credited to the day the rule was drawn (a match may end past midnight)
     const foeF = G.mut && G.mut.mirror ? opts.faction : opts.faction === 'orca' ? 'iron' : 'orca'; // mirror: the same faction too
     const diff = BAL.diffs[opts.diff] || BAL.diffs[1];
