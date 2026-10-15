@@ -125,11 +125,11 @@
     // lanes: worn, darker tracks toward the bridges (not light boxes)
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
       const lx = X(sx * BAL.bridgeX), ly0 = Y(sz > 0 ? 14.5 : -1.4), lh = 13.1 * P, wg = g.createLinearGradient(lx - 1.2 * P, 0, lx + 1.2 * P, 0);
-      wg.addColorStop(0, 'rgba(0,0,0,0)'); wg.addColorStop(0.5, 'rgba(0,0,0,0.16)'); wg.addColorStop(1, 'rgba(0,0,0,0)');
+      wg.addColorStop(0, 'rgba(0,0,0,0)'); wg.addColorStop(0.5, 'rgba(0,0,0,0.24)'); wg.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = wg; g.fillRect(lx - 1.2 * P, ly0, 2.4 * P, lh);
     }
     // chevrons along the lanes, pointing at the bridges
-    g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 4;
+    g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 5;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let k = 3; k <= 7; k += 2) {
       const cx = X(sx * BAL.bridgeX), cy = Y(sz * k), d = sz > 0 ? 1 : -1; // tips toward the river
       g.beginPath(); g.moveTo(cx - 0.6 * P, cy - d * 0.35 * P); g.lineTo(cx, cy + d * 0.15 * P); g.lineTo(cx + 0.6 * P, cy - d * 0.35 * P); g.stroke();
@@ -983,7 +983,7 @@
     const tx = t.x, ty = aimY(t);
     const ang = Math.atan2(ty - my, tx - mx);
     const ranged = a.fx !== 'claw' && a.fx !== 'slash' && a.fx !== 'cannon' && a.fx !== 'flame';
-    if (fireN > 0 && ranged) FX.muzzleFlash(mx, my, ang, a.color, 0.8);
+    if (fireN > 0 && ranged) FX.muzzleFlash(mx, my, ang, a.color, 1.15);
     // the original projectile / effect of this character
     const o = e.rig ? origFor(e.rig, a.fx) : null;
     if (real && o && o.statics.length && FXB.ready(o.statics[0])) spawnStatic(o.statics[0], tx, t.z * TILT + 0.2, e.fxk, e.face);
@@ -998,7 +998,7 @@
     }
     const P = (o2) => G.projs.push(Object.assign({ x: mx, y: my, src: e, side: e.side, atk: a, target: t, tx: t.x, tz: t.z, ty, dmg, t: 0, gen: GENERIC_HIT[a.fx], k: e.fxk || 0.2 }, o2));
     switch (a.fx) {
-      case 'bullet': P({ speed: 24, kind: 'bullet' }); FX.beam(mx, my, tx, ty, 0.07, teamHex(e.side), 0.11); break; // a team-coloured tracer shows who is shooting whom
+      case 'bullet': P({ speed: 24, kind: 'bullet' }); FX.beam(mx, my, tx, ty, 0.1, teamHex(e.side), 0.14); break; // a team-coloured tracer shows who is shooting whom
       case 'snipe': FX.beam(mx, my, tx, ty, 0.1, a.color, 0.2); if (real) { hit(e, a, t, t.x, t.z, dmg); hitFx(e, a, tx, ty); } break;
       case 'grenade': P({ speed: 8.5, kind: 'grenade', arc: 1.8, point: true }); break;
       case 'missile': P({ speed: 10, kind: 'missile', arc: 1.2, point: true }); break;
