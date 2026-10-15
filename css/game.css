@@ -509,3 +509,7 @@ button:disabled { cursor: default; }
 .bl{padding:4px 8px 4px 4px;border-radius:12px;background:linear-gradient(#1a2633,#0e151d);border:1px solid #2f4a63;box-shadow:0 2px 0 rgba(58,168,255,.25),0 4px 10px rgba(0,0,0,.5)}
 .bl .ibtn.emo{width:32px;height:32px;border-radius:9px;background:linear-gradient(#2a4058,#16222f);border-color:#3f6688}
 .bl .crowns i{width:24px;height:18px}
+
+/* spell / building cards sit on a dimmed original battle scene, like the portrait cards sit on their art */
+.card.spell{background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.14),transparent 60%),linear-gradient(rgba(12,18,28,.55),rgba(8,12,18,.85)),url(../assets/bg/arena3.jpg) center/cover}
+.card.spell.bld{background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.14),transparent 60%),linear-gradient(rgba(12,18,28,.55),rgba(8,12,18,.85)),url(../assets/bg/arena0.jpg) center/cover}
