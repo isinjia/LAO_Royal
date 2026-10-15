@@ -516,3 +516,8 @@ button:disabled { cursor: default; }
 
 #nextBox{width:16%}
 #nextBox small{font-size:10px;color:#cfe3ff;display:block;margin-bottom:2px}
+
+/* the empty part of a tower bar is a lighter slate, so the remaining health reads at a glance */
+.tlabel .bar{background:linear-gradient(#4a525c,#353b43)}
+.tlabel.red .bar i{background:linear-gradient(#ff8a96,#e2283a)}
+.tlabel.blue .bar i{background:linear-gradient(#9ad8ff,#2a8ce6)}

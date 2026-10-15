@@ -1054,12 +1054,15 @@
   function hitFx(e, a, x, y) {
     const n = GENERIC_HIT[a.fx];
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
+    const heavy = G.time - (e.hfxT || -1) > 0.16; // a fast shooter gets the full burst a few times a second, otherwise just the core (no permanent confetti cloud)
+    if (!heavy) { FX.particle({ x, y, life: 0.07, size: 0.15, size1: 0.35, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.5 }); return; }
+    e.hfxT = G.time;
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
     FX.particle({ x, y, life: 0.08, size: 0.2, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.6 }); // a short star flash
     FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
     // streaks carry on along the shot: the hit reads as coming from the shooter
-    { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 7, life: rnd(0.1, 0.18), size: 0.16, size1: 0.05, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 0.95 }); } }
+    { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
     if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
     if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.55 * big)) return; // the original hit effect, kept small so it does not smear over the target
     FX.hit(x, y, a.color, 0.6);
