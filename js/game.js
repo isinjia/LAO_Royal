@@ -705,7 +705,7 @@
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.8 / TROOP_K;
     if (isIron(card.rig)) u.tintMul = 1.2;
-    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.85); else u.sd.setRim(1, 0.33, 0.33, 0.85); } // outlines tuned per side: cyan-white reads on the blue deck, warm red on the far half // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(0.8, 0.18, 0.18, 0.5); } // the enemy rim is a soft dark red: it frames, it does not scribble // outlines tuned per side: cyan-white reads on the blue deck, warm red on the far half // a team-coloured outline: whose unit it is, at a glance // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
     G.ents.push(u);
@@ -1133,7 +1133,7 @@
       const yy = p.y + (p.arc ? Math.sin(prog * Math.PI) * p.arc : 0);
       const c = p.atk.color;
       switch (p.kind) {
-        case 'bullet': FX.trail(p.x, yy, c, 0.5); FX.particle({ x: p.x, y: yy, life: 0.05, size: 0.22, size1: 0.1, color: 0xffffff, tex: FX.tex.glow, alpha: 0.9, order: L.PROJ }); break; // a bright head on a thicker trail
+        case 'bullet': FX.trail(p.x, yy, c, 0.5); FX.particle({ x: p.x, y: yy, life: 0.06, size: 0.4, size1: 0.18, color: 0xffffff, tex: FX.tex.glow, alpha: 1, order: L.PROJ }); break; // a bright head on a thicker trail
         case 'grenade': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.3, size1: 0.15, color: 0xffd080, tex: FX.tex.glow, order: L.PROJ }); break;
         case 'missile': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.35, size1: 0.1, color: c, tex: FX.tex.glow, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.5, size: 0.2, size1: 0.6, color: 0x777777, alpha: 0.4, normal: true, frames: FX.sheets.smoke, order: L.LOW }); break;
         case 'fireball': FX.particle({ x: p.x, y: yy, life: 0.18, size: 0.8, size1: 0.3, color: c, frames: FX.sheets.fire, rot: Math.random() * 6, order: L.PROJ }); break;
@@ -1696,7 +1696,7 @@
     const tg = u.target;
     if (!tg) { setClip(u, 'idle', 1); if (u.sd) u.sd.update(dt); u.state = 'idle'; return false; }
     const d = dist(u, tg) - tg.r - u.r;
-    const reach = u.card.range + (u.state === 'attack' ? 0.35 : 0);
+    const reach = u.card.range + (u.state === 'attack' ? 0.35 : 0) + (tg.kind === 'troop' && u.card.range < 1.5 ? 0.4 : 0); // melee squares off at arm's length instead of stacking onto its target
     if (d <= reach) {
       u.state = 'attack';
       if (Math.abs(tg.x - u.x) > 0.1) u.face = tg.x > u.x ? 1 : -1;
