@@ -668,8 +668,8 @@
     u.holder = new THREE.Group();
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: u.r * 2.8, aspect: TILT * 0.75, color: 0x000000, alpha: 0.62, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
-    u.disc = FX.sprite({ x, y: z * TILT, size: u.r * 3, aspect: TILT, color: teamHex(side), alpha: 0.95, tex: FX.tex.ring, order: L.GROUND + 1 });
-    u.glow = FX.sprite({ x, y: z * TILT, size: u.r * 3.4, aspect: TILT, color: teamHex(side), alpha: 0.32, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
+    u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.1, u.r * 3.6), aspect: TILT, color: teamHex(side), alpha: 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
+    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.2, u.r * 3.8), aspect: TILT, color: teamHex(side), alpha: 0.42, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit: friend / foe at a glance
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.75 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
@@ -1051,7 +1051,7 @@
       b.inst.root.position.set(x, y, 0);
       b.inst.root.rotation.z = Math.atan2(dy, dx);
       b.inst.update(dt);
-      if ((b.trT = (b.trT || 0) - dt) <= 0) { b.trT = 0.025; FX.particle({ x, y, life: 0.22, size: 0.28, size1: 0, color: b.atk.color, tex: FX.tex.glow, alpha: 0.55 }); } // a fading trail behind the original projectile
+      if ((b.trT = (b.trT || 0) - dt) <= 0) { b.trT = 0.025; FX.particle({ x, y, life: 0.26, size: 0.5, size1: 0.05, color: b.atk.color, tex: FX.tex.glow, alpha: 0.8 }); FX.particle({ x, y, life: 0.12, size: 0.2, size1: 0, color: 0xffffff, tex: FX.tex.glow, alpha: 0.9 }); } // a fading trail with a bright core
       if (f >= 1) {
         const big = b.dmg ? clamp(b.dmg / 220, 0.75, 1.5) : 0.7;
         if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big * 1.3))) FX.hit(b.ex, b.ey, b.atk.color, 1.05 * big);
@@ -2097,7 +2097,7 @@
         if (hb === 1 ? e.baseB !== 1 && e.baseB != null : Math.abs((e.baseB || 1) - hb) > 0.01) { e.baseB = hb; e.base.material.color.setScalar(hb); }
         // damage stages swap in a cracked (50%) and a scorched (25%) bunker
         if (e.alive && e.texKey && e.type !== 'bld') {
-          const st = e.hp < e.max * 0.25 ? 2 : e.hp < e.max * 0.5 ? 1 : 0;
+          const st = e.hp < e.max * 0.35 ? 2 : e.hp < e.max * 0.7 ? 1 : 0; // damage shows early and builds up
           if (e.stage !== st) { e.stage = st; const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
         }
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
