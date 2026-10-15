@@ -82,7 +82,7 @@
         prop(PROPS.wreck, s * 7.4, 11.9, 3, s > 0);
       }
       // the sides are told apart by glowing team edge strips along the walls (the arena's own floor stays visible)
-      for (const [z0, z1, col] of [[-16, -BAL.river, '58,168,255'], [BAL.river, 16, '255,74,90']]) {
+      for (const [z0, z1, col] of [[-16, -8, '58,168,255'], [8, 16, '255,74,90']]) {
         for (const ex of [fx0, fx0 + tw - 0.4 * P]) { const sg = g.createLinearGradient(0, Y(z1), 0, Y(z0)); sg.addColorStop(0, `rgba(${col},0.3)`); sg.addColorStop(0.5, `rgba(${col},0.95)`); sg.addColorStop(1, `rgba(${col},0.3)`); g.save(); g.shadowColor = `rgb(${col})`; g.shadowBlur = 14; g.fillStyle = sg; g.fillRect(ex, Y(z1), 0.4 * P, Y(z0) - Y(z1)); g.restore(); }
       }
       // deck decals: maintenance hatches and stencilled numbers
@@ -1041,11 +1041,11 @@
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
-    FX.particle({ x, y, life: 0.09, size: 0.25, size1: 0.75 * big, color: 0xffffff, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash
+    FX.particle({ x, y, life: 0.08, size: 0.2, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.6 }); // a short star flash
     FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
     if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
-    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 1.15 * big)) return;
-    FX.hit(x, y, a.color, 1.05);
+    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.95 * big)) return;
+    FX.hit(x, y, a.color, 0.8);
   }
 
   function hit(src, a, t, px, pz, dmg) {
@@ -1085,7 +1085,7 @@
       if ((b.trT = (b.trT || 0) - dt) <= 0) { b.trT = 0.025; FX.particle({ x, y, life: 0.26, size: 0.5, size1: 0.05, color: b.atk.color, tex: FX.tex.glow, alpha: 0.8 }); FX.particle({ x, y, life: 0.12, size: 0.2, size1: 0, color: 0xffffff, tex: FX.tex.glow, alpha: 0.9 }); } // a fading trail with a bright core
       if (f >= 1) {
         const big = b.dmg ? clamp(b.dmg / 220, 0.75, 1.5) : 0.7;
-        if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big * 1.3))) FX.hit(b.ex, b.ey, b.atk.color, 1.05 * big);
+        if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big * 0.85))) FX.hit(b.ex, b.ey, b.atk.color, 1.05 * big);
         { const a0 = Math.atan2(dy, dx); for (let s = 0; s < 3 + big * 3; s++) { const a = a0 + rnd(-0.7, 0.7), v = rnd(3, 6); FX.particle({ x: b.ex, y: b.ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, drag: 5, life: rnd(0.15, 0.3), size: 0.12, size1: 0.02, color: b.atk.color, tex: FX.tex.dot }); } } // sparks carry on in the shot's direction
         if (b.atk.splash) FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8);
         if (b.dmg) hit(b.src, b.atk, b.target, b.tx, b.tz, b.dmg);
@@ -2713,7 +2713,7 @@
     if (THREE.EffectComposer && THREE.UnrealBloomPass) {
       composer = new THREE.EffectComposer(renderer);
       composer.addPass(new THREE.RenderPass(scene, camera));
-      bloom = new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.4, 0.8);
+      bloom = new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), 0.38, 0.35, 0.86); // gentler: hits glow without merging into blobs
       const bloomSize = bloom.setSize.bind(bloom);
       bloom.setSize = (w, h) => bloomSize(Math.max(2, Math.round(w * 0.5)), Math.max(2, Math.round(h * 0.5)));
       composer.addPass(bloom);
