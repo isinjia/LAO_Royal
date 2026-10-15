@@ -498,3 +498,6 @@ button:disabled { cursor: default; }
 .dmgn{color:#fff3c4;-webkit-text-stroke:1px #000;paint-order:stroke fill}
 .dmgn.blue{color:#ff8a8a}
 .dmgn.big{color:#ffb240}
+.dmgn{color:#ffd24a}
+.dmgn.blue{color:#ff7070}
+.dmgn.big{color:#ff9a2a;font-size:24px}

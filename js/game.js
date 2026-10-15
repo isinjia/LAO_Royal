@@ -750,7 +750,7 @@
     if (e.sd) { if (e.pooled) SD.release(e.sd); else e.sd.dispose(); e.sd = null; }
     if (e.placeholder) { e.placeholder.material.dispose(); e.placeholder = null; } // the texture is cached per portrait
     scene.remove(e.holder);
-    [e.shadow, e.disc, e.aura, e.glow, e.halo].forEach((p) => p && FX.kill(p));
+    [e.shadow, e.disc, e.aura, e.glow, e.halo, e.fireGlow].forEach((p) => p && FX.kill(p));
     if (e.base) { scene.remove(e.base); e.base.material.dispose(); }
     if (e.deadTex) e.deadTex.dispose();
     if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); }
@@ -991,7 +991,7 @@
     }
     const P = (o2) => G.projs.push(Object.assign({ x: mx, y: my, src: e, side: e.side, atk: a, target: t, tx: t.x, tz: t.z, ty, dmg, t: 0, gen: GENERIC_HIT[a.fx], k: e.fxk || 0.2 }, o2));
     switch (a.fx) {
-      case 'bullet': P({ speed: 24, kind: 'bullet' }); FX.beam(mx, my, tx, ty, 0.035, a.color, 0.07); break; // a faint tracer shows who is shooting whom
+      case 'bullet': P({ speed: 24, kind: 'bullet' }); FX.beam(mx, my, tx, ty, 0.07, teamHex(e.side), 0.11); break; // a team-coloured tracer shows who is shooting whom
       case 'snipe': FX.beam(mx, my, tx, ty, 0.1, a.color, 0.2); if (real) { hit(e, a, t, t.x, t.z, dmg); hitFx(e, a, tx, ty); } break;
       case 'grenade': P({ speed: 8.5, kind: 'grenade', arc: 1.8, point: true }); break;
       case 'missile': P({ speed: 10, kind: 'missile', arc: 1.2, point: true }); break;
@@ -2142,8 +2142,9 @@
         // damage stages swap in a cracked (50%) and a scorched (25%) bunker
         if (e.alive && e.texKey && e.type !== 'bld') {
           const st = e.hp < e.max * 0.35 ? 2 : e.hp < e.max * 0.7 ? 1 : 0; // damage shows early and builds up
-          if (e.stage !== st) { e.stage = st; const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
+          if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
         }
+        if (e.fireGlow) { if (!e.alive) { FX.kill(e.fireGlow); e.fireGlow = null; } else e.fireGlow.alpha = 0.32 + 0.18 * Math.sin(amb.t * 11 + e.x) * Math.sin(amb.t * 7); }
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
         if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.7) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
           e.smkT = !e.alive ? 0.32 : e.hp < e.max * 0.35 ? 0.2 : 0.38;
