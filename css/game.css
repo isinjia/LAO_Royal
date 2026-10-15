@@ -460,3 +460,6 @@ button:disabled { cursor: default; }
 /* crowns readable at a glance */
 .crowns i{width:26px;height:20px}
 .crowns i.on{background:linear-gradient(#ffe68a,#f0b020);filter:drop-shadow(0 0 4px rgba(255,200,60,.8))}
+/* wide screens: the arena art fills the bands beside the game column, blurred and dark */
+#bgFill{position:fixed;inset:-40px;z-index:0;pointer-events:none;background:#05070a center/cover no-repeat;filter:blur(22px) brightness(.32) saturate(.8)}
+#app{z-index:1}

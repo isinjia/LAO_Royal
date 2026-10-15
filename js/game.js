@@ -7,7 +7,7 @@
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 2.05;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 2.45;       // troops are drawn larger than the tower guards (readable on phones)
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -75,6 +75,14 @@
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(230,110,80,0.06)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      // original props along the walls, clear of the lanes and the tower pads (the deck reads as a place)
+      const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
+      for (const s of [-1, 1]) { // a cluster per corner: home side crates and sandbag lines, the far side iron wreckage
+        prop(PROPS.sandbag2, s * 7.3, -12.4, 3.2, s > 0); prop(PROPS.crate, s * 7.9, -11.2, 2.3, s > 0); prop(PROPS.crate, s * 7.0, -10.6, 1.8, s < 0);
+        prop(PROPS.sandbag, s * 7.6, -5.0, 3, s > 0);
+        prop(PROPS.wreck, s * 7.4, 11.9, 3, s > 0); prop(PROPS.wreck2, s * 7.9, 10.4, 2.4, s < 0);
+        prop(PROPS.wreck2, s * 7.6, 5.6, 2.8, s > 0);
+      }
       // deck decals: maintenance hatches and stencilled numbers
       g.save();
       for (const [hx, hz, n] of [[-6.5, -9, '01'], [6.5, -9, '02'], [-6.5, 9, '03'], [6.5, 9, '04'], [0, -4.2, 'A'], [0, 4.2, 'B']]) {
@@ -222,7 +230,7 @@
 
   // hexagonal bunker drawn in screen space; returns { tex, w, h, cy } (plane size, centre height over the ground point)
   const PROPS = {}; // original battlefield props (BG_OBJ): sandbags, a supply container, iron wrecks
-  function towerCanvas(type, side, dead, emblem, faction) {
+  function towerCanvas(type, side, dead, emblem, faction, stage) {
     const P = 64, r = BAL.tower[type].r + (type === 'bld' ? 0.35 : 0.6), E = dead ? 0.45 : TOWER_E[type]; // towers drawn with real mass
     const top = E + r * TILT + (type === 'king' && !dead ? 0.7 : 0.25), bot = -r * TILT - 0.25, half = r + 0.25;
     const cv = document.createElement('canvas');
@@ -291,6 +299,20 @@
           g.beginPath(); g.arc(X(px), Y(py + 0.8), 7, 0, Math.PI * 2); g.fill(); g.shadowBlur = 0;
         }
       }
+    }
+    // battle damage: under half health the bunker darkens and cracks, under a quarter it is scorched and broken
+    if (stage && !dead) {
+      g.save(); g.globalCompositeOperation = 'source-atop';
+      g.fillStyle = stage === 2 ? 'rgba(20,10,5,0.42)' : 'rgba(10,10,12,0.22)'; g.fillRect(0, 0, cv.width, cv.height);
+      g.strokeStyle = 'rgba(0,0,0,0.85)'; g.lineWidth = stage === 2 ? 4 : 3;
+      for (let i = 0; i < (stage === 2 ? 7 : 4); i++) {
+        let x = X(rnd(-r * 0.7, r * 0.7)), y = Y(E + rnd(-r * TILT * 0.5, r * TILT * 0.5));
+        g.beginPath(); g.moveTo(x, y);
+        for (let k = 0; k < 4; k++) { x += rnd(-14, 14); y += rnd(8, 22); g.lineTo(x, y); }
+        g.stroke();
+      }
+      if (stage === 2) { for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.beginPath(); g.arc(X(rnd(-r, r)), Y(rnd(0, E)), rnd(5, 11), 0, Math.PI * 2); g.fill(); } } // blown-out chunks
+      g.restore();
     }
     // dress the bunker with the original props: orca sandbag lines and supply containers, iron wreckage; rubble on a ruin
     const prop = (im, cx, by, w) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth; g.drawImage(im, X(cx) - w * P / 2, Y(by) - h * P, w * P, h * P); };
@@ -666,6 +688,7 @@
     };
     const tkey = side + type + S.faction;
     const tc = towerTex[tkey] || (towerTex[tkey] = towerCanvas(type, side, false, emblems[S.faction], S.faction));
+    t.stage = 0; t.texKey = tkey;
     t.base = quad(tc.tex, 0xffffff, 1, false, 0);
     t.base.scale.set(tc.w, tc.h, 1);
     t.base.position.set(x, z * TILT + tc.cy, 0);
@@ -986,8 +1009,10 @@
   function hitFx(e, a, x, y) {
     const n = GENERIC_HIT[a.fx];
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
-    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.8 * big)) return;
-    FX.hit(x, y, a.color, 0.8);
+    FX.sparks(x, y, a.color, Math.round(3 + big * 3), 3 + big * 1.5, 0.13, 0.32); // a spray of sparks sells every blow
+    FX.particle({ x, y, life: 0.1, size: 0.2, size1: 0.45 * big, color: a.color, tex: FX.tex.glow, alpha: 0.35 });
+    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 1.15 * big)) return;
+    FX.hit(x, y, a.color, 1.05);
   }
 
   function hit(src, a, t, px, pz, dmg) {
@@ -1025,7 +1050,8 @@
       b.inst.update(dt);
       if (f >= 1) {
         const big = b.dmg ? clamp(b.dmg / 220, 0.75, 1.5) : 0.7;
-        if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big))) FX.hit(b.ex, b.ey, b.atk.color, 0.8 * big);
+        if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big * 1.3))) FX.hit(b.ex, b.ey, b.atk.color, 1.05 * big);
+        FX.sparks(b.ex, b.ey, b.atk.color, Math.round(3 + big * 3), 3 + big * 1.5, 0.13, 0.32);
         if (b.atk.splash) FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8);
         if (b.dmg) hit(b.src, b.atk, b.target, b.tx, b.tz, b.dmg);
         b.inst.dispose();
@@ -1556,7 +1582,9 @@
       if (u.dropT <= 0) {
         u.elev = 0;
         FX.groundRing(u.x, u.z * TILT, 0.2, u.r * 2.4, 0xffffff, 0.3, 0.7);
-        for (let i = 0; i < 4; i++) FX.particle({ x: u.x + rnd(-0.4, 0.4), y: u.z * TILT, vx: rnd(-1, 1), vy: rnd(0.2, 0.6), life: 0.45, size: 0.3, size1: 0.8, color: 0x8a96a3, alpha: 0.35, normal: true, frames: FX.sheets.smoke, order: L.LOW });
+        FX.groundRing(u.x, u.z * TILT, 0.3, u.r * 3.6, teamHex(u.side), 0.45, 0.8); // the team's flare on landing
+        FX.particle({ x: u.x, y: u.z * TILT + u.bodyH * 0.4, life: 0.25, size: 0.6, size1: u.bodyH * 1.6, color: teamHex(u.side), tex: FX.tex.glow, alpha: 0.6 });
+        for (let i = 0; i < 8; i++) FX.particle({ x: u.x + rnd(-0.4, 0.4), y: u.z * TILT, vx: rnd(-1, 1), vy: rnd(0.2, 0.6), life: 0.45, size: 0.3, size1: 0.8, color: 0x8a96a3, alpha: 0.35, normal: true, frames: FX.sheets.smoke, order: L.LOW });
       }
     }
     if (u.deployT > 0) {
@@ -2063,6 +2091,18 @@
         }
         const hb = e.hitT > 0 ? 1 + 0.25 * clamp(e.hitT / 0.1, 0, 1) : 1; // eases back from the hit flash, then exactly 1
         if (hb === 1 ? e.baseB !== 1 && e.baseB != null : Math.abs((e.baseB || 1) - hb) > 0.01) { e.baseB = hb; e.base.material.color.setScalar(hb); }
+        // damage stages swap in a cracked (50%) and a scorched (25%) bunker
+        if (e.alive && e.texKey && e.type !== 'bld') {
+          const st = e.hp < e.max * 0.25 ? 2 : e.hp < e.max * 0.5 ? 1 : 0;
+          if (e.stage !== st) { e.stage = st; const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
+        }
+        // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
+        if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.5) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
+          e.smkT = !e.alive ? 0.32 : e.hp < e.max * 0.25 ? 0.22 : 0.45;
+          FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + (e.alive ? TOWER_E[e.type] : 0.5) + rnd(0, 0.4), vx: rnd(-0.15, 0.25), vy: rnd(0.6, 1.1), life: rnd(1.4, 2.2), size: 0.6, size1: 2.2, color: 0x1e2226, alpha: 0.75, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.FX - 1 });
+          if (e.alive && e.hp < e.max * 0.25) FX.particle({ x: e.x + rnd(-0.45, 0.45), y: e.z * TILT + TOWER_E[e.type] + rnd(-0.1, 0.3), vx: rnd(-0.2, 0.2), vy: rnd(0.8, 1.4), life: rnd(0.4, 0.7), size: 0.45, size1: 0.9, color: 0xff7a2a, alpha: 0.9, frames: FX.sheets.fire, spin: rnd(-2, 2), order: L.FX }); // burning
+          if (e.alive && Math.random() < 0.25) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 0.3), vy: rnd(0.4, 0.9), life: 0.5, size: 0.3, size1: 0, color: 0xff9040, tex: FX.tex.dot }); // embers
+        }
         e.dmgT = (e.dmgT || 0) - dt;
         if (e.dmgAcc >= 1 && e.dmgT <= 0) {
           e.dmgT = 0.35;
@@ -2071,7 +2111,7 @@
           e.dmgAcc = 0;
         }
         if (e.aura) e.aura.alpha = !e.alive ? 0 : !e.active ? 0.08 : (e.target ? 0.45 : 0.22) + Math.sin(amb.t * 3 + e.x) * 0.1;
-        const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r) * TILT - 0.55) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + 0.9);
+        const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r) * TILT - 0.55) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + 0.35);
         const lt = `translate(${Math.round(p[0])}px,${Math.round(p[1])}px)`;
         if (e.labelT !== lt) { e.labelT = lt; e.label.style.transform = lt; } // written only when it moves (shake)
         if (e.alive) {
@@ -2343,6 +2383,7 @@
     fieldMesh.material.needsUpdate = true;
     if (amb.river) { amb.river.material.color.setHex(ARENAS[a].glow); amb.lamps.forEach((l) => { l.color = ARENAS[a].glow; }); }
     setBackdrop(a);
+    const bf = document.getElementById('bgFill'); if (bf) bf.style.backgroundImage = `url(${ARENAS[a].bg})`;
     // per-arena colour grade: a tinted vignette over the 3D view (DOM, costs no GPU pass)
     const gr = document.getElementById('grade'), c = ARENAS[a].glow;
     if (gr) gr.style.setProperty('--gr', `${c >> 16 & 255},${c >> 8 & 255},${c & 255}`);
