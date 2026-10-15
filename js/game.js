@@ -45,7 +45,7 @@
   const perf = { level: MOBILE ? 1 : 0, acc: 0, n: 0, slow: 0, fps: 60, work: 0 };
 
   // ── textures ──────────────────────────────────────────
-  const FX_ = { x0: -10.5, x1: 10.5, z0: -17.5, z1: 26, P: 36 }; // z1 reaches past the far wall: the band above the arena is the bunker's back wall
+  const FX_ = { x0: -10.5, x1: 10.5, z0: -17.5, z1: 31, P: 36 }; // z1 reaches past the far wall: the band above the arena is the bunker's back wall
   function fieldCanvas(ar) {
     const { x0, x1, z0, z1, P } = FX_;
     const cv = document.createElement('canvas');
@@ -219,6 +219,16 @@
     }
     // one key light from the upper left across the whole deck
     { const kl = g.createLinearGradient(0, 0, cv.width, cv.height); kl.addColorStop(0, 'rgba(255,255,255,0.06)'); kl.addColorStop(0.55, 'rgba(0,0,0,0)'); kl.addColorStop(1, 'rgba(0,0,0,0.14)'); g.fillStyle = kl; g.fillRect(0, 0, cv.width, cv.height); }
+    // the side walls: pipes and a cable tray run the length of the arena outside the bulkheads (the arena reads as a room)
+    for (const s of [-1, 1]) {
+      const bx = X(s * 9.55), dir = s;
+      for (const [off, w, c0, c1] of [[0.25, 0.22, '#3b4652', '#141a20'], [0.55, 0.14, '#5a4a32', '#20180e'], [0.78, 0.1, '#2f5566', '#0e1d24']]) {
+        const px = bx + dir * off * P, pg = g.createLinearGradient(px - w * P / 2, 0, px + w * P / 2, 0);
+        pg.addColorStop(0, c1); pg.addColorStop(0.45, c0); pg.addColorStop(1, c1);
+        g.fillStyle = pg; g.fillRect(px - w * P / 2, Y(FX_.z1), w * P, Y(FX_.z0) - Y(FX_.z1));
+      }
+      for (let z = -16; z <= 22; z += 3) { g.fillStyle = '#0b0e12'; g.fillRect(bx + dir * 0.12 * P - (dir > 0 ? 0 : 0.8 * P), Y(z) - 3, 0.8 * P, 6); } // pipe clamps
+    }
     // the far bulkhead wall above the arena (fills the band behind the enemy towers)
     {
       const wy0 = Y(FX_.z1), wy1 = Y(16) - 0.55 * P, wx0 = X(-10.5), ww = 21 * P;
@@ -650,8 +660,8 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.34 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
-    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.22 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.44 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
+    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.3 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
   }
@@ -660,7 +670,7 @@
     b.bg.hidden = b.fill.hidden = false;
     b.bg.x = x; b.bg.y = y;
     const w = Math.max(0.01, b.w * f);
-    b.fill.sz = w; b.fill.aspect = 0.22 / w;
+    b.fill.sz = w; b.fill.aspect = 0.3 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     if (color != null) b.fill.color = color;
   }
@@ -688,7 +698,7 @@
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.75 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
-    u.bar = makeBar(clamp(u.r * 2.6, 1.0, 2.0), teamHex(side));
+    u.bar = makeBar(clamp(u.r * 3, 1.5, 2.3), teamHex(side));
     G.ents.push(u);
     return u;
   }
