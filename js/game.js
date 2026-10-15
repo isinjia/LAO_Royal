@@ -70,8 +70,8 @@
       g.fillStyle = 'rgba(0,0,0,' + (ar.floorDim || 0.18) + ')'; g.fillRect(fx0, fy0, tw, H);
       // strong side identity: cool blue-grey steel at home, rusted red plating across the chasm
       g.save(); g.globalCompositeOperation = 'color';
-      g.fillStyle = 'rgba(70,120,175,0.26)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(165,70,55,0.26)'; g.fillRect(fx0, fy0, tw, 16 * P);
+      g.fillStyle = 'rgba(70,120,175,0.12)'; g.fillRect(fx0, Y(0), tw, 16 * P);
+      g.fillStyle = 'rgba(165,70,55,0.12)'; g.fillRect(fx0, fy0, tw, 16 * P);
       g.restore();
       g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
       g.fillStyle = 'rgba(230,110,80,0.06)'; g.fillRect(fx0, fy0, tw, 16 * P);
@@ -82,6 +82,10 @@
         prop(PROPS.sandbag, s * 7.6, -5.0, 3, s > 0);
         prop(PROPS.wreck, s * 7.4, 11.9, 3, s > 0); prop(PROPS.wreck2, s * 7.9, 10.4, 2.4, s < 0);
         prop(PROPS.wreck2, s * 7.6, 5.6, 2.8, s > 0);
+      }
+      // the sides are told apart by glowing team edge strips along the walls (the arena's own floor stays visible)
+      for (const [z0, z1, col] of [[-16, -BAL.river, '58,168,255'], [BAL.river, 16, '255,74,90']]) {
+        for (const ex of [fx0, fx0 + tw - 0.22 * P]) { const sg = g.createLinearGradient(0, Y(z1), 0, Y(z0)); sg.addColorStop(0, `rgba(${col},0.15)`); sg.addColorStop(0.5, `rgba(${col},0.75)`); sg.addColorStop(1, `rgba(${col},0.15)`); g.fillStyle = sg; g.fillRect(ex, Y(z1), 0.22 * P, Y(z0) - Y(z1)); }
       }
       // deck decals: maintenance hatches and stencilled numbers
       g.save();
@@ -1014,6 +1018,7 @@
     FX.sparks(x, y, a.color, Math.round(3 + big * 3), 3 + big * 1.5, 0.13, 0.32); // a spray of sparks sells every blow
     FX.particle({ x, y, life: 0.09, size: 0.25, size1: 0.75 * big, color: 0xffffff, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash
     FX.ring(x, y, 0.1, 0.6 * big, a.color, 0.18, 0.7);
+    if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
     if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 1.15 * big)) return;
     FX.hit(x, y, a.color, 1.05);
   }
