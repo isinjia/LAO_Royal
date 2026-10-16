@@ -3,7 +3,7 @@
 // x / y plane with y = z * TILT (+ height): characters stand upright on the tilted floor.
 (function () {
   const { BAL, FACTIONS, ARENAS, LEVEL, card: CARD } = DATA;
-  let TILT = 0.47;          // floor squash: a flatter view lets the 18 x 32 arena fill the whole column width (raised on tall screens to fill the height; see applyTilt)
+  const TILT = 0.72;        // floor squash: one fixed board shape on every screen (phones and PC see the same arena; other aspects get side or top bands)
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
@@ -2242,19 +2242,6 @@
   }
 
   let lastSize = '';
-  // floor squash for this screen: everything baked with it (tower art, field placement, river, rim lamps, ground marks) follows
-  function applyTilt(t) {
-    t = Math.round(t * 100) / 100;
-    if (Math.abs(t - TILT) < 0.005 || !fieldMesh) return;
-    TILT = t; FX.setGround(TILT);
-    for (const k in towerTex) { if (towerTex[k] && towerTex[k].tex) towerTex[k].tex.dispose(); delete towerTex[k]; }
-    fieldMesh.scale.set(FX_.x1 - FX_.x0, (FX_.z1 - FX_.z0) * TILT, 1);
-    fieldMesh.position.set((FX_.x0 + FX_.x1) / 2, (FX_.z0 + FX_.z1) / 2 * TILT, 0);
-    zoneMesh.scale.copy(fieldMesh.scale); zoneMesh.position.copy(fieldMesh.position); G.zoneKey = '';
-    if (amb.river) amb.river.scale.y = BAL.river * 2 * TILT * 0.9;
-    if (amb.river2) amb.river2.scale.y = BAL.river * 2 * TILT * 0.75;
-    for (const lp of amb.lamps) if (lp.fz != null) lp.y = lp.fz * TILT;
-  }
   function resize(force) {
     const w = stageEl.clientWidth, h = stageEl.clientHeight;
     if (!w || !h) return;
@@ -2265,8 +2252,6 @@
     view.w = w; view.h = h;
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
-    // tall screens tilt the floor up (a steeper view) so the arena fills the height instead of leaving bands; only between matches (towers are baked with the tilt)
-    if (!G.ents.some((e) => e.kind === 'tower')) applyTilt(clamp(((h - hudH) / w * 18.3 - 4.3) / 32.6, 0.47, 0.8));
     const fw = 18.3, top = 16.2 * TILT + 3.4, bot = -16.4 * TILT - 0.9, fh = top - bot; // the whole arena in view
     const k = Math.min(w / fw, (h - hudH) / fh);
     const cw = w / k, ch = h / k, spare = ((h - hudH) / k - fh) / 2; // the arena is centred in the space under the HUD
@@ -2658,7 +2643,6 @@
     }));
     if (G.opts === opts) await Promise.race([fxP, new Promise((r) => setTimeout(r, 6000))]);
     if (G.opts !== opts) return; // left during loading
-    resize(true); // the floor tilt for this screen is settled before the towers are drawn
     for (const side of ['blue', 'red']) {
       const s = SGN[side], P = BAL.tower.princess, K = BAL.tower.king;
       makeTower(side, 'princess', -P.x, s * P.z);

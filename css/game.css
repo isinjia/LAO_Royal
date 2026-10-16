@@ -562,3 +562,7 @@ button:disabled { cursor: default; }
 #nextBox small{font-size:8px;margin-bottom:1px;letter-spacing:.5px}
 #nextBox #nextCard .nm{display:none}
 #hand{gap:5px}
+/* no crown counters in battle (the result screen still shows them) */
+#stage .bl,#hud .crowns{display:none}
+/* on PC the game column takes a phone's shape, so the board looks the same as on a phone */
+#app{max-width:min(520px,50vh)}

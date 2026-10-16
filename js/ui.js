@@ -423,7 +423,7 @@
     el.style.left = (lab.left - r.left) + 'px'; el.style.top = (lab.top - r.top) + 'px';
     $('stage').appendChild(el);
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.style.transform = `translate(${target.left - lab.left + 20}px,${target.top - lab.top}px) scale(.6)`;
+      el.style.transform = target.width ? `translate(${target.left - lab.left + 20}px,${target.top - lab.top}px) scale(.6)` : 'translate(0,-70px) scale(1.5)'; // no crown counter on screen: the crown just rises from the fallen tower
       el.style.opacity = '0.2';
     }));
     setTimeout(() => el.remove(), 1300);
