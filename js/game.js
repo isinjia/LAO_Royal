@@ -874,12 +874,18 @@
       if (isIron(e.card.rig)) {
         if (!spawnStatic('simple_explosion', e.x, y, e.fxk * 0.45)) FX.explosion(e.x, y, 0.5, 0xff8a40);
         FX.sparks(e.x, y, 0xffa040, 6, 3, 0.12, 0.4);
+        // a mech dies in two beats: a secondary pop a moment later, then a slow plume of black smoke and thrown plates
+        const ex = e.x, ey = y, big = clamp(e.r * 1.4, 0.6, 1.4);
+        FX.later(0.22, () => { FX.particle({ x: ex + rnd(-0.2, 0.2), y: ey + 0.2, life: 0.18, size: 0.3 * big, size1: 0.9 * big, color: 0xffd090, tex: FX.tex.glow, alpha: 0.9 }); FX.sparks(ex, ey + 0.2, 0xffc060, 5, 3.5, 0.1, 0.35); });
+        for (let i = 0; i < 3; i++) FX.particle({ x: ex + rnd(-0.25, 0.25), y: ey + 0.1, vx: rnd(-0.2, 0.2), vy: rnd(0.5, 0.9), life: rnd(1.4, 2), size: 0.4 * big, size1: 1.6 * big, color: 0x2a2a2c, alpha: 0.55, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), fadeIn: 0.15, order: L.FX - 1 });
+        for (let i = 0; i < 4; i++) { const a = rnd(0.35, Math.PI - 0.35), v = rnd(2.5, 4.5); FX.particle({ x: ex, y: ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, grav: 11, life: rnd(0.5, 0.75), size: 0.16, size1: 0.12, color: 0x5d646c, tex: FX.tex.dot, normal: true, spin: rnd(-6, 6) }); }
       } else {
         // a bioroid is pulled out in a column of light: a ring, rising motes in the team colour, a soft flash
         FX.particle({ x: e.x, y, life: 0.5, size: 0.6, size1: 1.6, color: teamHex(e.side), tex: FX.tex.glow, alpha: 0.6 });
         FX.groundRing(e.x, e.z * TILT, 0.2, 1.6, teamHex(e.side), 0.5, 0.9);
         for (let i = 0; i < 10; i++) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(-0.3, 0.5), vy: rnd(1.2, 2.6), life: rnd(0.5, 0.9), size: rnd(0.12, 0.22), size1: 0, color: i % 2 ? 0xffffff : teamHex(e.side), tex: FX.tex.dot });
         FX.sparks(e.x, y, 0xffffff, 5, 2.2, 0.1, 0.4);
+        FX.particle({ x: e.x, y: e.z * TILT + 1.2, vy: 1.5, life: 0.6, size: 0.5, size1: 0.2, aspect: 6, color: teamHex(e.side), tex: FX.tex.beam, alpha: 0.75 }); // the column of light lifting off
       }
       if (G.stats && src && src.side && G.stats[src.side]) G.stats[src.side].kills++;
       return;

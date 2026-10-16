@@ -178,8 +178,8 @@
       ext.restoreContext();
       await until(() => !G.lost, 3000);
       ok(!G.lost, 'context restore resumes drawing');
-      const S = G.sides.blue, id = S.hand[0];
-      S.elixir = 10; GAME._playCard('blue', 0, 0, -6);
+      const S = G.sides.blue, id = S.deck.find((c) => DATA.card[c].type === 'troop'); // a troop card (a spell would deploy nothing)
+      S.hand[0] = id; S.elixir = 10; GAME._playCard('blue', 0, 0, -6);
       let threw = null; try { GAME._run(1); } catch (e) { threw = e; }
       ok(!threw, 'matches run on after a context restore' + (threw ? ': ' + threw.message : ''));
       ok(G.ents.some((e) => e.kind === 'troop' && e.side === 'blue' && e.alive), `a unit deploys after the restore (${id})`);
