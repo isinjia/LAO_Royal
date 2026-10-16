@@ -2227,7 +2227,8 @@
           e.dmgAcc = 0;
         }
         if (e.aura) e.aura.alpha = !e.alive ? 0 : !e.active ? 0.06 : (e.target ? 0.26 : 0.14) + Math.sin(amb.t * 3 + e.x) * 0.05; // a soft pool, not a slab
-        const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r) * TILT - 0.55) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + (e.type === 'king' ? 0.45 : 0.35));
+        // the player's plates sit on the front wall of each tower (as in Clash Royale); the opponent's float above
+        const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r * 0.85) * TILT + TOWER_E[e.type] * 0.42) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + (e.type === 'king' ? 0.45 : 0.35));
         const lt = `translate(${Math.round(p[0])}px,${Math.round(p[1])}px)`;
         if (e.labelT !== lt) { e.labelT = lt; e.label.style.transform = lt; } // written only when it moves (shake)
         if (e.alive) {
