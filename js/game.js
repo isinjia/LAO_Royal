@@ -2717,6 +2717,10 @@
     const interval = last ? now - last : 16.7;
     let dt = Math.min(0.1, interval / 1000);
     last = now;
+    frameBody(dt, interval);
+  }
+  // one frame of work (also driven directly by the smoke test, which may run with rAF throttled)
+  function frameBody(dt, interval) {
     if (!renderer || G.paused || G.lost) return;
     if (G.hitStop > 0) { G.hitStop -= dt; dt *= 0.06; } else if (G.slowmo > 0) { G.slowmo -= dt; dt *= 0.35; }
     const t0 = performance.now();
@@ -2865,7 +2869,8 @@
     get cameraZoom() { return camera ? camera.zoom : 1; },
     get cameraPos() { return camera ? [camera.position.x, camera.position.y] : [0, 0]; },
     get perf() { return perf; }, QUALITY, autoLevel: MOBILE ? 1 : 0,
-    _perfTick: (interval, work) => perfTick(interval, work), // (smoke test: drives the auto-quality governor with synthetic frame times)
+    _perfTick: (interval, work) => perfTick(interval, work),
+    _frame: (ms) => frameBody(Math.min(0.1, ms / 1000), ms), // (smoke test: one real frame, error guard included) // (smoke test: drives the auto-quality governor with synthetic frame times)
     get qualityLevel() { return perf.level; },
     get info() { return renderer ? { geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, calls: perf.calls || 0, scene: scene.children.length, fx: FX.count() } : null; },
     skillState(u) { return { ready: skillReady(u), cd: Math.max(0, u.skillCd), cdMax: u.card.skill.cd * (G.mut && G.mut.skillCd || 1), cost: skillCost(u) }; },

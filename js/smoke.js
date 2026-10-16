@@ -201,6 +201,20 @@
         out.runs.push(['auto quality', `${q0} → slow → ${GAME.qualityLevel}`]);
       }
     }
+    // a frame that throws must not end the match: the loop reports once and keeps running
+    {
+      const tick0 = UI.tick, toast0 = UI.toast; let thrown = 0, notes = 0, raf = 0;
+      UI.tick = (g) => { if (thrown < 3) { thrown++; throw new Error('smoke: injected frame error'); } return tick0(g); };
+      UI.toast = (msg, ...r) => { if (/오류/.test(msg)) notes++; return toast0(msg, ...r); };
+      const c0 = G.clock;
+      for (let i = 0; i < 60; i++) { GAME._frame(16.7); raf++; } // real frames through the loop's own error guard
+      UI.tick = tick0; UI.toast = toast0;
+      if (raf && thrown) {
+        ok(notes === 1, `a throwing frame is reported once (${notes} notices for ${thrown} errors)`);
+        ok(G.phase === 'play' && G.clock < c0, `the match runs on after frame errors (clock ${c0.toFixed(1)} → ${G.clock.toFixed(1)})`);
+      }
+      out.runs.push(['frame errors', `${thrown} injected`, `${notes} notice`, `${raf} frames`]);
+    }
     // leaving the app (tab hidden, phone locked) pauses the match; nothing moves until the player resumes
     {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); // shadows the real getter on Document.prototype
