@@ -733,7 +733,7 @@
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.4 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
-    if (u.sd) { if (side === 'blue') u.sd.setRim(0.04, 0.1, 0.2, 0.9); else u.sd.setRim(0.62, 0.08, 0.1, 0.9); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
+    if (u.sd) { if (side === 'blue') u.sd.setRim(0.04, 0.1, 0.2, 0.9); else u.sd.setRim(0.62, 0.08, 0.1, 0.7); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.2, 1.7, 2.5), teamHex(side));
     G.ents.push(u);
