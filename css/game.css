@@ -566,3 +566,8 @@ button:disabled { cursor: default; }
 #stage .bl,#hud .crowns{display:none}
 /* on PC the game column takes a phone's shape, so the board looks the same as on a phone */
 #app{max-width:min(520px,50vh)}
+/* damage numbers stay solid for most of their rise (no ghost text over the towers) */
+@keyframes dmgUp2 { 0% { opacity: 0; transform: translate(-50%, -20%) scale(1.5); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -170%); } }
+.dmgn{animation-name:dmgUp2}
+/* the enemy's speech bubble sits under its name in the top-left corner, clear of the king tower */
+.bubble.red,.bubble.red.low{left:8px;top:calc(46px + env(safe-area-inset-top));transform-origin:left top}

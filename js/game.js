@@ -986,7 +986,7 @@
     const tx = t.x, ty = aimY(t);
     const ang = Math.atan2(ty - my, tx - mx);
     const ranged = a.fx !== 'claw' && a.fx !== 'slash' && a.fx !== 'cannon' && a.fx !== 'flame';
-    if (fireN > 0 && ranged) FX.muzzleFlash(mx, my, ang, a.color, 1.15);
+    if (fireN > 0 && ranged) FX.muzzleFlash(mx, my, ang, a.color, 0.85);
     // the original projectile / effect of this character
     const o = e.rig ? origFor(e.rig, a.fx) : null;
     if (real && o && o.statics.length && FXB.ready(o.statics[0])) spawnStatic(o.statics[0], tx, t.z * TILT + 0.2, e.fxk, e.face);
@@ -1065,9 +1065,9 @@
     e.hfxT = G.time;
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
-    FX.particle({ x, y, life: 0.1, size: 0.3, size1: 0.7 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash (small: faces stay visible)
-    FX.particle({ x, y, life: 0.12, size: 0.35 * big, size1: 0.65 * big, color: a.color, tex: FX.tex.glow, alpha: 0.4 }); // a tinted pop behind the star
-    FX.ring(x, y, 0.15, 1.05 * big, a.color, 0.22, 0.85);
+    FX.particle({ x, y, life: 0.1, size: 0.22, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash (small: faces stay visible)
+    FX.particle({ x, y, life: 0.12, size: 0.25 * big, size1: 0.45 * big, color: a.color, tex: FX.tex.glow, alpha: 0.4 }); // a tinted pop behind the star
+    FX.ring(x, y, 0.1, 0.75 * big, a.color, 0.2, 0.85);
     // streaks carry on along the shot: the hit reads as coming from the shooter
     { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
     for (let k = 0; k < 2 + Math.round(big * 2); k++) { const aa = rnd(0.25, Math.PI - 0.25), v = rnd(2.2, 4.2); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 12, drag: 1, life: rnd(0.35, 0.55), size: rnd(0.07, 0.11), size1: 0.05, color: k % 2 ? 0xdfe5ea : 0x5d646c, tex: FX.tex.dot, normal: true }); } // armour chips knocked off the target tumble to the deck
@@ -2128,7 +2128,7 @@
         e.shadow.x = e.disc.x = e.glow.x = e.x; e.shadow.y = e.disc.y = e.glow.y = e.z * TILT;
         if (e.halo) { e.halo.x = e.x; e.halo.y = y + e.bodyH * 0.5; if (e.alive) e.halo.alpha = e.deployT > 0 ? 0.08 : 0.2; }
         const fall = e.dropT > 0 ? 1 - e.elev / 3 : 1;
-        e.shadow.sz = Math.max(1.3, e.r * 3.6) * (0.5 + 0.5 * fall);
+        e.shadow.sz = Math.max(1.3, e.r * 3.8) * (0.5 + 0.5 * fall);
         if (e.alive) {
           const show = e.deployT > 0 || e.hp < e.max;
           if (show) {
