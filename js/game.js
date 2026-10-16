@@ -79,6 +79,25 @@
         g.strokeStyle = 'rgba(255,255,255,0.2)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(px + 4, py + h - 4); g.lineTo(px + 4, py + 4); g.lineTo(px + w - 4, py + 4); g.stroke();
         g.fillStyle = 'rgba(20,26,32,0.45)'; for (const [bx, by] of [[8, 8], [w - 8, 8], [8, h - 8], [w - 8, h - 8]]) { g.beginPath(); g.arc(px + bx, py + by, 2.6, 0, Math.PI * 2); g.fill(); }
       }
+      // an iron half is infested: the iron wall art creeps in from the side walls and its back edge, fading out before the lanes
+      const ivy = PROPS.wall_iron, iron = G.ironHalves || { far: true, home: false };
+      if (ivy && ivy.naturalWidth && (iron.far || iron.home)) {
+        const oc = document.createElement('canvas'); oc.width = tw; oc.height = 16 * P;
+        const og = oc.getContext('2d'), pat = og.createPattern(ivy, 'repeat');
+        if (pat.setTransform) pat.setTransform(new DOMMatrix().scale(0.55));
+        og.fillStyle = pat; og.fillRect(0, 0, oc.width, oc.height);
+        og.globalCompositeOperation = 'destination-in';
+        const mk = (x0, y0, x1, y1, a) => { const m = og.createLinearGradient(x0, y0, x1, y1); m.addColorStop(0, `rgba(0,0,0,${a})`); m.addColorStop(1, 'rgba(0,0,0,0)'); return m; };
+        const mask = document.createElement('canvas'); mask.width = oc.width; mask.height = oc.height; const mg = mask.getContext('2d');
+        mg.fillStyle = mk(0, 0, 0, 7 * P, 1); mg.fillRect(0, 0, oc.width, oc.height); // the back edge
+        mg.fillStyle = mk(0, 0, 4 * P, 0, 1); mg.fillRect(0, 0, oc.width, oc.height); // the left wall
+        mg.fillStyle = mk(oc.width, 0, oc.width - 4 * P, 0, 1); mg.fillRect(0, 0, oc.width, oc.height); // the right wall
+        og.drawImage(mask, 0, 0);
+        g.save(); g.globalAlpha = 0.85;
+        if (iron.far) g.drawImage(oc, fx0, fy0);
+        if (iron.home) { g.translate(0, fy0 + H); g.scale(1, -1); g.drawImage(oc, fx0, 0); } // mirrored: its back edge is the player's
+        g.restore();
+      }
       // original props along the walls, clear of the lanes and the tower pads (the deck reads as a place)
       const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.filter = 'brightness(0.95)'; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
       for (const s of [-1, 1]) { // a cluster per corner: home side crates and sandbag lines, the far side iron wreckage
@@ -2462,8 +2481,9 @@
   function setArena(a) {
     const fu = location.protocol !== 'file:' && ARENAS[a].floor; // (from file:// the image would taint the floor texture: keep the drawn floor there)
     if (fu && !(fu in floorImg)) { floorImg[fu] = null; const im = new Image(); im.onload = () => { floorImg[fu] = im; if (G.arenaDrawn === a) { G.arenaDrawn = -1; setArena(a); } }; im.src = fu; } // redrawn with the art once it arrives
-    if (G.arenaDrawn === a) return;
-    G.arenaDrawn = a;
+    const ik = G.ironHalves ? (G.ironHalves.home ? 'h' : '') + (G.ironHalves.far ? 'f' : '') : 'f';
+    if (G.arenaDrawn === a && G.ironDrawn === ik) return;
+    G.arenaDrawn = a; G.ironDrawn = ik;
     if (fieldTex) fieldTex.dispose();
     fieldTex = new THREE.CanvasTexture(fieldCanvas(ARENAS[a]));
     fieldTex.anisotropy = 4;
@@ -2593,6 +2613,7 @@
     clearBattle();
     G.opts = opts;
     G.arena = opts.arena || 0;
+    { const mir = opts.mode === 3 && (opts.mut || DATA.mutatorOf()).mirror; G.ironHalves = { home: opts.faction === 'iron', far: mir ? opts.faction === 'iron' : opts.faction !== 'iron' }; } // (mirror: both halves are the player's faction) // the floor shows which half the iron side holds
     setArena(G.arena);
     G.mut = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null;
     G.opDay = DATA.dayIndex(); // credited to the day the rule was drawn (a match may end past midnight)
