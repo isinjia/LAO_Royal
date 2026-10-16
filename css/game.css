@@ -557,3 +557,8 @@ button:disabled { cursor: default; }
 #btnPause{right:8px}
 #hud .ibtn.emo{right:46px;width:32px;height:32px}
 #emotePanel{top:96px}
+/* NEXT as a small card in the corner (as in Clash Royale): the four hand cards get the width */
+#nextBox{width:11%;align-self:flex-end}
+#nextBox small{font-size:8px;margin-bottom:1px;letter-spacing:.5px}
+#nextBox #nextCard .nm{display:none}
+#hand{gap:5px}
