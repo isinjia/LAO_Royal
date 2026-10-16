@@ -571,3 +571,4 @@ button:disabled { cursor: default; }
 .dmgn{animation-name:dmgUp2}
 /* the enemy's speech bubble sits under its name in the top-left corner, clear of the king tower */
 .bubble.red,.bubble.red.low{left:8px;top:calc(46px + env(safe-area-inset-top));transform-origin:left top}
+#app{max-width:min(520px,46vh)}

@@ -3,7 +3,7 @@
 // x / y plane with y = z * TILT (+ height): characters stand upright on the tilted floor.
 (function () {
   const { BAL, FACTIONS, ARENAS, LEVEL, card: CARD } = DATA;
-  const TILT = 0.72;        // floor squash: one fixed board shape on every screen (phones and PC see the same arena; other aspects get side or top bands)
+  const TILT = 0.86;     // floor squash: one fixed board shape on every screen (phones and PC see the same arena; other aspects get side or top bands)
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
