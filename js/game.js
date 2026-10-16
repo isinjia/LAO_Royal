@@ -2605,7 +2605,7 @@
     if (amb.back && amb.back.visible && amb.backS) { const k = 1.04 + 0.02 * Math.sin(amb.t * 0.11); amb.back.scale.set(amb.backS[0] * k, amb.backS[1] * k, 1); amb.back.position.x = Math.sin(amb.t * 0.07) * 0.45;
     }
     // the haze drifts one way behind the deck and the veil the other way over it (true parallax: different layers, speeds and scales)
-    if (amb.back2 && amb.back2.material.map) amb.back2.visible = amb.veil.visible = !!QUALITY[perf.level].bloom; // both fog layers are off on low quality (fill rate)
+    if (amb.back2 && amb.back2.material.map) amb.back2.visible = amb.veil.visible = perf.level === 0; // two full-screen fog layers cost fill rate every frame: high quality only (phones start on medium)
     if (amb.back2 && amb.back2.visible) {
       const cw = camera.right - camera.left, ch = camera.top - camera.bottom, cy = (camera.top + camera.bottom) / 2;
       amb.back2.scale.set(cw * 1.1, ch * 1.1, 1); amb.back2.position.set(0, cy, 0);
