@@ -696,19 +696,20 @@
   function makeBar(w, color) {
     const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x2a3038, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.9 });
     const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
-    bg.hidden = fill.hidden = true;
-    return { bg, fill, w };
+    const ol = FX.sprite({ x: 0, y: -99, size: w + 0.22, aspect: 0.66 / (w + 0.22), color: 0x05070a, tex: FX.tex.white, normal: true, order: L.BAR - 1, alpha: 0.95 }); // a crisp dark frame, like the tower plates
+    bg.hidden = fill.hidden = ol.hidden = true;
+    return { bg, fill, ol, w };
   }
   function setBar(b, f, x, y, color) {
     f = clamp(f, 0, 1);
-    b.bg.hidden = b.fill.hidden = false;
-    b.bg.x = x; b.bg.y = y;
+    b.bg.hidden = b.fill.hidden = b.ol.hidden = false;
+    b.bg.x = b.ol.x = x; b.bg.y = b.ol.y = y;
     const w = Math.max(0.01, b.w * f);
     b.fill.sz = w; b.fill.aspect = 0.4 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     if (color != null) b.fill.color = color;
   }
-  function hideBar(b) { b.bg.hidden = b.fill.hidden = true; }
+  function hideBar(b) { b.bg.hidden = b.fill.hidden = b.ol.hidden = true; }
 
   function lvlOf(side, card) {
     const S = G.sides[side];
@@ -730,7 +731,7 @@
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.7, u.r * 4.8), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.9, u.r * 5.2), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.48 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
-    u.fxk *= 1.85 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
+    u.fxk *= 1.4 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
     if (u.sd) { if (side === 'blue') u.sd.setRim(0.04, 0.1, 0.2, 0.9); else u.sd.setRim(0.2, 0.03, 0.04, 0.9); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
@@ -783,7 +784,7 @@
     [e.shadow, e.disc, e.aura, e.glow, e.halo, e.fireGlow, e.pad].forEach((p) => p && FX.kill(p));
     if (e.base) { scene.remove(e.base); e.base.material.dispose(); }
     if (e.deadTex) e.deadTex.dispose();
-    if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); }
+    if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); FX.kill(e.bar.ol); }
     if (e.label) e.label.remove();
   }
 
@@ -2241,7 +2242,7 @@
         const b = shownBars[i];
         for (let j = 0; j < i; j++) {
           const o = shownBars[j];
-          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.22) { const up = o.bg.y + 0.24 - b.bg.y; b.bg.y += up; b.fill.y += up; }
+          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.22) { const up = o.bg.y + 0.24 - b.bg.y; b.bg.y += up; b.fill.y += up; b.ol.y += up; }
         }
       }
     }
