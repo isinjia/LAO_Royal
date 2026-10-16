@@ -66,7 +66,7 @@
       const fx0 = X(-9), fy0 = Y(16), tw = 18 * P, th = fl.height * tw / fl.width, H = 32 * P;
       // the playing deck is light steel plating with the arena's original tread art pressed into it: dark rigs read on a bright floor
       const [dHome, dFar] = ar.deck || ['#a9bccd', '#c6b29e'];
-      { const bgd = g.createLinearGradient(0, fy0, 0, fy0 + H); bgd.addColorStop(0, dFar); bgd.addColorStop(0.47, dFar); bgd.addColorStop(0.53, dHome); bgd.addColorStop(1, dHome); g.fillStyle = bgd; g.fillRect(fx0, fy0, tw, H); }
+      { const bgd = g.createLinearGradient(0, fy0, 0, fy0 + H); bgd.addColorStop(0, dFar); bgd.addColorStop(0.47, dFar); bgd.addColorStop(0.53, dHome); bgd.addColorStop(1, dHome); g.fillStyle = bgd; g.fillRect(fx0, fy0, tw, H); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(fx0, fy0, tw, H); }
       g.save(); g.beginPath(); g.rect(fx0, fy0, tw, H); g.clip(); g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.9;
       for (let y = 0, i = 0; y < H; y += th, i++) { g.save(); if (i % 2) { g.translate(0, fy0 + y + th); g.scale(1, -1); g.drawImage(fl, fx0, 0, tw, th); } else g.drawImage(fl, fx0, fy0 + y, tw, th); g.restore(); }
       g.restore();
@@ -702,7 +702,7 @@
     };
     u.holder = new THREE.Group();
     scene.add(u.holder);
-    u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.6), aspect: TILT * 0.75, color: 0x000000, alpha: 0.7, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
+    u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.6, u.r * 4.2), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(2.1, u.r * 5.6), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.7 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.32 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
@@ -1063,8 +1063,8 @@
     e.hfxT = G.time;
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
-    FX.particle({ x, y, life: 0.12, size: 0.35, size1: 1.05 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.9 }); // a short star flash
-    FX.particle({ x, y, life: 0.14, size: 0.5 * big, size1: 0.95 * big, color: a.color, tex: FX.tex.glow, alpha: 0.35 }); // a tinted pop behind the star
+    FX.particle({ x, y, life: 0.1, size: 0.3, size1: 0.7 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash (small: faces stay visible)
+    FX.particle({ x, y, life: 0.12, size: 0.35 * big, size1: 0.65 * big, color: a.color, tex: FX.tex.glow, alpha: 0.4 }); // a tinted pop behind the star
     FX.ring(x, y, 0.15, 1.05 * big, a.color, 0.22, 0.85);
     // streaks carry on along the shot: the hit reads as coming from the shooter
     { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
@@ -2248,7 +2248,7 @@
     view.w = w; view.h = h;
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
-    const fw = 18.3, top = 16.2 * TILT + 5.6, bot = -16.4 * TILT - 1.0, fh = top - bot;
+    const fw = 17.6, top = 16.2 * TILT + 5.0, bot = -16.4 * TILT - 0.8, fh = top - bot; // framed tight: the height binds on phones, so every unit of margin cut makes the fight larger
     const k = Math.min(w / fw, h / fh);
     const cw = w / k, ch = h / k, cy = (top + bot) / 2;
     camera.left = -cw / 2; camera.right = cw / 2; camera.top = cy + ch / 2; camera.bottom = cy - ch / 2;
