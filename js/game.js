@@ -1684,6 +1684,9 @@
         FX.groundRing(u.x, u.z * TILT, 0.3, u.r * 3.6, teamHex(u.side), 0.45, 0.8); // the team's flare on landing
         FX.particle({ x: u.x, y: u.z * TILT + u.bodyH * 0.4, life: 0.25, size: 0.6, size1: u.bodyH * 1.6, color: teamHex(u.side), tex: FX.tex.glow, alpha: 0.6 });
         for (let i = 0; i < 8; i++) FX.particle({ x: u.x + rnd(-0.4, 0.4), y: u.z * TILT, vx: rnd(-1, 1), vy: rnd(0.2, 0.6), life: 0.45, size: 0.3, size1: 0.8, color: 0x8a96a3, alpha: 0.35, normal: true, frames: FX.sheets.smoke, order: L.LOW });
+        // on the bright deck additive light alone washes out: a dark contact mark and a kicked-up ring of grit sell the landing
+        FX.particle({ x: u.x, y: u.z * TILT, life: 0.6, size: u.r * 2.6, size1: u.r * 3.2, aspect: TILT, color: 0x2a2620, alpha: 0.45, tex: FX.tex.dot, normal: true, order: L.GROUND });
+        for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2, v = rnd(2.2, 3.2); FX.particle({ x: u.x, y: u.z * TILT, vx: Math.cos(a) * v, vy: Math.sin(a) * v * TILT + 0.4, drag: 5, life: rnd(0.3, 0.45), size: 0.12, size1: 0.04, color: 0x4a4038, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.LOW }); }
       }
     }
     if (u.deployT > 0) {
