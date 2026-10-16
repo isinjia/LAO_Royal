@@ -159,6 +159,36 @@
   }
 
 
+  // the graphics device lost mid-match (phones do this under memory pressure): the match pauses, comes back and keeps drawing new units
+  async function contextLossCheck() {
+    const ok = (cond, msg) => { if (!cond) out.errors.push('check: ' + msg); };
+    const G = GAME.G;
+    Object.assign(UI.save, { faction: 'orca', mode: 0, trophy: 0, diff: 1, tutorial: true });
+    document.getElementById('result').className = 'screen';
+    document.getElementById('btnBattle').click();
+    if (!await until(() => G.phase === 'countdown', 45000)) { out.errors.push('context-loss: load timeout'); return; }
+    GAME._run(3.2);
+    const cv = document.querySelector('#stage canvas'), gl = cv && (cv.getContext('webgl2') || cv.getContext('webgl')), ext = gl && gl.getExtension('WEBGL_lose_context');
+    if (!ext) { out.runs.push(['context loss', 'not supported here']); } else {
+      ext.loseContext();
+      await until(() => G.lost, 2000);
+      ok(G.lost, 'context loss is noticed');
+      ext.restoreContext();
+      await until(() => !G.lost, 3000);
+      ok(!G.lost, 'context restore resumes drawing');
+      const S = G.sides.blue, id = S.hand[0];
+      S.elixir = 10; GAME._playCard('blue', 0, 0, -6);
+      let threw = null; try { GAME._run(1); } catch (e) { threw = e; }
+      ok(!threw, 'matches run on after a context restore' + (threw ? ': ' + threw.message : ''));
+      ok(G.ents.some((e) => e.kind === 'troop' && e.side === 'blue' && e.alive), `a unit deploys after the restore (${id})`);
+      out.runs.push(['context loss', 'lost → restored → deploy ok']);
+    }
+    GAME.surrender();
+    await until(() => document.getElementById('result').classList.contains('on'), 5000);
+    document.getElementById('btnHome').click();
+    await wait(200);
+  }
+
   // every daily-operation rule, forced in turn: each must actually change the match the way its text says
   async function mutatorChecks() {
     const ok = (cond, msg) => { if (!cond) out.errors.push('check: ' + msg); };
@@ -259,19 +289,22 @@
         for (let mode = 0; mode < BAL.modes.length; mode++) await match(faction, mode, arenas[k++ % arenas.length], k % 3);
       }
       // soak: the match-to-match footprint (scene objects, GPU geometries and textures, live effects) must not keep growing
-      for (const tr of arenas) await match(k++ % 2 ? 'orca' : 'iron', 0, tr, 1); // (first visits fill the rig and texture caches)
-      const s1 = GAME.info;
-      for (const tr of arenas) await match(k++ % 2 ? 'orca' : 'iron', 0, tr, 1);
-      for (const tr of arenas) await match(k++ % 2 ? 'orca' : 'iron', 0, tr, 1);
-      const s2 = GAME.info;
+      // the same seeded matches twice: the first pass fills the rig and texture caches, the replay must add nothing
+      const rand0 = Math.random, seeded = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      const soakPass = async () => { Math.random = seeded(20261016); try { for (let i = 0; i < arenas.length; i++) await match(i % 2 ? 'orca' : 'iron', 0, arenas[i], 1); } finally { Math.random = rand0; } };
+      await soakPass();
+      const s1 = GAME.info, r1 = SD.loaded().length;
+      await soakPass();
+      const s2 = GAME.info, nr = SD.loaded().length - r1; // rigs seen for the first time (matches still differ a little: real-time loading order)
       if (s1 && s2) {
-        out.runs.push(['soak', `scene ${s1.scene}→${s2.scene}`, `geo ${s1.geo}→${s2.geo}`, `tex ${s1.tex}→${s2.tex}`, `fx ${s1.fx}→${s2.fx}`]);
-        if (s2.scene > s1.scene + 4) out.errors.push(`check: scene objects grow across matches (${s1.scene}→${s2.scene})`);
-        if (s2.geo > s1.geo + 30) out.errors.push(`check: geometries grow across matches (${s1.geo}→${s2.geo})`);
-        if (s2.tex > s1.tex + 40) out.errors.push(`check: textures grow across matches (${s1.tex}→${s2.tex})`);
+        out.runs.push(['soak', `scene ${s1.scene}→${s2.scene}`, `geo ${s1.geo}→${s2.geo}`, `tex ${s1.tex}→${s2.tex}`, `fx ${s1.fx}→${s2.fx}`, `+${nr} rigs`]);
+        if (s2.scene > s1.scene + 2) out.errors.push(`check: scene objects grow across matches (${s1.scene}→${s2.scene})`);
+        if (s2.geo > s1.geo + 6 + nr * 4) out.errors.push(`check: geometries grow across matches beyond new rigs (${s1.geo}→${s2.geo}, +${nr} rigs)`);
+        if (s2.tex > s1.tex + 6 + nr * 3) out.errors.push(`check: textures grow across matches beyond new rigs (${s1.tex}→${s2.tex}, +${nr} rigs)`);
       }
       await unitChecks();
       await mutatorChecks();
+      await contextLossCheck();
       // a crate: start unlocking, rush it with parts (double tap), open it
       UI.save.chests = [{ k: 'epic', t0: null }];
       UI.save.gold = Math.max(UI.save.gold, 999);
