@@ -66,7 +66,8 @@
       const fx0 = X(-9), fy0 = Y(16), tw = 18 * P, th = fl.height * tw / fl.width, H = 32 * P;
       // the playing deck is light steel plating with the arena's original tread art pressed into it: dark rigs read on a bright floor
       const [dHome, dFar] = ar.deck || ['#a9bccd', '#c9c0b4'];
-      { const bgd = g.createLinearGradient(0, fy0, 0, fy0 + H); bgd.addColorStop(0, dFar); bgd.addColorStop(0.47, dFar); bgd.addColorStop(0.53, dHome); bgd.addColorStop(1, dHome); g.fillStyle = bgd; g.fillRect(fx0, fy0, tw, H); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(fx0, fy0, tw, H); }
+      { const bgd = g.createLinearGradient(0, fy0, 0, fy0 + H); bgd.addColorStop(0, dFar); bgd.addColorStop(0.47, dFar); bgd.addColorStop(0.53, dHome); bgd.addColorStop(1, dHome); g.fillStyle = bgd; g.fillRect(fx0, fy0, tw, H); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(fx0, fy0, tw, H);
+        g.fillStyle = 'rgba(255,80,90,0.05)'; g.fillRect(fx0, fy0, tw, H / 2); g.fillStyle = 'rgba(70,150,255,0.05)'; g.fillRect(fx0, fy0 + H / 2, tw, H / 2); } // a faint team cast on each half
       g.save(); g.beginPath(); g.rect(fx0, fy0, tw, H); g.clip(); g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.9;
       for (let y = 0, i = 0; y < H; y += th, i++) { g.save(); if (i % 2) { g.translate(0, fy0 + y + th); g.scale(1, -1); g.drawImage(fl, fx0, 0, tw, th); } else g.drawImage(fl, fx0, fy0 + y, tw, th); g.restore(); }
       g.restore();
@@ -142,6 +143,11 @@
       g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); } g.closePath();
       g.fillStyle = `rgba(${team(sz)},0.07)`; g.fill();
       g.strokeStyle = `rgba(${team(sz)},0.35)`; g.lineWidth = 3; g.stroke();
+    }
+    // scuffs and boot-worn grime where the fights happen (around the centre marks and the bridge heads)
+    for (const [gx, gz, gr] of [[0, 6.5, 2.6], [0, -6.5, 2.6], [-BAL.bridgeX, 3.2, 1.6], [BAL.bridgeX, 3.2, 1.6], [-BAL.bridgeX, -3.2, 1.6], [BAL.bridgeX, -3.2, 1.6]]) for (let i = 0; i < 5; i++) {
+      const cx = X(gx + rnd(-gr, gr) * 0.7), cy = Y(gz + rnd(-gr, gr) * 0.5), rr = rnd(0.5, 1.1) * P, sg = g.createRadialGradient(cx, cy, 0, cx, cy, rr);
+      sg.addColorStop(0, 'rgba(30,26,22,0.13)'); sg.addColorStop(1, 'rgba(30,26,22,0)'); g.fillStyle = sg; g.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
     }
     // centre emblem
     g.save(); g.globalAlpha = 0.16; g.strokeStyle = '#fff'; g.lineWidth = 6;
@@ -1067,6 +1073,7 @@
     FX.particle({ x, y, life: 0.1, size: 0.22, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash (small: faces stay visible)
     FX.particle({ x, y, life: 0.12, size: 0.25 * big, size1: 0.45 * big, color: a.color, tex: FX.tex.glow, alpha: 0.4 }); // a tinted pop behind the star
     FX.ring(x, y, 0.1, 0.75 * big, a.color, 0.2, 0.85);
+    if (big >= 1.35) { FX.groundRing(x, y - 0.45, 0.2, 0.75 * big, a.color, 0.18, 0.6); FX.shake(0.04); } // the heaviest blows thump the deck
     // streaks carry on along the shot: the hit reads as coming from the shooter
     { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
     for (let k = 0; k < 2 + Math.round(big * 2); k++) { const aa = rnd(0.25, Math.PI - 0.25), v = rnd(2.2, 4.2); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 12, drag: 1, life: rnd(0.35, 0.55), size: rnd(0.07, 0.11), size1: 0.05, color: k % 2 ? 0xdfe5ea : 0x5d646c, tex: FX.tex.dot, normal: true }); } // armour chips knocked off the target tumble to the deck
