@@ -64,21 +64,22 @@
     if (fl) {
       // the arena's original floor material, mirror-tiled down the field (seamless), then shaded per half
       const fx0 = X(-9), fy0 = Y(16), tw = 18 * P, th = fl.height * tw / fl.width, H = 32 * P;
-      g.save(); g.beginPath(); g.rect(fx0, fy0, tw, H); g.clip();
+      // the playing deck is light steel plating with the arena's original tread art pressed into it: dark rigs read on a bright floor
+      const [dHome, dFar] = ar.deck || ['#a9bccd', '#c6b29e'];
+      { const bgd = g.createLinearGradient(0, fy0, 0, fy0 + H); bgd.addColorStop(0, dFar); bgd.addColorStop(0.47, dFar); bgd.addColorStop(0.53, dHome); bgd.addColorStop(1, dHome); g.fillStyle = bgd; g.fillRect(fx0, fy0, tw, H); }
+      g.save(); g.beginPath(); g.rect(fx0, fy0, tw, H); g.clip(); g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.9;
       for (let y = 0, i = 0; y < H; y += th, i++) { g.save(); if (i % 2) { g.translate(0, fy0 + y + th); g.scale(1, -1); g.drawImage(fl, fx0, 0, tw, th); } else g.drawImage(fl, fx0, fy0 + y, tw, th); g.restore(); }
       g.restore();
-      g.fillStyle = 'rgba(0,0,0,' + (ar.floorDim || 0.18) + ')'; g.fillRect(fx0, fy0, tw, H);
-      // strong side identity: cool blue-grey steel at home, rusted red plating across the chasm
-      g.save(); g.globalCompositeOperation = 'color';
-      g.fillStyle = 'rgba(70,120,175,0.2)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(165,70,55,0.09)'; g.fillRect(fx0, fy0, tw, 16 * P);
-      g.save(); g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,0.35)'; g.fillRect(fx0, fy0, tw, 16 * P); g.restore(); // the far plates lose some colour so red units stand out on them
-      g.fillStyle = 'rgba(30,26,26,0.14)'; g.fillRect(fx0, fy0, tw, 16 * P);
-      g.restore();
-      g.fillStyle = 'rgba(120,170,230,0.07)'; g.fillRect(fx0, Y(0), tw, 16 * P);
-      g.fillStyle = 'rgba(255,170,140,0.12)'; g.fillRect(fx0, fy0, tw, 16 * P); // the far half a touch lighter: dark iron units stand out
+      // 3 x 2 deck plates: each a slightly different tone, a dark seam and a lit bevel
+      for (let z = -16; z < 16; z += 2) for (let x = -9; x < 9; x += 3) {
+        const px = X(x), py = Y(z + 2), w = 3 * P, h = 2 * P, k = ((x * 7 + z * 5 + 99) % 5) / 5;
+        g.fillStyle = k < 0.4 ? `rgba(0,0,0,${0.03 + k * 0.08})` : `rgba(255,255,255,${(k - 0.4) * 0.12})`; g.fillRect(px, py, w, h);
+        g.strokeStyle = 'rgba(20,26,32,0.38)'; g.lineWidth = 3; g.strokeRect(px + 1.5, py + 1.5, w - 3, h - 3);
+        g.strokeStyle = 'rgba(255,255,255,0.2)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(px + 4, py + h - 4); g.lineTo(px + 4, py + 4); g.lineTo(px + w - 4, py + 4); g.stroke();
+        g.fillStyle = 'rgba(20,26,32,0.45)'; for (const [bx, by] of [[8, 8], [w - 8, 8], [8, h - 8], [w - 8, h - 8]]) { g.beginPath(); g.arc(px + bx, py + by, 2.6, 0, Math.PI * 2); g.fill(); }
+      }
       // original props along the walls, clear of the lanes and the tower pads (the deck reads as a place)
-      const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.filter = 'brightness(0.72) saturate(0.8)'; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
+      const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.filter = 'brightness(0.95)'; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
       for (const s of [-1, 1]) { // a cluster per corner: home side crates and sandbag lines, the far side iron wreckage
         prop(PROPS.sandbag2, s * 7.3, -12.4, 3.2, s > 0); prop(PROPS.crate, s * 7.9, -11.2, 2.3, s > 0);
         prop(PROPS.wreck, s * 7.4, 11.9, 3, s > 0);
@@ -129,7 +130,7 @@
       g.fillStyle = wg; g.fillRect(lx - 1.2 * P, ly0, 2.4 * P, lh);
     }
     // chevrons along the lanes, pointing at the bridges
-    g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 5;
+    g.strokeStyle = 'rgba(232,185,35,0.55)'; g.lineWidth = 5;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let k = 3; k <= 7; k += 2) {
       const cx = X(sx * BAL.bridgeX), cy = Y(sz * k), d = sz > 0 ? 1 : -1; // tips toward the river
       g.beginPath(); g.moveTo(cx - 0.6 * P, cy - d * 0.35 * P); g.lineTo(cx, cy + d * 0.15 * P); g.lineTo(cx + 0.6 * P, cy - d * 0.35 * P); g.stroke();
@@ -707,7 +708,7 @@
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.85 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
-    if (u.sd) { if (side === 'blue') u.sd.setRim(0.6, 1, 1, 0.8); else u.sd.setRim(0.85, 0.22, 0.2, 0.42); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
+    if (u.sd) { if (side === 'blue') u.sd.setRim(0.04, 0.1, 0.2, 0.9); else u.sd.setRim(0.2, 0.03, 0.04, 0.9); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
     u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
     G.ents.push(u);
