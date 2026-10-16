@@ -539,3 +539,6 @@ button:disabled { cursor: default; }
 .tlabel .crown{left:-68px}
 .card .nm{font-size:12px}
 .bl{background:rgba(10,16,24,.55);border-color:rgba(63,102,136,.5);box-shadow:none}
+/* the HUD floats over the arena (the field uses the full height, as in Clash Royale) */
+#hud{position:absolute;top:0;left:0;right:0;z-index:4;background:linear-gradient(180deg,rgba(16,10,13,.82) 0%,rgba(16,10,13,.45) 70%,rgba(16,10,13,0) 100%);border-bottom:0;box-shadow:none;padding-bottom:14px;pointer-events:none}
+#hud>*{pointer-events:auto}

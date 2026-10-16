@@ -7,7 +7,7 @@
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 2.9;       // troops stay small against the arena: a strategy game needs the whole field readable at a glance
+  const TROOP_K = 2.4;       // troops stay small against the arena: a strategy game needs the whole field readable at a glance
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -704,15 +704,15 @@
     };
     u.holder = new THREE.Group();
     scene.add(u.holder);
-    u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.6, u.r * 4.2), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
-    u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(2.1, u.r * 5.6), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.7 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
-    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(2.3, u.r * 6), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.32 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
+    u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.8), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
+    u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.7, u.r * 4.8), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.7 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
+    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.9, u.r * 5.2), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.32 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.85 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
     if (u.sd) { if (side === 'blue') u.sd.setRim(0.04, 0.1, 0.2, 0.9); else u.sd.setRim(0.2, 0.03, 0.04, 0.9); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
-    u.bar = makeBar(clamp(u.r * 3.6, 2.0, 2.8), teamHex(side));
+    u.bar = makeBar(clamp(u.r * 3.2, 1.7, 2.5), teamHex(side));
     G.ents.push(u);
     return u;
   }
@@ -738,7 +738,7 @@
     scene.add(t.holder);
     // the team ring on the tower top breathes (brighter while the tower is firing)
     t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: 0.25, tex: FX.tex.glow, order: 1150 });
-    const gk = type === 'princess' ? (isIron(guard.rig) ? 1.4 : 1.6) : 1.25; // the orca gunners stand as large as the iron emplacements
+    const gk = type === 'princess' ? (isIron(guard.rig) ? 1.2 : 1.35) : 1.1; // the orca gunners stand as large as the iron emplacements
     attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
 
@@ -2245,16 +2245,17 @@
   function resize(force) {
     const w = stageEl.clientWidth, h = stageEl.clientHeight;
     if (!w || !h) return;
-    const key = w + 'x' + h + '@' + renderer.getPixelRatio();
+    const hudEl = document.getElementById('hud'), hudH = Math.min(h * 0.2, (hudEl && hudEl.offsetHeight) || 0) * 0.95; // the HUD floats over the top of the stage (its fading lower edge may overlap the arena)
+    const key = w + 'x' + h + '@' + renderer.getPixelRatio() + ':' + Math.round(hudH);
     if (!force && key === lastSize) return;
     lastSize = key;
     view.w = w; view.h = h;
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
-    const fw = 18.3, top = 16.2 * TILT + 5.6, bot = -16.4 * TILT - 1.0, fh = top - bot; // the whole arena in view: a strategy game reads the full field
-    const k = Math.min(w / fw, h / fh);
-    const cw = w / k, ch = h / k, cy = (top + bot) / 2;
-    camera.left = -cw / 2; camera.right = cw / 2; camera.top = cy + ch / 2; camera.bottom = cy - ch / 2;
+    const fw = 18.3, top = 16.2 * TILT + 3.4, bot = -16.4 * TILT - 0.9, fh = top - bot; // the whole arena in view
+    const k = Math.min(w / fw, (h - hudH) / fh);
+    const cw = w / k, ch = h / k, spare = ((h - hudH) / k - fh) / 2; // the arena is centred in the space under the HUD
+    camera.left = -cw / 2; camera.right = cw / 2; camera.top = top + hudH / k + spare; camera.bottom = camera.top - ch;
     camera.updateProjectionMatrix();
     fitBack();
   }
