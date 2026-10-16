@@ -200,6 +200,12 @@
         ok(GAME.qualityLevel === q0 + 1, `slow frames lower the quality (${q0} → ${GAME.qualityLevel})`);
         for (let i = 0; i < 720; i++) GAME._perfTick(16.7, 3);
         ok(GAME.qualityLevel === q0, `calm frames restore the starting quality (${q0} → ${GAME.qualityLevel})`);
+        // a GPU-bound phone: light JS work but ~30 fps frames must not climb back into the costly setting
+        for (let i = 0; i < 240; i++) GAME._perfTick(25, 16);
+        const q1 = GAME.qualityLevel;
+        for (let i = 0; i < 720; i++) GAME._perfTick(34, 3);
+        ok(GAME.qualityLevel === q1, `long frames with light work do not raise quality (${q1} → ${GAME.qualityLevel})`);
+        for (let i = 0; i < 720; i++) GAME._perfTick(16.7, 3);
         out.runs.push(['auto quality', `${q0} → slow → ${GAME.qualityLevel}`]);
       }
     }

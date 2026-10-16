@@ -147,8 +147,9 @@
   // Last Royal plays nearly every effect in a match (end jingles, tower collapses, champion skills): warm them all
   const FREQUENT = ['rifle', 'gun', 'mg', 'cannon', 'missile', 'laser', 'elec', 'expS', 'expM', 'coin', 'genB', 'genA', 'slash', 'click', 'start', 'fail', 'warning',
     'win', 'clear', 'expB', 'quake', 'charge', 'genS', 'genSS', 'handgun', 'laserBig', 'energy', 'ice', 'spray', 'swing', 'reinforce', 'rankUp', 'rankUpSS', 'pickSS', 'purchase', 'beam', 'expSF'];
+  const PHONE = /[?&]mobile=1\b/.test(location.search) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   function preload() {
-    if (web) FREQUENT.forEach(load);
+    if (web) (PHONE ? FREQUENT.slice(0, 17) : FREQUENT).forEach(load); // phones warm only the combat sounds (decoded audio is ~10x the mp3: ~18 MB for all of them)
     else FREQUENT.slice(0, 11).forEach(get);
   }
 

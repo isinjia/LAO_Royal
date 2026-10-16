@@ -789,7 +789,10 @@
     persist();
   }
 
-  function fatal(msg) { const el = $('fatal'); el.hidden = false; el.querySelector('p').textContent = msg; }
+  function fatal(msg, reload) {
+    const el = $('fatal'); el.hidden = false; el.querySelector('p').textContent = msg;
+    if (reload && !el.querySelector('button')) { const b = document.createElement('button'); b.className = 'btn y'; b.textContent = '다시 불러오기'; b.onclick = () => location.reload(); el.querySelector('.dlg').appendChild(b); }
+  }
 
   // settings
   function openSettings() {

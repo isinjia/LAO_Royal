@@ -9,7 +9,8 @@
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
   const TROOP_K = 2.4;       // troops stay small against the arena: a strategy game needs the whole field readable at a glance
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
-  const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+  const MOBILE = /[?&]mobile=1\b/.test(location.search) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || // (?mobile=1: run the phone path on a PC, for tests)
+    (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
   const TOWER_E = { king: 2.3, princess: 1.75, bld: 0.9 }; // tower top height (guard stands there)
   const L = FX.L;
@@ -2235,7 +2236,7 @@
           const w = (e.hp / e.max * 100).toFixed(1) + '%';
           if (e.labelW !== w) { e.labelW = w; e.label.firstChild.firstChild.style.width = w; }
           const hv = Math.ceil(e.hp);
-          if (e.hpShown !== hv) { if (e.hpShown > hv && G.time - (e.plateT || -1) > 0.25) { e.plateT = G.time; e.label.classList.remove('hit'); void e.label.offsetWidth; e.label.classList.add('hit'); } e.hpShown = hv; e.label.children[1].textContent = hv; const low = e.hp < e.max * 0.3; if (e.labelLow !== low) { e.labelLow = low; e.label.classList.toggle('low', low); } } // a plate under 30% pulses
+          if (e.hpShown !== hv) { if (e.hpShown > hv && G.time - (e.plateT || -1) > 0.25) { e.plateT = G.time; e.label.classList.remove('hit'); requestAnimationFrame(() => e.label.classList.add('hit')); } e.hpShown = hv; e.label.children[1].textContent = hv; const low = e.hp < e.max * 0.3; if (e.labelLow !== low) { e.labelLow = low; e.label.classList.toggle('low', low); } } // a plate under 30% pulses
         }
       }
     }
@@ -2341,7 +2342,7 @@
     if (UI.save.autoQuality === false) return;
     if (perf.slow >= 2 && perf.level < QUALITY.length - 1) { perf.slow = 0; perf.good = 0; setQuality(perf.level + 1); return; }
     // plenty of headroom for a while: step back up (a busy moment should not cost the whole session)
-    perf.good = !slow && wk < 5 ? (perf.good || 0) + 1 : 0;
+    perf.good = !slow && wk < 5 && avg < 22 ? (perf.good || 0) + 1 : 0; // light JS but long frames = GPU/fill-bound: never step back up into that
     if (perf.good >= 6 && perf.level > (MOBILE ? 1 : 0)) { perf.good = 0; setQuality(perf.level - 1, true); }
   }
 
@@ -2849,8 +2850,8 @@
     const resizeSoon = () => { if (rz) return; rz = true; requestAnimationFrame(() => { rz = false; resize(); }); };
     window.addEventListener('resize', resizeSoon);
     if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeSoon);
-    renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); G.lost = true; UI.toast('그래픽 장치를 다시 준비하는 중…'); });
-    renderer.domElement.addEventListener('webglcontextrestored', () => { G.lost = false; resize(true); UI.toast('그래픽 장치가 복구되었습니다'); });
+    renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); G.lost = true; UI.toast('그래픽 장치를 다시 준비하는 중…'); clearTimeout(G.lostT); G.lostT = setTimeout(() => { if (G.lost) UI.fatal('그래픽 장치를 복구하지 못했습니다. 다시 불러오면 이어서 플레이할 수 있습니다.', true); }, 8000); }); // a context that never comes back (some phones) must not leave a frozen screen
+    renderer.domElement.addEventListener('webglcontextrestored', () => { G.lost = false; clearTimeout(G.lostT); resize(true); UI.toast('그래픽 장치가 복구되었습니다'); });
     bindInput();
     SFX.preload();
     requestAnimationFrame(frame);
