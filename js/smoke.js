@@ -148,7 +148,9 @@
     const ms = Math.min(...sims), fr = med(frames); // the fastest run: background load on the test machine only ever adds time
     ok(ms < 90, `crowded field: 0.5 s simulated in ${ms.toFixed(1)} ms (budget 90)`);
     ok(fr < 16, `crowded field: ${fr.toFixed(1)} ms per frame (budget 16)`);
-    out.runs.push(['unit checks', `${champs.length} champion skills`, `sim ${ms.toFixed(1)}ms/0.5s`, `frame ${fr.toFixed(1)}ms`, `${G.ents.length} entities`]);
+    const calls = GAME.info ? GAME.info.calls : 0; // draw calls of the last crowded frame (batched effects and shared rig materials keep this low)
+    ok(calls > 0 && calls <= 380, `crowded field: ${calls} draw calls (budget 380; ~3 per rig: every unit keeps its own tint/outline material)`);
+    out.runs.push(['unit checks', `${champs.length} champion skills`, `sim ${ms.toFixed(1)}ms/0.5s`, `frame ${fr.toFixed(1)}ms`, `${calls} draws`, `${G.ents.length} entities`]);
     GAME.surrender();
     await until(() => document.getElementById('result').classList.contains('on'), 5000);
     document.getElementById('btnHome').click();
@@ -181,6 +183,11 @@
       let threw = null; try { GAME._run(1); } catch (e) { threw = e; }
       ok(!threw, 'matches run on after a context restore' + (threw ? ': ' + threw.message : ''));
       ok(G.ents.some((e) => e.kind === 'troop' && e.side === 'blue' && e.alive), `a unit deploys after the restore (${id})`);
+      // the restored frame actually has a picture (read straight after a render, before the buffer is cleared)
+      GAME._run(1 / 60);
+      const px = new Uint8Array(4 * 9), w = gl.drawingBufferWidth, h = gl.drawingBufferHeight; let lit = 0;
+      for (let i = 0; i < 9; i++) { gl.readPixels(Math.round(w * (0.25 + 0.25 * (i % 3))), Math.round(h * (0.25 + 0.25 * Math.floor(i / 3))), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px.subarray(i * 4, i * 4 + 4)); if (px[i * 4] + px[i * 4 + 1] + px[i * 4 + 2] > 30) lit++; }
+      ok(lit >= 6, `the restored frame is drawn (${lit}/9 sample points lit)`);
       out.runs.push(['context loss', 'lost → restored → deploy ok']);
     }
     // the auto-quality governor: sustained heavy frames step quality down, a long calm stretch steps it back up
@@ -190,9 +197,20 @@
         for (let i = 0; i < 240; i++) GAME._perfTick(25, 16);
         ok(GAME.qualityLevel === q0 + 1, `slow frames lower the quality (${q0} → ${GAME.qualityLevel})`);
         for (let i = 0; i < 720; i++) GAME._perfTick(16.7, 3);
-        ok(GAME.qualityLevel <= q0 + 1, `calm frames keep or restore the quality (${GAME.qualityLevel})`);
+        ok(GAME.qualityLevel === q0, `calm frames restore the starting quality (${q0} → ${GAME.qualityLevel})`);
         out.runs.push(['auto quality', `${q0} → slow → ${GAME.qualityLevel}`]);
       }
+    }
+    // leaving the app (tab hidden, phone locked) pauses the match; nothing moves until the player resumes
+    {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); // shadows the real getter on Document.prototype
+      document.dispatchEvent(new Event('visibilitychange'));
+      delete document.hidden;
+      ok(G.paused, 'a hidden tab pauses the match');
+      const c0 = G.clock; await wait(400);
+      ok(G.clock === c0, `the clock stands still while paused (${c0.toFixed(2)} → ${G.clock.toFixed(2)})`);
+      UI.pause(false);
+      ok(!G.paused, 'the match resumes');
     }
     GAME.surrender();
     await until(() => document.getElementById('result').classList.contains('on'), 5000);
@@ -304,11 +322,11 @@
       const rand0 = Math.random, seeded = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
       const soakPass = async () => { Math.random = seeded(20261016); try { for (let i = 0; i < arenas.length; i++) await match(i % 2 ? 'orca' : 'iron', 0, arenas[i], 1); } finally { Math.random = rand0; } };
       await soakPass();
-      const s1 = GAME.info, r1 = SD.loaded().length;
+      const s1 = GAME.info, l1 = SD.loads || 0, p1 = SD.pooled();
       await soakPass();
-      const s2 = GAME.info, nr = Math.max(0, SD.loaded().length - r1); // rigs seen for the first time (the cache may also evict: never a negative allowance) (matches still differ a little: real-time loading order)
+      const s2 = GAME.info, nr = ((SD.loads || 0) - l1) + Math.max(0, SD.pooled() - p1); // rigs (re)loaded after a cache eviction and idle instances newly pooled for reuse (both bounded by design) (matches still differ a little: real-time loading order)
       if (s1 && s2) {
-        out.runs.push(['soak', `scene ${s1.scene}→${s2.scene}`, `geo ${s1.geo}→${s2.geo}`, `tex ${s1.tex}→${s2.tex}`, `fx ${s1.fx}→${s2.fx}`, `+${nr} rigs`]);
+        out.runs.push(['soak', `scene ${s1.scene}→${s2.scene}`, `geo ${s1.geo}→${s2.geo}`, `tex ${s1.tex}→${s2.tex}`, `fx ${s1.fx}→${s2.fx}`, `${nr} rig loads / new pooled`]);
         if (s2.scene > s1.scene + 2) out.errors.push(`check: scene objects grow across matches (${s1.scene}→${s2.scene})`);
         if (s2.geo > s1.geo + 6 + nr * 4) out.errors.push(`check: geometries grow across matches beyond new rigs (${s1.geo}→${s2.geo}, +${nr} rigs)`);
         if (s2.tex > s1.tex + 6 + nr * 3) out.errors.push(`check: textures grow across matches beyond new rigs (${s1.tex}→${s2.tex}, +${nr} rigs)`);

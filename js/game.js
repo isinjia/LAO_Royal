@@ -2233,7 +2233,9 @@
     camera.position.x = sx; camera.position.y = syy;
     if (G.punch > 0 && G.punchAt) { const k = 0.18 * (G.punchK || 1) * Math.sin(G.punch * Math.PI); camera.position.x += G.punchAt[0] * k; camera.position.y += (G.punchAt[1] - (camera.top + camera.bottom) / 2) * k; } // lean toward the falling tower
     FX.setFlashPos(sx, (camera.top + camera.bottom) / 2);
+    renderer.info.autoReset = false; renderer.info.reset(); // count the whole frame (scene + every post pass), not just the last pass
     if (composer && QUALITY[perf.level].bloom) composer.render(); else renderer.render(scene, camera);
+    perf.calls = renderer.info.render.calls;
   }
 
   // world <-> stage pixels (camera shake offset and punch zoom included)
@@ -2824,7 +2826,7 @@
     get perf() { return perf; }, QUALITY, autoLevel: MOBILE ? 1 : 0,
     _perfTick: (interval, work) => perfTick(interval, work), // (smoke test: drives the auto-quality governor with synthetic frame times)
     get qualityLevel() { return perf.level; },
-    get info() { return renderer ? { geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, calls: renderer.info.render.calls, scene: scene.children.length, fx: FX.count() } : null; },
+    get info() { return renderer ? { geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, calls: perf.calls || 0, scene: scene.children.length, fx: FX.count() } : null; },
     skillState(u) { return { ready: skillReady(u), cd: Math.max(0, u.skillCd), cdMax: u.card.skill.cd * (G.mut && G.mut.skillCd || 1), cost: skillCost(u) }; },
     // test hooks: run the battle for `sec` seconds at once (background tabs throttle requestAnimationFrame)
     _playCard: playCard, _canDeploy: canDeploy,

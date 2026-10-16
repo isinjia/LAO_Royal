@@ -500,6 +500,7 @@
     if (SD.pinRoot) pinRoot(tpl);
     measure(tpl);
     templates[id] = tpl;
+    SD.loads = (SD.loads || 0) + 1; // every (re)load, evictions included: lets tests tell cache churn from a leak
     return tpl;
   }
 
@@ -1287,6 +1288,7 @@
       if (window.SD_DATA) delete SD_DATA[id];
     },
     loaded() { return Object.keys(templates); },
+    pooled() { let n = 0; for (const k in charPool) n += charPool[k].length; return n; }, // idle instances kept for reuse (each holds its own geometry)
     // keep pooled instances only for the rigs still to come (called on wave change); the rest free their GPU objects
     trimPool(keepIds) {
       for (const id in charPool) {
