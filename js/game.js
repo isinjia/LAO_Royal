@@ -65,7 +65,7 @@
       // the arena's original floor material, mirror-tiled down the field (seamless), then shaded per half
       const fx0 = X(-9), fy0 = Y(16), tw = 18 * P, th = fl.height * tw / fl.width, H = 32 * P;
       // the playing deck is light steel plating with the arena's original tread art pressed into it: dark rigs read on a bright floor
-      const [dHome, dFar] = ar.deck || ['#a9bccd', '#c6b29e'];
+      const [dHome, dFar] = ar.deck || ['#a9bccd', '#c9c0b4'];
       { const bgd = g.createLinearGradient(0, fy0, 0, fy0 + H); bgd.addColorStop(0, dFar); bgd.addColorStop(0.47, dFar); bgd.addColorStop(0.53, dHome); bgd.addColorStop(1, dHome); g.fillStyle = bgd; g.fillRect(fx0, fy0, tw, H); g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(fx0, fy0, tw, H); }
       g.save(); g.beginPath(); g.rect(fx0, fy0, tw, H); g.clip(); g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.9;
       for (let y = 0, i = 0; y < H; y += th, i++) { g.save(); if (i % 2) { g.translate(0, fy0 + y + th); g.scale(1, -1); g.drawImage(fl, fx0, 0, tw, th); } else g.drawImage(fl, fx0, fy0 + y, tw, th); g.restore(); }
@@ -2254,7 +2254,7 @@
     if (composer) composer.setSize(w, h);
     const fw = 18.3, top = 16.2 * TILT + 3.4, bot = -16.4 * TILT - 0.9, fh = top - bot; // the whole arena in view
     const k = Math.min(w / fw, (h - hudH) / fh);
-    const cw = w / k, ch = h / k, spare = ((h - hudH) / k - fh) / 2; // the arena is centred in the space under the HUD
+    const cw = w / k, ch = h / k, spare = 0; // the arena hugs the top of the screen; any spare height goes below it
     camera.left = -cw / 2; camera.right = cw / 2; camera.top = top + hudH / k + spare; camera.bottom = camera.top - ch;
     camera.updateProjectionMatrix();
     fitBack();
