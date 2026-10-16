@@ -84,16 +84,16 @@
       if (ivy && ivy.naturalWidth && (iron.far || iron.home)) {
         const oc = document.createElement('canvas'); oc.width = tw; oc.height = 16 * P;
         const og = oc.getContext('2d'), pat = og.createPattern(ivy, 'repeat');
-        if (pat.setTransform) pat.setTransform(new DOMMatrix().scale(0.55));
+        if (pat.setTransform) pat.setTransform(new DOMMatrix().scale(0.8));
         og.fillStyle = pat; og.fillRect(0, 0, oc.width, oc.height);
         og.globalCompositeOperation = 'destination-in';
         const mk = (x0, y0, x1, y1, a) => { const m = og.createLinearGradient(x0, y0, x1, y1); m.addColorStop(0, `rgba(0,0,0,${a})`); m.addColorStop(1, 'rgba(0,0,0,0)'); return m; };
         const mask = document.createElement('canvas'); mask.width = oc.width; mask.height = oc.height; const mg = mask.getContext('2d');
         mg.fillStyle = mk(0, 0, 0, 7 * P, 1); mg.fillRect(0, 0, oc.width, oc.height); // the back edge
-        mg.fillStyle = mk(0, 0, 4 * P, 0, 1); mg.fillRect(0, 0, oc.width, oc.height); // the left wall
-        mg.fillStyle = mk(oc.width, 0, oc.width - 4 * P, 0, 1); mg.fillRect(0, 0, oc.width, oc.height); // the right wall
+        mg.fillStyle = mk(0, 0, 5 * P, 0, 1); mg.fillRect(0, 0, oc.width, oc.height); // the left wall
+        mg.fillStyle = mk(oc.width, 0, oc.width - 5 * P, 0, 1); mg.fillRect(0, 0, oc.width, oc.height); // the right wall
         og.drawImage(mask, 0, 0);
-        g.save(); g.globalAlpha = 0.85;
+        g.save(); g.globalAlpha = 0.95; g.globalCompositeOperation = 'multiply'; // pressed into the plating: the dark tendrils stain it, the light deck shows through
         if (iron.far) g.drawImage(oc, fx0, fy0);
         if (iron.home) { g.translate(0, fy0 + H); g.scale(1, -1); g.drawImage(oc, fx0, 0); } // mirrored: its back edge is the player's
         g.restore();
@@ -895,7 +895,7 @@
         FX.sparks(e.x, y, 0xffa040, 6, 3, 0.12, 0.4);
         // a mech dies in two beats: a secondary pop a moment later, then a slow plume of black smoke and thrown plates
         const ex = e.x, ey = y, big = clamp(e.r * 1.4, 0.6, 1.4);
-        FX.later(0.22, () => { FX.particle({ x: ex + rnd(-0.2, 0.2), y: ey + 0.2, life: 0.18, size: 0.3 * big, size1: 0.9 * big, color: 0xffd090, tex: FX.tex.glow, alpha: 0.9 }); FX.sparks(ex, ey + 0.2, 0xffc060, 5, 3.5, 0.1, 0.35); });
+        FX.later(0.22, () => { FX.particle({ x: ex + rnd(-0.2, 0.2), y: ey + 0.2, life: 0.18, size: 0.3 * big, size1: 0.9 * big, color: 0xffd090, tex: FX.tex.glow, alpha: 0.9 }); FX.sparks(ex, ey + 0.2, 0xffc060, 5, 3.5, 0.1, 0.35); FX.shake(0.05); });
         for (let i = 0; i < 3; i++) FX.particle({ x: ex + rnd(-0.25, 0.25), y: ey + 0.1, vx: rnd(-0.2, 0.2), vy: rnd(0.5, 0.9), life: rnd(1.4, 2), size: 0.4 * big, size1: 1.6 * big, color: 0x2a2a2c, alpha: 0.55, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), fadeIn: 0.15, order: L.FX - 1 });
         for (let i = 0; i < 4; i++) { const a = rnd(0.35, Math.PI - 0.35), v = rnd(2.5, 4.5); FX.particle({ x: ex, y: ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, grav: 11, life: rnd(0.5, 0.75), size: 0.16, size1: 0.12, color: 0x5d646c, tex: FX.tex.dot, normal: true, spin: rnd(-6, 6) }); }
       } else {
@@ -1104,7 +1104,7 @@
     for (let k = 0; k < 2 + Math.round(big * 2); k++) { const aa = rnd(0.25, Math.PI - 0.25), v = rnd(2.2, 4.2); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 12, drag: 1, life: rnd(0.35, 0.55), size: rnd(0.07, 0.11), size1: 0.05, color: k % 2 ? 0xdfe5ea : 0x5d646c, tex: FX.tex.dot, normal: true }); } // armour chips knocked off the target tumble to the deck
     if (EXPLOSIVE[a.fx]) { for (let k = 0; k < 6; k++) { const aa = rnd(0.3, Math.PI - 0.3), v = rnd(2.5, 5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 10, life: rnd(0.4, 0.65), size: 0.16, size1: 0.12, color: 0x4a3a2c, tex: FX.tex.dot, normal: true }); } scorch(x, y - 0.3, 0.5 * big); } // shells and grenades throw chunks and scar the deck; guns spark; blades cut
     if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
-    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.55 * big)) return; // the original hit effect, kept small so it does not smear over the target
+    if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.4 * big)) return; // the original hit effect, kept small so it does not smear over the target
     FX.hit(x, y, a.color, 0.6);
   }
 
