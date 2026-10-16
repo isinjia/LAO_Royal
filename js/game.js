@@ -352,13 +352,10 @@
       // broken masonry spills onto the deck around the foot of the bunker
       for (let i = 0; i < stage * 6; i++) { const a = rnd(0.15, Math.PI - 0.15), rr = r * rnd(0.85, 1.15), bx = X(Math.cos(a) * rr), by = Y(-Math.sin(a) * rr * TILT), w = rnd(6, 13), h = rnd(4, 9); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(bx - w / 2 + 2, by - h / 2 + 3, w, h); g.fillStyle = i % 3 ? '#6b7178' : '#8a9097'; g.fillRect(bx - w / 2, by - h / 2, w, h); g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(bx - w / 2, by - h / 2, w, 2); }
     }
-    // dress the bunker with the original props: orca sandbag lines and supply containers, iron wreckage; rubble on a ruin
+    // dress the bunker with the original props: iron wreckage; rubble on a ruin (orca bunkers stand clean, no cover in front)
     const prop = (im, cx, by, w) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth; g.drawImage(im, X(cx) - w * P / 2, Y(by) - h * P, w * P, h * P); };
     if (dead) prop(PROPS.wreck2, 0.05, -r * TILT * 0.55, r * 1.75);
-    else if (type !== 'bld' && faction === 'orca') {
-      if (type === 'king') for (const sx of [-1, 1]) prop(PROPS.crate, sx * r * 0.66, -r * TILT * 0.2, r * 0.72);
-      prop(PROPS.sandbag2, 0, -r * TILT - 0.14, r * 2.05);
-    } else if (type !== 'bld') {
+    else if (type !== 'bld' && faction !== 'orca') {
       prop(PROPS.wreck, -r * 0.68, -r * TILT * 0.62, r * 0.9);
       prop(PROPS.wreck2, r * 0.7, -r * TILT * 0.5, r * 0.8);
     }
@@ -738,7 +735,7 @@
     scene.add(t.holder);
     // the team ring on the tower top breathes (brighter while the tower is firing)
     t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: 0.25, tex: FX.tex.glow, order: 1150 });
-    const gk = type === 'princess' ? (isIron(guard.rig) ? 1.2 : 1.35) : 1.1; // the orca gunners stand as large as the iron emplacements
+    const gk = type === 'princess' ? (isIron(guard.rig) ? 1.2 : 1.95) : (isIron(guard.rig) ? 1.1 : 1.6); // the orca bioroids are drawn up to stand as tall as the iron emplacements opposite // the orca gunners stand as large as the iron emplacements
     attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
 
