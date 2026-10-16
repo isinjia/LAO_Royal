@@ -183,6 +183,17 @@
       ok(G.ents.some((e) => e.kind === 'troop' && e.side === 'blue' && e.alive), `a unit deploys after the restore (${id})`);
       out.runs.push(['context loss', 'lost → restored → deploy ok']);
     }
+    // the auto-quality governor: sustained heavy frames step quality down, a long calm stretch steps it back up
+    if (GAME._perfTick && UI.save.autoQuality !== false) {
+      const q0 = GAME.qualityLevel;
+      if (q0 < 2) {
+        for (let i = 0; i < 240; i++) GAME._perfTick(25, 16);
+        ok(GAME.qualityLevel === q0 + 1, `slow frames lower the quality (${q0} → ${GAME.qualityLevel})`);
+        for (let i = 0; i < 720; i++) GAME._perfTick(16.7, 3);
+        ok(GAME.qualityLevel <= q0 + 1, `calm frames keep or restore the quality (${GAME.qualityLevel})`);
+        out.runs.push(['auto quality', `${q0} → slow → ${GAME.qualityLevel}`]);
+      }
+    }
     GAME.surrender();
     await until(() => document.getElementById('result').classList.contains('on'), 5000);
     document.getElementById('btnHome').click();
@@ -295,7 +306,7 @@
       await soakPass();
       const s1 = GAME.info, r1 = SD.loaded().length;
       await soakPass();
-      const s2 = GAME.info, nr = SD.loaded().length - r1; // rigs seen for the first time (matches still differ a little: real-time loading order)
+      const s2 = GAME.info, nr = Math.max(0, SD.loaded().length - r1); // rigs seen for the first time (the cache may also evict: never a negative allowance) (matches still differ a little: real-time loading order)
       if (s1 && s2) {
         out.runs.push(['soak', `scene ${s1.scene}→${s2.scene}`, `geo ${s1.geo}→${s2.geo}`, `tex ${s1.tex}→${s2.tex}`, `fx ${s1.fx}→${s2.fx}`, `+${nr} rigs`]);
         if (s2.scene > s1.scene + 2) out.errors.push(`check: scene objects grow across matches (${s1.scene}→${s2.scene})`);

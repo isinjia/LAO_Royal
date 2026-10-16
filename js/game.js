@@ -2822,6 +2822,8 @@
     get cameraZoom() { return camera ? camera.zoom : 1; },
     get cameraPos() { return camera ? [camera.position.x, camera.position.y] : [0, 0]; },
     get perf() { return perf; }, QUALITY, autoLevel: MOBILE ? 1 : 0,
+    _perfTick: (interval, work) => perfTick(interval, work), // (smoke test: drives the auto-quality governor with synthetic frame times)
+    get qualityLevel() { return perf.level; },
     get info() { return renderer ? { geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, calls: renderer.info.render.calls, scene: scene.children.length, fx: FX.count() } : null; },
     skillState(u) { return { ready: skillReady(u), cd: Math.max(0, u.skillCd), cdMax: u.card.skill.cd * (G.mut && G.mut.skillCd || 1), cost: skillCost(u) }; },
     // test hooks: run the battle for `sec` seconds at once (background tabs throttle requestAnimationFrame)
