@@ -7,7 +7,7 @@
   const SD_K = 0.155;        // one scale for every bioroid rig (the original's relative sizes)
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
-  const TROOP_K = 4.1;       // troops are drawn larger than the tower guards (readable on phones)
+  const TROOP_K = 2.9;       // troops stay small against the arena: a strategy game needs the whole field readable at a glance
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
@@ -334,7 +334,7 @@
     // battle damage: under half health the bunker darkens and cracks, under a quarter it is scorched and broken
     if (stage && !dead) {
       g.save(); g.globalCompositeOperation = 'source-atop';
-      g.fillStyle = stage === 2 ? 'rgba(20,10,5,0.45)' : 'rgba(10,10,12,0.32)'; g.fillRect(0, 0, cv.width, cv.height);
+      g.fillStyle = stage === 2 ? 'rgba(20,10,5,0.55)' : 'rgba(10,10,12,0.38)'; g.fillRect(0, 0, cv.width, cv.height);
       for (let i = 0; i < (stage === 2 ? 8 : 6); i++) {
         let x = X(rnd(-r * 0.7, r * 0.7)), y = Y(E + rnd(-r * TILT * 0.5, r * TILT * 0.5));
         const pts = [[x, y]];
@@ -349,6 +349,8 @@
         g.globalCompositeOperation = 'source-atop';
       }
       g.restore();
+      // broken masonry spills onto the deck around the foot of the bunker
+      for (let i = 0; i < stage * 6; i++) { const a = rnd(0.15, Math.PI - 0.15), rr = r * rnd(0.85, 1.15), bx = X(Math.cos(a) * rr), by = Y(-Math.sin(a) * rr * TILT), w = rnd(6, 13), h = rnd(4, 9); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(bx - w / 2 + 2, by - h / 2 + 3, w, h); g.fillStyle = i % 3 ? '#6b7178' : '#8a9097'; g.fillRect(bx - w / 2, by - h / 2, w, h); g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(bx - w / 2, by - h / 2, w, 2); }
     }
     // dress the bunker with the original props: orca sandbag lines and supply containers, iron wreckage; rubble on a ruin
     const prop = (im, cx, by, w) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth; g.drawImage(im, X(cx) - w * P / 2, Y(by) - h * P, w * P, h * P); };
@@ -736,7 +738,7 @@
     scene.add(t.holder);
     // the team ring on the tower top breathes (brighter while the tower is firing)
     t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: 0.25, tex: FX.tex.glow, order: 1150 });
-    const gk = type === 'princess' ? (isIron(guard.rig) ? 1.7 : 2.05) : 1.45; // the orca gunners stand as large as the iron emplacements
+    const gk = type === 'princess' ? (isIron(guard.rig) ? 1.4 : 1.6) : 1.25; // the orca gunners stand as large as the iron emplacements
     attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
 
@@ -1068,6 +1070,7 @@
     FX.ring(x, y, 0.15, 1.05 * big, a.color, 0.22, 0.85);
     // streaks carry on along the shot: the hit reads as coming from the shooter
     { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
+    for (let k = 0; k < 2 + Math.round(big * 2); k++) { const aa = rnd(0.25, Math.PI - 0.25), v = rnd(2.2, 4.2); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 12, drag: 1, life: rnd(0.35, 0.55), size: rnd(0.07, 0.11), size1: 0.05, color: k % 2 ? 0xdfe5ea : 0x5d646c, tex: FX.tex.dot, normal: true }); } // armour chips knocked off the target tumble to the deck
     if (EXPLOSIVE[a.fx]) { for (let k = 0; k < 6; k++) { const aa = rnd(0.3, Math.PI - 0.3), v = rnd(2.5, 5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 10, life: rnd(0.4, 0.65), size: 0.16, size1: 0.12, color: 0x4a3a2c, tex: FX.tex.dot, normal: true }); } scorch(x, y - 0.3, 0.5 * big); } // shells and grenades throw chunks and scar the deck; guns spark; blades cut
     if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
     if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.55 * big)) return; // the original hit effect, kept small so it does not smear over the target
@@ -1756,7 +1759,7 @@
   }
   function pushApart(a, b) {
     const dx = a.x - b.x, dz = a.z - b.z;
-    const min = b.kind === 'tower' ? a.r + b.r : (a.r + b.r) * 1.6; // troops keep a little more room: the larger sprites no longer pile into one blob
+    const min = b.kind === 'tower' ? a.r + b.r : (a.r + b.r) * 1.3; // troops keep a little more room: the larger sprites no longer pile into one blob
     if (dx > min || dx < -min || dz > min || dz < -min) return;
     const d = Math.hypot(dx, dz) || 0.001;
     if (d >= min) return;
@@ -2158,7 +2161,7 @@
         // damage stages swap in a cracked (50%) and a scorched (25%) bunker
         if (e.alive && e.texKey && e.type !== 'bld') {
           const st = e.hp < e.max * 0.35 ? 2 : e.hp < e.max * 0.7 ? 1 : 0; // damage shows early and builds up
-          if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
+          if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; e.tintMul0 = e.tintMul0 || e.tintMul || 1; e.tintMul = e.tintMul0 * (st === 2 ? 0.68 : st === 1 ? 0.86 : 1); /* the guard on a battered tower is scorched too */ /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
         }
         if (e.fireGlow) { if (!e.alive) { FX.kill(e.fireGlow); e.fireGlow = null; } else e.fireGlow.alpha = 0.32 + 0.18 * Math.sin(amb.t * 11 + e.x) * Math.sin(amb.t * 7); }
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
@@ -2248,7 +2251,7 @@
     view.w = w; view.h = h;
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
-    const fw = 17.6, top = 16.2 * TILT + 5.0, bot = -16.4 * TILT - 0.8, fh = top - bot; // framed tight: the height binds on phones, so every unit of margin cut makes the fight larger
+    const fw = 18.3, top = 16.2 * TILT + 5.6, bot = -16.4 * TILT - 1.0, fh = top - bot; // the whole arena in view: a strategy game reads the full field
     const k = Math.min(w / fw, h / fh);
     const cw = w / k, ch = h / k, cy = (top + bot) / 2;
     camera.left = -cw / 2; camera.right = cw / 2; camera.top = cy + ch / 2; camera.bottom = cy - ch / 2;

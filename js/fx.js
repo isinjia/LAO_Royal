@@ -418,9 +418,15 @@
   // gun flash at a muzzle, pointing along the shot: hot core, coloured bloom, a flash streak and a few sparks
   function muzzleFlash(x, y, ang, color = 0xffd27a, k = 1) {
     const cx = Math.cos(ang), cy = Math.sin(ang);
-    particle({ x, y, life: 0.07, size: 0.22 * k, size1: 0.42 * k, color: 0xffffff, tex: tex.glow, alpha: 1 });
-    particle({ x: x + cx * 0.08 * k, y: y + cy * 0.08 * k, life: 0.11, size: 0.45 * k, size1: 0.8 * k, color, tex: tex.glow, alpha: 0.7 });
-    particle({ x: x + cx * 0.22 * k, y: y + cy * 0.22 * k, life: 0.06, size: 0.12 * k, size1: 0.16 * k, color: 0xfff2c0, tex: tex.beam, aspect: 4.5, rot: ang - Math.PI / 2, alpha: 0.95 });
+    // a three-pronged cone along the barrel (a long centre tongue, two short side tongues) over a small white-hot core
+    particle({ x, y, life: 0.06, size: 0.16 * k, size1: 0.26 * k, color: 0xffffff, tex: tex.glow, alpha: 1 });
+    particle({ x: x + cx * 0.06 * k, y: y + cy * 0.06 * k, life: 0.08, size: 0.28 * k, size1: 0.4 * k, color, tex: tex.glow, alpha: 0.45 });
+    for (const [da, len, w] of [[0, 0.3, 0.13], [0.6, 0.15, 0.09], [-0.6, 0.15, 0.09]]) {
+      const a = ang + da;
+      particle({ x: x + Math.cos(a) * len * k, y: y + Math.sin(a) * len * k, life: 0.065, size: w * k, size1: w * 0.6 * k, color: da ? color : 0xfff2c0, tex: tex.beam, aspect: len / w * 2.2, rot: a - Math.PI / 2, alpha: 1 });
+    }
+    // a wisp of gun smoke drifts off the barrel after the flash
+    particle({ x: x + cx * 0.15 * k, y: y + cy * 0.15 * k, vx: cx * 0.5, vy: cy * 0.5 + 0.35, drag: 2, life: 0.45, size: 0.15 * k, size1: 0.5 * k, color: 0x9aa0a6, tex: tex.glow, alpha: 0.35, normal: true, fadeIn: 0.05 });
     for (let i = 0; i < 3; i++) {
       const a = ang + rnd(-0.45, 0.45), v = rnd(2.5, 5);
       particle({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, drag: 6, life: rnd(0.08, 0.16), size: 0.07 * k, size1: 0.02, color: 0xffe9a0, tex: tex.dot });
