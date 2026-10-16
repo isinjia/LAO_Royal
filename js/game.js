@@ -2171,7 +2171,8 @@
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
             shownBars.push(e.bar);
           } else hideBar(e.bar);
-          if (e.shieldT > 0 || e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
+          if (e.shieldT > 0 || e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.45, size: 0.3, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
+          if (e.disc) { const dc = e.hasteT > 0 ? e.hasteColor || 0xd65cff : teamHex(e.side); if (e.disc.color !== dc) e.disc.color = dc; } // a boosted unit's ring takes the boost colour while it lasts
           // your champion's skill is ready: a pulsing ring at its feet points to the button
           if (e.side === 'blue' && e.card.skill && (e.readyT = (e.readyT || 0) - dt) <= 0 && skillReady(e) && G.sides.blue.elixir >= skillCost(e)) {
             e.readyT = 0.7;
