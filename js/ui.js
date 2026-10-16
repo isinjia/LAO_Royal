@@ -31,7 +31,7 @@
   })();
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* private mode / quota */ } }
   const arena = () => arenaOf(save.trophy);
-  const unlocked = (c) => c.arena <= arena();
+  const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
   // every unlocked card is owned (level 1 at least); fix decks that hold locked / foreign cards
   function syncCollection() {
     // a save that already owns cards (older versions had no 'seen' flag) gets NEW badges for what this sync adds
@@ -44,7 +44,7 @@
     save.seen = true; // after the first sync, every unlock is news
     for (const f of ['orca', 'iron']) {
       const dk = Array.isArray(save.decks[f]) ? save.decks[f] : [];
-      const ok = dk.length === 8 && new Set(dk).size === 8 && dk.every((id) => CARD[id] && CARD[id].faction === f && save.cards[id]);
+      const ok = dk.length === 8 && new Set(dk).size === 8 && dk.every((id) => CARD[id] && save.cards[id]); // orca and iron cards may be mixed in one deck
       if (!ok) save.decks[f] = FACTIONS[f].deck.slice();
     }
     persist();
@@ -173,7 +173,7 @@
     const f0 = A.trophy, f1 = nx ? nx.trophy : A.trophy + 1;
     $('arenaBar').style.width = (nx ? Math.min(100, (save.trophy - f0) / (f1 - f0) * 100) : 100) + '%';
     $('arenaNext').textContent = nx ? `다음: ${nx.name} (${nx.trophy})` : '최고 아레나 도달!';
-    const nextCards = nx ? DATA.CARDS.filter((c) => c.arena === a + 1 && c.faction === save.faction && c.type === 'troop').slice(0, 4) : [];
+    const nextCards = []; // (every card is already open: nothing to preview)
     $('arenaUnlock').innerHTML = nextCards.map((c) => `<i style="background-image:url(${art(c)})" title="${esc(c.name)}"></i>`).join('');
     document.querySelectorAll('#factionSel button').forEach((b) => b.classList.toggle('on', b.dataset.f === save.faction));
     document.querySelectorAll('#diffSel button').forEach((b) => b.classList.toggle('on', +b.dataset.d === save.diff));
@@ -185,8 +185,8 @@
     $('avgCost').textContent = avg(save.decks[save.faction]);
     const foe = foeFaction({ faction: save.faction, mode: save.mode });
     $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>`;
-    const up = DATA.byFaction(save.faction).some((c) => canUpgrade(c));
-    $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id] && CARD[id].faction === save.faction)));
+    const up = DATA.CARDS.some((c) => canUpgrade(c));
+    $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id])));
     renderChests();
     // trophy road: rewards reached but not claimed yet
     const road = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
@@ -228,7 +228,7 @@
     });
     const col = $('collection');
     col.innerHTML = '';
-    const list = DATA.byFaction(f).slice().sort((a, b) => (unlocked(b) - unlocked(a)) || a.arena - b.arena || a.cost - b.cost);
+    const list = DATA.CARDS.slice().sort((a, b) => ((a.faction !== f) - (b.faction !== f)) || a.arena - b.arena || a.cost - b.cost); // the commander's own faction first, then the other
     list.forEach((c) => {
       const o = save.cards[c.id];
       const locked = !unlocked(c) || !o;
@@ -610,7 +610,7 @@
   // card copies of unlocked cards of the played faction (rarer cards come in smaller stacks)
   function rollCards(n, bonus, ss) {
     const a = arena();
-    const pool = DATA.byFaction(save.faction).filter((c) => unlocked(c) && save.cards[c.id]);
+    const pool = DATA.CARDS.filter((c) => save.cards[c.id]); // any card can be in a deck, so any card can drop
     const picks = new Map();
     for (let i = 0; i < n && pool.length; i++) {
       const r = Math.random();
@@ -686,9 +686,9 @@
     $('chestName').textContent = `ARENA ${a + 1} · ${A.name}`;
     $('chestBox').className = 'bigbox arena';
     $('chestBox').style.backgroundImage = `url(${A.bg})`;
-    const cards = DATA.byFaction(save.faction).filter((c) => c.arena === a);
+    const cards = []; // (every card is open from the start: a new arena is a new battlefield, not new cards)
     const list = $('chestList');
-    list.innerHTML = `<div class="rw"><b>새 카드 해금</b></div>` + cards.map((c) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>${esc(c.name)}</b><em>NEW</em></div>`).join('');
+    list.innerHTML = `<div class="rw"><b>새 전장 도착</b></div>` + cards.map((c) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>${esc(c.name)}</b><em>NEW</em></div>`).join('');
     list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.5 + k * 0.18) + 's'; });
     $('chestOv').hidden = false;
     SFX.play('rankUpSS', 0.6);

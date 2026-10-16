@@ -1923,7 +1923,7 @@
   let hints = []; // what the opponent's deck was built to answer (shown on the VS screen)
   function buildDeck(faction, arena, style, forPlayer, vs) {
     if (!forPlayer) hints = [];
-    const pool = DATA.byFaction(faction).filter((c) => c.arena <= arena);
+    const pool = DATA.byFaction(faction).filter((c) => forPlayer || c.arena <= arena); // the player's random deck may draw any card (all open); the opponent stays on its arena's cards
     const pick = (f) => { const l = pool.filter((c) => f(c) && !deck.includes(c.id)); return l.length ? l[Math.floor(Math.random() * l.length)].id : null; };
     const deck = [];
     const add = (id) => { if (id && deck.length < 8) deck.push(id); };
@@ -1945,7 +1945,7 @@
     if (Math.random() < 0.45) add(pick((c) => c.type === 'building'));
     // a champion (the opponent may field one from the next arena: a preview of what is coming)
     if (Math.random() < 0.7) {
-      const ch = DATA.byFaction(faction).filter((c) => c.rarity === 3 && c.arena <= arena + (forPlayer ? 0 : 1) && !deck.includes(c.id));
+      const ch = DATA.byFaction(faction).filter((c) => c.rarity === 3 && (forPlayer || c.arena <= arena + 1) && !deck.includes(c.id));
       if (ch.length) add(ch[Math.floor(Math.random() * ch.length)].id);
     }
     while (deck.length < 8) { const id = pick((c) => c.type === 'troop' || (c.type === 'spell' && deck.filter((d) => CARD[d].type === 'spell').length < 2)); if (!id) break; add(id); }

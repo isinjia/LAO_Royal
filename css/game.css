@@ -575,3 +575,9 @@ button:disabled { cursor: default; }
 /* damage numbers sized to the small units: they read without covering the fight */
 .dmgn{font-size:14px;-webkit-text-stroke:1.5px #000}
 .dmgn.big{font-size:18px}
+/* deck header on a narrow column: title and buttons on one row, the energy/gold line wraps below */
+.dhead{flex-wrap:wrap;row-gap:4px}
+.dhead h3{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dhead .btn{white-space:nowrap;flex:none}
+.dhead #deckAvg{order:9;flex-basis:100%;font-size:12px}
+#deck{overflow-x:hidden}

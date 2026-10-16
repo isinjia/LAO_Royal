@@ -348,6 +348,15 @@
         if (bad.length) out.errors.push('missing images: ' + bad.slice(0, 5).join(', '));
         out.runs.push(['image files', urls.size + ' checked']);
       }
+      // free deck building: every card is open at 0 trophies, and a deck may mix orca and iron cards
+      {
+        const keep = UI.save.decks.orca.slice(), t0 = UI.save.trophy, iron = DATA.CARDS.find((c) => c.faction === 'iron' && c.type === 'troop' && !keep.includes(c.id));
+        UI.save.trophy = 0; UI.save.decks.orca = keep.slice(0, 7).concat(iron.id); UI._sync();
+        if (UI.save.decks.orca[7] !== iron.id) out.errors.push('check: a mixed orca/iron deck is kept');
+        if (DATA.CARDS.some((c) => !UI.save.cards[c.id])) out.errors.push('check: every card is open from the start');
+        UI.save.decks.orca = keep; UI.save.trophy = t0; UI._sync();
+        out.runs.push(['free decks', `${DATA.CARDS.length} cards open`, 'mixed deck kept']);
+      }
       const arenas = DATA.ARENAS.map((a) => a.trophy);
       let k = 0;
       for (const faction of ['orca', 'iron']) {
