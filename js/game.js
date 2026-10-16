@@ -2140,6 +2140,7 @@
     zoneTex.needsUpdate = true;
   }
 
+  const shownBars = []; // troop bars drawn this frame (reused array)
   function render(dt) {
     for (const e of G.ents) {
       const y = sy(e);
@@ -2166,6 +2167,7 @@
             const by = y + e.bodyH * (e.air ? 0.9 : 1.05) + 0.15;
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
+            shownBars.push(e.bar);
           } else hideBar(e.bar);
           if (e.shieldT > 0 || e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
           // your champion's skill is ready: a pulsing ring at its feet points to the button
@@ -2226,6 +2228,18 @@
         }
       }
     }
+    // bunched troops: a bar that would sit on another one steps up a row, so each unit's health stays readable
+    if (shownBars.length > 1) {
+      shownBars.sort((a, b) => a.bg.y - b.bg.y);
+      for (let i = 1; i < shownBars.length; i++) {
+        const b = shownBars[i];
+        for (let j = 0; j < i; j++) {
+          const o = shownBars[j];
+          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.3) { const up = o.bg.y + 0.32 - b.bg.y; b.bg.y += up; b.fill.y += up; }
+        }
+      }
+    }
+    shownBars.length = 0;
     for (const e of G.ents) if (e.sd && e.sd.root.visible) e.sd.pose(); // one pose per drawn frame, however many sim steps ran
     updateAmbient(dt);
     updateDecals(dt);
