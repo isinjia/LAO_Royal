@@ -132,7 +132,7 @@
         'vec4 texelColor = mapTexelToLinear(texture2D(map, uvx));',
         'diffuseColor *= texelColor;',
         // team rim: where the sprite's own alpha ends, an outline in the team colour (outer edge of each part)
-        rim ? 'if (sdRim.a > 0.0) { vec2 d = sdTexel * 2.5; float n = max(max(texture2D(map, uvx + vec2(d.x, 0.0)).a, texture2D(map, uvx - vec2(d.x, 0.0)).a), max(texture2D(map, uvx + vec2(0.0, d.y)).a, texture2D(map, uvx - vec2(0.0, d.y)).a)); float e = clamp((n - texelColor.a) * 1.6, 0.0, 1.0) * sdRim.a; diffuseColor.rgb = mix(diffuseColor.rgb, sdRim.rgb, e); diffuseColor.a = max(diffuseColor.a, e * opacity); }' : '',
+        rim ? 'if (sdRim.a > 0.0) { vec2 d = sdTexel * 3.4; float n = max(max(texture2D(map, uvx + vec2(d.x, 0.0)).a, texture2D(map, uvx - vec2(d.x, 0.0)).a), max(texture2D(map, uvx + vec2(0.0, d.y)).a, texture2D(map, uvx - vec2(0.0, d.y)).a)); float e = clamp((n - texelColor.a) * 1.6, 0.0, 1.0) * sdRim.a; diffuseColor.rgb = mix(diffuseColor.rgb, sdRim.rgb, e); diffuseColor.a = max(diffuseColor.a, e * opacity); }' : '',
       ].join('\n'));
   }
 
