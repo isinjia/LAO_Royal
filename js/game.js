@@ -967,6 +967,7 @@
   function scorch(x, y, r) {
     FX.particle({ x, y, life: 9, size: r * 3, size1: r * 3.1, aspect: TILT, color: 0x000000, alpha: 0.6, tex: FX.tex.dot, normal: true, order: L.GROUND - 1 });
     FX.particle({ x, y, life: 1.1, size: r * 2.6, size1: r * 3.2, aspect: TILT, color: 0xff7a2a, alpha: 0.55, tex: FX.tex.ring, order: L.GROUND }); // an ember rim that cools off
+    for (let k = 0; k < 4; k++) { const a = rnd(0, Math.PI * 2), d = r * rnd(0.6, 1.6); FX.particle({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d * TILT, life: rnd(3.5, 5), size: rnd(0.09, 0.15), size1: 0.08, color: k % 2 ? 0x4a5058 : 0x8a9198, alpha: 0.9, tex: FX.tex.dot, normal: true, order: L.GROUND }); } // metal fragments lie on the deck a while
   }
 
   // ── attacks ───────────────────────────────────────────

@@ -310,6 +310,7 @@
         el.addEventListener('pointerdown', (ev) => { ev.preventDefault(); GAME.cardDown(i, ev); SFX.play('click', 0.3); });
         el.insertAdjacentHTML('beforeend', `<kbd>${i + 1}</kbd>`);
         h.appendChild(el);
+        if (el.classList.contains('enter')) setTimeout(() => el.classList.remove('enter'), 450); // the draw animation can never leave a card stuck small by NEXT (paused or throttled animations)
       });
       prevHand = S.hand.slice();
       const n = $('nextCard');
