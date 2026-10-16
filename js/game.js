@@ -278,10 +278,10 @@
       const mid = Math.PI / 6 + (i + 0.5) * Math.PI / 3;
       if (Math.sin(mid) > 0.01) continue;
       const shadeK = 0.55 + 0.35 * Math.cos(mid + 0.6);
-      const c = Math.round(70 + 90 * shadeK);
+      const c = Math.round(105 + 95 * shadeK); // light steel faces (dark walls read as holes on the bright deck)
       g.fillStyle = dead ? `rgb(${c * 0.45},${c * 0.45},${c * 0.47})` : `rgb(${c * 0.78},${c * 0.86},${c * 0.95})`;
       g.beginPath(); g.moveTo(X(a[0]), Y(a[1])); g.lineTo(X(b[0]), Y(b[1])); g.lineTo(X(b[0]), Y(b[1] + E)); g.lineTo(X(a[0]), Y(a[1] + E)); g.closePath(); g.fill();
-      if (wallPat) { g.save(); g.clip(); g.globalAlpha = 0.9; g.fillStyle = wallPat; g.fill(); g.globalAlpha = 1; g.fillStyle = `rgba(0,0,0,${(0.75 - shadeK * 0.6).toFixed(2)})`; g.fill(); g.restore(); } // the faction's original wall art, lit per face
+      if (wallPat) { g.save(); g.clip(); g.globalAlpha = 0.5; g.fillStyle = wallPat; g.fill(); g.globalAlpha = 1; g.fillStyle = `rgba(0,0,0,${(0.45 - shadeK * 0.4).toFixed(2)})`; g.fill(); g.restore(); } // the faction's original wall art, lit per face
       if (!dead) {
         g.fillStyle = team[0]; g.globalAlpha = 0.85;
         g.beginPath(); g.moveTo(X(a[0]), Y(a[1] + E * 0.72)); g.lineTo(X(b[0]), Y(b[1] + E * 0.72)); g.lineTo(X(b[0]), Y(b[1] + E * 0.82)); g.lineTo(X(a[0]), Y(a[1] + E * 0.82)); g.fill();
@@ -669,8 +669,8 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.6 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
-    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.46 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.75 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
+    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.58 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
   }
@@ -679,7 +679,7 @@
     b.bg.hidden = b.fill.hidden = false;
     b.bg.x = x; b.bg.y = y;
     const w = Math.max(0.01, b.w * f);
-    b.fill.sz = w; b.fill.aspect = 0.46 / w;
+    b.fill.sz = w; b.fill.aspect = 0.58 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     if (color != null) b.fill.color = color;
   }

@@ -315,8 +315,8 @@
 
   function explosion(x, y, r, color, big = false) {
     // three beats: a white-hot flash, an orange fireball, then dark smoke and flying debris
-    particle({ x, y, life: 0.09, size: r * 0.8, size1: r * 1.6, color: 0xfff6d8, tex: tex.glow, alpha: 1 });
-    particle({ x, y, life: 0.5, size: r * 1.1, size1: r * 2.5, color: 0xff9a40, frames: sheets.fire, alpha: 1, spin: rnd(-1, 1) });
+    particle({ x, y, life: 0.08, size: r * 0.6, size1: r * 1.1, color: 0xfff6d8, tex: tex.glow, alpha: 0.9 });
+    particle({ x, y, life: 0.45, size: r * 0.9, size1: r * 1.6, color: 0xff9a40, frames: sheets.fire, alpha: 0.85, spin: rnd(-1, 1) });
     particle({ x, y, life: 0.35, size: r * 0.5, size1: r * 2.6, color, tex: tex.ring, alpha: 0.9 });
     const n = big ? 6 : 3;
     for (let i = 0; i < n; i++) {
