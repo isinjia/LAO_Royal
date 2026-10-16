@@ -238,6 +238,7 @@
       col.appendChild(el);
     });
     const info = $('cardInfo');
+    if (!deckSel || !CARD[deckSel]) deckSel = deck[0]; // the panel always shows a card (the first deck slot until one is tapped)
     const c = deckSel && CARD[deckSel];
     if (!c) { info.innerHTML = '<p class="hint">카드를 눌러 정보를 확인하세요. 덱은 8장, 카드는 승리 보상으로 강화합니다.</p>'; return; }
     const o = save.cards[c.id], lv = o ? o.lv : 1, m = LEVEL.mult(lv);

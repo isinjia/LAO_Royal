@@ -581,3 +581,8 @@ button:disabled { cursor: default; }
 .dhead .btn{white-space:nowrap;flex:none}
 .dhead #deckAvg{order:9;flex-basis:100%;font-size:12px}
 #deck{overflow-x:hidden}
+/* card names never spill or cut mid-word: one line, ellipsis, a touch smaller in the dense deck grids */
+.card .nm{display:block;text-align:center;line-height:1;padding:0 3px;text-overflow:ellipsis;align-content:center}
+#deckSlots .card .nm,#collection .card .nm{font-size:10.5px}
+/* NEW sits in the top-right corner, clear of the cost hex */
+.card .newb{left:auto;right:2px;top:2px;transform:none;font-size:8px;padding:0 3px}
