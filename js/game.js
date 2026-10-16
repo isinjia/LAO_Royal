@@ -2146,7 +2146,7 @@
     zoneTex.needsUpdate = true;
   }
 
-  const shownBars = []; // troop bars drawn this frame (reused array)
+  const shownBars = [], deployBars = []; // troop health bars / deploy timers drawn this frame (reused arrays)
   function render(dt) {
     for (const e of G.ents) {
       const y = sy(e);
@@ -2173,8 +2173,10 @@
             const by = y + e.bodyH * (e.air ? 0.9 : 1.05) + 0.15;
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
-            if (e.deployT > 0) e.bar.ol.hidden = true; // a deploy timer stays a light sliver (framed, a swarm's timers stacked into a black block)
-            else shownBars.push(e.bar);
+            if (e.deployT > 0) { // a deploy timer stays a light sliver, and a swarm shows one timer, not one per member
+              e.bar.ol.hidden = true;
+              if (deployBars.some((o) => Math.abs(o.bg.x - e.x) < 1.6 && Math.abs(o.bg.y - by) < 1.2)) hideBar(e.bar); else deployBars.push(e.bar);
+            } else shownBars.push(e.bar);
           } else hideBar(e.bar);
           if (e.shieldT > 0 || e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.45, size: 0.3, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
           if (e.disc) { const dc = e.hasteT > 0 ? e.hasteColor || 0xd65cff : teamHex(e.side); if (e.disc.color !== dc) e.disc.color = dc; } // a boosted unit's ring takes the boost colour while it lasts
@@ -2247,7 +2249,7 @@
         }
       }
     }
-    shownBars.length = 0;
+    shownBars.length = 0; deployBars.length = 0;
     for (const e of G.ents) if (e.sd && e.sd.root.visible) e.sd.pose(); // one pose per drawn frame, however many sim steps ran
     updateAmbient(dt);
     updateDecals(dt);
