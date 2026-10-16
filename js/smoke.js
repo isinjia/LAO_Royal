@@ -336,9 +336,12 @@
       const rand0 = Math.random, seeded = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
       const soakPass = async () => { Math.random = seeded(20261016); try { for (let i = 0; i < arenas.length; i++) await match(i % 2 ? 'orca' : 'iron', 0, arenas[i], 1); } finally { Math.random = rand0; } };
       await soakPass();
-      const s1 = GAME.info, l1 = SD.loads || 0, p1 = SD.pooled();
+      const heap = () => (performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0); // MB (Chromium only)
+      const s1 = GAME.info, l1 = SD.loads || 0, p1 = SD.pooled(), h1 = heap();
       await soakPass();
       const s2 = GAME.info, nr = ((SD.loads || 0) - l1) + Math.max(0, SD.pooled() - p1); // rigs (re)loaded after a cache eviction and idle instances newly pooled for reuse (both bounded by design) (matches still differ a little: real-time loading order)
+      const h2 = heap();
+      if (h1) { out.runs.push(['soak heap', `${h1.toFixed(0)}MB → ${h2.toFixed(0)}MB`]); if (h2 - h1 > 40 + nr * 1.5) out.errors.push(`check: JS heap grows across matches (${h1.toFixed(0)} → ${h2.toFixed(0)} MB)`); } // garbage collection timing makes this loose: only a real leak trips it
       if (s1 && s2) {
         out.runs.push(['soak', `scene ${s1.scene}→${s2.scene}`, `geo ${s1.geo}→${s2.geo}`, `tex ${s1.tex}→${s2.tex}`, `fx ${s1.fx}→${s2.fx}`, `${nr} rig loads / new pooled`]);
         if (s2.scene > s1.scene + 2) out.errors.push(`check: scene objects grow across matches (${s1.scene}→${s2.scene})`);
