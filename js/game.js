@@ -694,8 +694,8 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.75 / (w + 0.12), color: 0x2a3038, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.9 });
-    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.58 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x2a3038, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.9 });
+    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
   }
@@ -704,7 +704,7 @@
     b.bg.hidden = b.fill.hidden = false;
     b.bg.x = x; b.bg.y = y;
     const w = Math.max(0.01, b.w * f);
-    b.fill.sz = w; b.fill.aspect = 0.58 / w;
+    b.fill.sz = w; b.fill.aspect = 0.4 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     if (color != null) b.fill.color = color;
   }
@@ -1095,7 +1095,7 @@
     e.hfxT = G.time;
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
     FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
-    FX.particle({ x, y, life: 0.1, size: 0.22, size1: 0.5 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash (small: faces stay visible)
+    FX.particle({ x, y, life: 0.1, size: 0.18, size1: 0.38 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash (small: faces stay visible)
     FX.particle({ x, y, life: 0.12, size: 0.25 * big, size1: 0.45 * big, color: a.color, tex: FX.tex.glow, alpha: 0.4 }); // a tinted pop behind the star
     FX.ring(x, y, 0.1, 0.75 * big, a.color, 0.2, 0.85);
     if (big >= 1.35) { FX.groundRing(x, y - 0.45, 0.2, 0.75 * big, a.color, 0.18, 0.6); FX.shake(0.04); } // the heaviest blows thump the deck
@@ -2238,7 +2238,7 @@
         const b = shownBars[i];
         for (let j = 0; j < i; j++) {
           const o = shownBars[j];
-          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.3) { const up = o.bg.y + 0.32 - b.bg.y; b.bg.y += up; b.fill.y += up; }
+          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.22) { const up = o.bg.y + 0.24 - b.bg.y; b.bg.y += up; b.fill.y += up; }
         }
       }
     }
