@@ -1212,6 +1212,7 @@
       spawnStatic('Raven_skill1_Hit', x, y + 0.4, 0.45, 1, L.FX);
       FX.groundRing(x, y, 0.3, c.radius, c.color, 0.45);
       FX.groundGlow(x, y, c.radius, c.color, 2.5, 0.35); // the shocked floor glows a while
+      FX.particle({ x, y, life: 1.6, size: c.radius * 2.1, size1: c.radius * 2.2, aspect: TILT, color: 0x1f6f9f, alpha: 0.4, tex: FX.tex.dot, normal: true, order: L.GROUND }); // and is stained blue (additive light alone vanishes on the bright deck)
       spellHit(side, cc, x, z);
       SFX.play('elec');
       FX.flash(0x9fe8ff, 0.25);
@@ -1241,6 +1242,7 @@
       spawnStatic('Titania_skill1_Ground_ice_smoke', x, y, 0.3, 1, L.FX);
       FX.frost(x, y, c.radius, c.color);
       FX.groundGlow(x, y, c.radius * 0.9, 0x9fe8ff, c.freeze, 0.45, 0.2);
+      FX.particle({ x, y, life: c.freeze, size: c.radius * 2.2, size1: c.radius * 2.3, aspect: TILT, color: 0x5fb8e8, alpha: 0.5, tex: FX.tex.dot, normal: true, order: L.GROUND, fadeIn: 0.2 }); // a frosted patch that reads on the bright deck for as long as the freeze holds
       FX.groundRing(x, y, 0.3, c.radius, c.color, 0.6);
       for (let i = 0; i < 20; i++) { const a = Math.random() * 6.28, r = Math.random() * c.radius; FX.particle({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r * TILT, vy: rnd(0.5, 1.4), life: rnd(0.6, 1.2), size: 0.3, size1: 0, color: 0xdff8ff, tex: FX.tex.snow, spin: rnd(-3, 3) }); }
       spellHit(side, cc, x, z);
