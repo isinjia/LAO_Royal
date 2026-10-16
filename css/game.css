@@ -591,3 +591,4 @@ button:disabled { cursor: default; }
 .ci-body dl div{gap:6px}
 .ci-body dl dt,.ci-body dl dd{white-space:nowrap}
 .ci-body dl dd{overflow:hidden;text-overflow:ellipsis;min-width:0;margin:0}
+#hand .card .nm{font-size:10.5px;letter-spacing:-.6px;padding:0 1px}

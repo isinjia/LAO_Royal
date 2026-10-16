@@ -694,7 +694,7 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x2a3038, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.9 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x4a5560, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.95 });
     const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     const ol = FX.sprite({ x: 0, y: -99, size: w + 0.22, aspect: 0.66 / (w + 0.22), color: 0x05070a, tex: FX.tex.white, normal: true, order: L.BAR - 1, alpha: 0.95 }); // a crisp dark frame, like the tower plates
     bg.hidden = fill.hidden = ol.hidden = true;
