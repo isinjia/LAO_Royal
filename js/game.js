@@ -81,7 +81,7 @@
       // original props along the walls, clear of the lanes and the tower pads (the deck reads as a place)
       const prop = (im, px, pz, w, flip) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth * P, W = w * P; g.save(); g.translate(X(px), Y(pz)); if (flip) g.scale(-1, 1); g.globalAlpha = 0.95; g.filter = 'brightness(0.95)'; g.drawImage(im, -W / 2, -h, W, h); g.restore(); };
       for (const s of [-1, 1]) { // a cluster per corner: home side crates and sandbag lines, the far side iron wreckage
-        prop(PROPS.sandbag2, s * 7.3, -12.4, 3.2, s > 0); prop(PROPS.crate, s * 7.9, -11.2, 2.3, s > 0);
+        prop(PROPS.crate, s * 7.9, -11.2, 2.3, s > 0);
         prop(PROPS.wreck, s * 7.4, 11.9, 3, s > 0);
       }
       // the sides are told apart by glowing team edge strips along the walls (the arena's own floor stays visible)
