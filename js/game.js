@@ -2258,7 +2258,7 @@
   function resize(force) {
     const w = stageEl.clientWidth, h = stageEl.clientHeight;
     if (!w || !h) return;
-    const hudEl = document.getElementById('hud'), hudH = Math.min(h * 0.2, (hudEl && hudEl.offsetHeight) || 0) * 0.95; // the HUD floats over the top of the stage (its fading lower edge may overlap the arena)
+    const hudH = Math.min(14, h * 0.02); // no top bar: only the corner overlays sit over the arena, so it uses the full height
     const key = w + 'x' + h + '@' + renderer.getPixelRatio() + ':' + Math.round(hudH);
     if (!force && key === lastSize) return;
     lastSize = key;
@@ -2266,7 +2266,7 @@
     renderer.setSize(w, h);
     if (composer) composer.setSize(w, h);
     // tall screens tilt the floor up (a steeper view) so the arena fills the height instead of leaving bands; only between matches (towers are baked with the tilt)
-    if (!G.ents.some((e) => e.kind === 'tower')) applyTilt(clamp(((h - hudH) / w * 18.3 - 4.3) / 32.6, 0.47, 0.72));
+    if (!G.ents.some((e) => e.kind === 'tower')) applyTilt(clamp(((h - hudH) / w * 18.3 - 4.3) / 32.6, 0.47, 0.8));
     const fw = 18.3, top = 16.2 * TILT + 3.4, bot = -16.4 * TILT - 0.9, fh = top - bot; // the whole arena in view
     const k = Math.min(w / fw, (h - hudH) / fh);
     const cw = w / k, ch = h / k, spare = ((h - hudH) / k - fh) / 2; // the arena is centred in the space under the HUD
