@@ -727,6 +727,7 @@
     const tkey = side + type + S.faction;
     const tc = towerTex[tkey] || (towerTex[tkey] = towerCanvas(type, side, false, emblems[S.faction], S.faction));
     t.stage = 0; t.texKey = tkey;
+    t.pad = FX.sprite({ x, y: z * TILT, size: (sp.r + 0.6) * 3.4, aspect: TILT, color: teamHex(side), alpha: 0.3, tex: FX.tex.glow, order: L.GROUND + 3 }); // a slow team-coloured glow under a standing tower
     t.base = quad(tc.tex, 0xffffff, 1, false, 0);
     t.base.scale.set(tc.w, tc.h, 1);
     t.base.position.set(x, z * TILT + tc.cy, 0);
@@ -754,7 +755,7 @@
     if (e.sd) { if (e.pooled) SD.release(e.sd); else e.sd.dispose(); e.sd = null; }
     if (e.placeholder) { e.placeholder.material.dispose(); e.placeholder = null; } // the texture is cached per portrait
     scene.remove(e.holder);
-    [e.shadow, e.disc, e.aura, e.glow, e.halo, e.fireGlow].forEach((p) => p && FX.kill(p));
+    [e.shadow, e.disc, e.aura, e.glow, e.halo, e.fireGlow, e.pad].forEach((p) => p && FX.kill(p));
     if (e.base) { scene.remove(e.base); e.base.material.dispose(); }
     if (e.deadTex) e.deadTex.dispose();
     if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); }
@@ -830,7 +831,7 @@
     t.hp -= amt;
     t.hitT = 0.1;
     if (t.kind === 'tower' && t.type !== 'bld') t.dmgAcc = (t.dmgAcc || 0) + Math.min(amt, t.hp + amt); // shown as floating numbers (render)
-    else if (t.kind === 'troop' && amt >= 100 && G.time - (t.numT || -1) > 0.3) { t.numT = G.time; const q = toScreen(t.x + rnd(-0.2, 0.2), sy(t) + (t.bodyH || 1.5) + 0.2); UI.dmgNum(q[0], q[1], Math.round(amt), t.side); } // heavy blows on troops pop a number too
+    else if (t.kind === 'troop' && amt >= 250 && G.time - (t.numT || -1) > 0.4) { t.numT = G.time; const q = toScreen(t.x + rnd(-0.2, 0.2), sy(t) + (t.bodyH || 1.5) + 0.2); UI.dmgNum(q[0], q[1], Math.round(amt), t.side); } // heavy blows on troops pop a number too
     if (G.stats && src && src.side) {
       const st = G.stats[src.side], d = Math.min(amt, t.hp + amt);
       st.dmg += d;
@@ -2160,6 +2161,7 @@
           const st = e.hp < e.max * 0.35 ? 2 : e.hp < e.max * 0.7 ? 1 : 0; // damage shows early and builds up
           if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; e.tintMul0 = e.tintMul0 || e.tintMul || 1; e.tintMul = e.tintMul0 * (st === 2 ? 0.68 : st === 1 ? 0.86 : 1); /* the guard on a battered tower is scorched too */ /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
         }
+        if (e.pad) { if (!e.alive) { FX.kill(e.pad); e.pad = null; } else e.pad.alpha = 0.24 + 0.1 * Math.sin(amb.t * 1.8 + e.x); }
         if (e.fireGlow) { if (!e.alive) { FX.kill(e.fireGlow); e.fireGlow = null; } else e.fireGlow.alpha = 0.32 + 0.18 * Math.sin(amb.t * 11 + e.x) * Math.sin(amb.t * 7); }
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
         if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.7) && (e.smkT = (e.smkT || 0) - dt) <= 0) {

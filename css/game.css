@@ -572,3 +572,6 @@ button:disabled { cursor: default; }
 /* the enemy's speech bubble sits under its name in the top-left corner, clear of the king tower */
 .bubble.red,.bubble.red.low{left:8px;top:calc(46px + env(safe-area-inset-top));transform-origin:left top}
 #app{max-width:min(520px,46vh)}
+/* damage numbers sized to the small units: they read without covering the fight */
+.dmgn{font-size:14px;-webkit-text-stroke:1.5px #000}
+.dmgn.big{font-size:18px}
