@@ -2617,14 +2617,15 @@
     amb.moteT = (amb.moteT || 0) - dt;
     if (amb.moteT <= 0 && QUALITY[perf.level].bloom && (G.phase === 'play' || G.phase === 'countdown')) {
       amb.moteT = 0.18;
-      FX.particle({ x: rnd(-9, 9), y: rnd(-12, 11), vx: rnd(-0.15, 0.15), vy: rnd(0.15, 0.45), life: rnd(3, 5), size: rnd(0.06, 0.14), size1: 0.02, color: ARENAS[G.arenaDrawn || 0].glow, tex: FX.tex.glow, alpha: 0.5, fadeIn: 1, order: L.GROUND + 50 });
+      FX.particle({ x: rnd(-9, 9), y: rnd(-16, 15) * TILT, vx: rnd(-0.15, 0.15), vy: rnd(0.15, 0.45), life: rnd(3, 5), size: rnd(0.16, 0.28), size1: 0.04, color: ARENAS[G.arenaDrawn || 0].glow, tex: FX.tex.glow, alpha: 0.7, fadeIn: 1, order: L.GROUND + 50 });
+      if (Math.random() < 0.5) FX.particle({ x: rnd(-9, 9), y: rnd(-16, 15) * TILT, vx: rnd(0.2, 0.5), vy: rnd(-0.05, 0.1), life: rnd(2.5, 4), size: rnd(0.09, 0.14), size1: 0.06, color: 0x3a342e, tex: FX.tex.dot, alpha: 0.55, normal: true, fadeIn: 0.8, spin: rnd(-2, 2), order: L.GROUND + 49 }); // dust and ash drift across the bright deck (the light motes alone vanish on it)
     }
     amb.sweepT -= dt;
     if (amb.sweepT <= 0) { amb.sweepT = 9 + Math.random() * 6; amb.sweepX = -16; }
     if (amb.sweepX != null && amb.sweep) {
       amb.sweepX += dt * 9;
       amb.sweep.position.set(amb.sweepX, 0, 0);
-      amb.sweep.material.opacity = 0.05 * Math.max(0, 1 - Math.abs(amb.sweepX) / 16);
+      amb.sweep.material.opacity = 0.09 * Math.max(0, 1 - Math.abs(amb.sweepX) / 16);
       if (amb.sweepX > 16) { amb.sweepX = null; amb.sweep.material.opacity = 0; }
     }
   }
