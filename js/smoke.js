@@ -232,6 +232,28 @@
     await wait(200);
   }
 
+  // a damaged save (bad JSON, wrong types, unknown keys) must still boot to the title with sane values
+  async function corruptSaveCheck(backup) {
+    const ok = (cond, msg) => { if (!cond) out.errors.push('check: ' + msg); };
+    const cases = ['{not json', JSON.stringify({ trophy: 'x', gold: -5, faction: 'zzz', cards: 5, decks: null, chests: [{ k: 'bogus' }, null], music: 'loud', quality: 9, newCards: { nope: 1 } })];
+    for (const raw of cases) {
+      try { localStorage.setItem('lastroyal.v2', raw); } catch (e) { return; }
+      const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;left:-9999px;width:375px;height:812px';
+      let errs = 0; fr.src = 'index.html?mute=1&corrupt=' + Date.now();
+      document.body.appendChild(fr);
+      await until(() => fr.contentWindow && fr.contentWindow.addEventListener, 3000);
+      try { fr.contentWindow.addEventListener('error', () => errs++); } catch (e) { /* cross-frame */ }
+      const up = await until(() => { try { const d = fr.contentDocument; return d && d.getElementById('title') && d.getElementById('title').classList.contains('on') && fr.contentWindow.UI; } catch (e) { return false; } }, 15000);
+      const s = up && fr.contentWindow.UI.save;
+      ok(up, `a damaged save still boots to the title (${raw.slice(0, 12)}…)`);
+      if (s) ok(s.trophy === 0 && s.gold >= 0 && s.faction === 'orca' && typeof s.cards === 'object' && s.chests.length === 0 && s.music === 1 && s.quality === null, 'a damaged save is repaired to sane values');
+      ok(!errs, `no script errors while booting a damaged save (${errs})`);
+      fr.remove();
+    }
+    try { localStorage.setItem('lastroyal.v2', backup); } catch (e) { /* ignore */ }
+    out.runs.push(['damaged save', cases.length + ' cases boot']);
+  }
+
   // every daily-operation rule, forced in turn: each must actually change the match the way its text says
   async function mutatorChecks() {
     const ok = (cond, msg) => { if (!cond) out.errors.push('check: ' + msg); };
@@ -351,6 +373,7 @@
       await unitChecks();
       await mutatorChecks();
       await contextLossCheck();
+      await corruptSaveCheck(backup);
       // a crate: start unlocking, rush it with parts (double tap), open it
       UI.save.chests = [{ k: 'epic', t0: null }];
       UI.save.gold = Math.max(UI.save.gold, 999);
