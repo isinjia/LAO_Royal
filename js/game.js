@@ -675,7 +675,7 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.75 / (w + 0.12), color: 0x06080c, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.85 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.75 / (w + 0.12), color: 0x2a3038, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.9 });
     const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.58 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     bg.hidden = fill.hidden = true;
     return { bg, fill, w };
@@ -708,8 +708,8 @@
     u.holder = new THREE.Group();
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.8), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
-    u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.7, u.r * 4.8), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.7 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
-    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.9, u.r * 5.2), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.32 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
+    u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.7, u.r * 4.8), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
+    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.9, u.r * 5.2), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.48 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.85 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
@@ -991,7 +991,7 @@
     const tx = t.x, ty = aimY(t);
     const ang = Math.atan2(ty - my, tx - mx);
     const ranged = a.fx !== 'claw' && a.fx !== 'slash' && a.fx !== 'cannon' && a.fx !== 'flame';
-    if (fireN > 0 && ranged) FX.muzzleFlash(mx, my, ang, a.color, 0.85);
+    if (fireN > 0 && ranged) FX.muzzleFlash(mx, my, ang, a.color, 0.65);
     // the original projectile / effect of this character
     const o = e.rig ? origFor(e.rig, a.fx) : null;
     if (real && o && o.statics.length && FXB.ready(o.statics[0])) spawnStatic(o.statics[0], tx, t.z * TILT + 0.2, e.fxk, e.face);

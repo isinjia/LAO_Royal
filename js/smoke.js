@@ -258,7 +258,18 @@
       for (const faction of ['orca', 'iron']) {
         for (let mode = 0; mode < BAL.modes.length; mode++) await match(faction, mode, arenas[k++ % arenas.length], k % 3);
       }
+      // soak: the match-to-match footprint (scene objects, GPU geometries and textures, live effects) must not keep growing
+      for (const tr of arenas) await match(k++ % 2 ? 'orca' : 'iron', 0, tr, 1); // (first visits fill the rig and texture caches)
+      const s1 = GAME.info;
       for (const tr of arenas) await match(k++ % 2 ? 'orca' : 'iron', 0, tr, 1);
+      for (const tr of arenas) await match(k++ % 2 ? 'orca' : 'iron', 0, tr, 1);
+      const s2 = GAME.info;
+      if (s1 && s2) {
+        out.runs.push(['soak', `scene ${s1.scene}→${s2.scene}`, `geo ${s1.geo}→${s2.geo}`, `tex ${s1.tex}→${s2.tex}`, `fx ${s1.fx}→${s2.fx}`]);
+        if (s2.scene > s1.scene + 4) out.errors.push(`check: scene objects grow across matches (${s1.scene}→${s2.scene})`);
+        if (s2.geo > s1.geo + 30) out.errors.push(`check: geometries grow across matches (${s1.geo}→${s2.geo})`);
+        if (s2.tex > s1.tex + 40) out.errors.push(`check: textures grow across matches (${s1.tex}→${s2.tex})`);
+      }
       await unitChecks();
       await mutatorChecks();
       // a crate: start unlocking, rush it with parts (double tap), open it
