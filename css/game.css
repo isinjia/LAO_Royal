@@ -586,3 +586,8 @@ button:disabled { cursor: default; }
 #deckSlots .card .nm,#collection .card .nm{font-size:10.5px}
 /* NEW sits in the top-right corner, clear of the cost hex */
 .card .newb{left:auto;right:2px;top:2px;transform:none;font-size:8px;padding:0 3px}
+/* stat grid in the card info: two columns on the narrow column, labels and values never break mid-word */
+.ci-body dl{grid-template-columns:repeat(2,1fr)}
+.ci-body dl div{gap:6px}
+.ci-body dl dt,.ci-body dl dd{white-space:nowrap}
+.ci-body dl dd{overflow:hidden;text-overflow:ellipsis;min-width:0;margin:0}

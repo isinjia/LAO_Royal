@@ -1020,7 +1020,7 @@
     if (fireN > 0 && ranged) FX.muzzleFlash(mx, my, ang, a.color, 0.65);
     // the original projectile / effect of this character
     const o = e.rig ? origFor(e.rig, a.fx) : null;
-    if (real && o && o.statics.length && FXB.ready(o.statics[0])) spawnStatic(o.statics[0], tx, t.z * TILT + 0.2, e.fxk, e.face);
+    if (real && o && o.statics.length && FXB.ready(o.statics[0])) spawnStatic(o.statics[0], tx, t.z * TILT + 0.2, e.fxk * 0.65, e.face); // (the original impact art is an opaque disc: kept small so the fight under it stays visible)
     if (o && o.bullet && FXB.ready(o.bullet) && fxRoom() && (a.fx !== 'lightning' && a.fx !== 'laser')) {
       const meta = FX_META.meta[o.bullet];
       const inst = FXB.create(o.bullet);
