@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* private mode / quota */ } }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
   // every unlocked card is owned (level 1 at least); fix decks that hold locked / foreign cards
@@ -403,9 +403,11 @@
     // buttons are patched in place in deployment order: a new champion takes a free slot and the others never move (Q / W / E stay put)
     const live = G.phase === 'play' ? GAME.champions('blue') : [];
     const bar = $('skillBar');
-    for (const b of [...bar.children]) {
-      const id = +b.dataset.id;
-      if (live.some((u) => u.id === id)) continue;
+    for (let i = bar.children.length - 1; i >= 0; i--) { // (no array or closure per frame)
+      const b = bar.children[i], id = +b.dataset.id;
+      let on = false;
+      for (let j = 0; j < live.length; j++) if (live[j].id === id) { on = true; break; }
+      if (on) continue;
       if (aim && aim.u.id === id) { clearInterval(aim.timer); GAME.aimHide(); aim = null; bar.classList.remove('cancel'); } // its champion fell mid-aim
       b.remove();
     }
@@ -525,7 +527,7 @@
   const dmgRecent = []; // numbers still popping: a hit landing close to one merges into it (one counting number, not a stack)
   function dmgNum(x, y, n, side) {
     const box = $('labels'), now = performance.now();
-    for (const r of dmgRecent) if (r.side === side && now - r.t < 450 && Math.abs(r.x - x) < 48 && Math.abs(r.y - y) < 48 && r.el.isConnected) { r.n += n; r.el.textContent = '-' + r.n; r.el.classList.toggle('big', r.n >= 300); r.el.style.animation = 'none'; void r.el.offsetWidth; r.el.style.animation = ''; r.t = now; return; }
+    for (const r of dmgRecent) if (r.side === side && now - r.t < 450 && Math.abs(r.x - x) < 48 && Math.abs(r.y - y) < 48 && r.el.isConnected) { r.n += n; r.el.textContent = '-' + r.n; r.el.classList.toggle('big', r.n >= 300); const an = r.el.getAnimations ? r.el.getAnimations()[0] : null; if (an) an.currentTime = 0; else { r.el.style.animation = 'none'; void r.el.offsetWidth; r.el.style.animation = ''; } r.t = now; return; }
     if (dmgLive >= 24) return;
     const el = dmgPool.pop() || document.createElement('span'); // nodes are reused (no DOM churn in big fights)
     el.className = 'dmgn ' + side + (n >= 300 ? ' big' : '');

@@ -698,8 +698,9 @@
     const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x1a2129, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.95 });
     const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     const ol = FX.sprite({ x: 0, y: -99, size: w + 0.22, aspect: 0.66 / (w + 0.22), color: 0x05070a, tex: FX.tex.white, normal: true, order: L.BAR - 1, alpha: 0.95 }); // a crisp dark frame, like the tower plates
-    bg.hidden = fill.hidden = ol.hidden = true;
-    return { bg, fill, ol, w };
+    const lag = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color: 0xfff4e0, tex: FX.tex.white, normal: true, order: L.BAR + 0.5, alpha: 0.9 }); // lost health drains away behind the fill
+    bg.hidden = fill.hidden = ol.hidden = lag.hidden = true;
+    return { bg, fill, ol, lag, w, lagF: 1 };
   }
   function setBar(b, f, x, y, color) {
     f = clamp(f, 0, 1);
@@ -708,9 +709,12 @@
     const w = Math.max(0.01, b.w * f);
     b.fill.sz = w; b.fill.aspect = 0.4 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
+    b.lagF = f >= b.lagF ? f : b.lagF + (f - b.lagF) * 0.07; // eases down over ~0.4 s
+    b.lag.hidden = b.lagF - f < 0.005;
+    if (!b.lag.hidden) { const lw = b.w * b.lagF; b.lag.sz = lw; b.lag.aspect = 0.4 / lw; b.lag.x = x - b.w / 2 + lw / 2; b.lag.y = y; }
     if (color != null) b.fill.color = color;
   }
-  function hideBar(b) { b.bg.hidden = b.fill.hidden = b.ol.hidden = true; }
+  function hideBar(b) { b.bg.hidden = b.fill.hidden = b.ol.hidden = b.lag.hidden = true; }
 
   function lvlOf(side, card) {
     const S = G.sides[side];
@@ -786,7 +790,7 @@
     [e.shadow, e.disc, e.aura, e.glow, e.halo, e.fireGlow, e.pad].forEach((p) => p && FX.kill(p));
     if (e.base) { scene.remove(e.base); e.base.material.dispose(); }
     if (e.deadTex) e.deadTex.dispose();
-    if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); FX.kill(e.bar.ol); }
+    if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); FX.kill(e.bar.ol); FX.kill(e.bar.lag); }
     if (e.label) e.label.remove();
   }
 
@@ -858,6 +862,7 @@
     orca: { name: '긴급 수리', desc: '모든 아군 타워 체력 15% 회복 · 에너지 +2' },
     iron: { name: '군단 호출', desc: '킹 타워 앞에 드론 편대 투입' },
   };
+  const supOut = {}, skOut = {};
   const supportReady = (S) => !!(S && S.sup && !S.sup.used && S.sup.charge >= 1);
   function useSupport(side) {
     const S = G.sides && G.sides[side];
@@ -974,7 +979,8 @@
     }
     foe.crowns++;
     UI.crowns();
-    UI.banner(e.side === 'red' ? '적 타워 파괴!' : '아군 타워 파괴!', e.side === 'red' ? 'good' : 'bad');
+    UI.banner(e.side === 'red' ? '적 타워 파괴!' : '아군 타워 파괴!', e.side === 'red' ? 'gold' : 'bad');
+    if (e.side === 'red') FX.later(0.5, () => SFX.play('rankUp', 0.55)); // a taken tower is a win moment: a fanfare after the blast
     if (e.side === 'blue') aiEmote(1, 0.6); else aiEmote(2, 0.4);
     const king = S.towers.find((t) => t.type === 'king');
     if (king) activateKing(king);
@@ -2293,7 +2299,7 @@
         const b = shownBars[i];
         for (let j = 0; j < i; j++) {
           const o = shownBars[j];
-          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.22) { const up = o.bg.y + 0.24 - b.bg.y; b.bg.y += up; b.fill.y += up; b.ol.y += up; }
+          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.22) { const up = o.bg.y + 0.24 - b.bg.y; b.bg.y += up; b.fill.y += up; b.ol.y += up; b.lag.y += up; }
         }
       }
     }
@@ -2583,7 +2589,10 @@
   function setBackdrop(a) {
     if (amb.back) {
       const url = ARENAS[a].bg;
-      const use = (tx) => { amb.back.material.map = tx; amb.back.material.needsUpdate = true; amb.back.visible = true; fitBack(); };
+      const use = (tx) => {
+        amb.back.material.map = tx; amb.back.material.needsUpdate = true; amb.back.visible = true; fitBack();
+        for (const k in bgTex) if (bgTex[k] !== tx) { bgTex[k].dispose(); delete bgTex[k]; } // only the arena on show keeps its backdrop on the GPU
+      };
       setBackdropTint(a);
       amb.back.visible = false;
       if (bgTex[url]) use(bgTex[url]);
@@ -2793,10 +2802,15 @@
     frameBody(dt, interval);
   }
   // one frame of work (also driven directly by the smoke test, which may run with rAF throttled)
+  function frameErr(err) {
+    if (!G.errShown) { G.errShown = true; console.error(err); UI.toast('오류가 발생했지만 전투를 계속합니다'); }
+    return true;
+  }
   function frameBody(dt, interval) {
     if (!renderer || G.paused || G.lost) return;
     if (G.hitStop > 0) { G.hitStop -= dt; dt *= 0.06; } else if (G.slowmo > 0) { G.slowmo -= dt; dt *= 0.35; }
     const t0 = performance.now();
+    let bad = false; // each stage is guarded on its own: a failing simulation must not also freeze the effects and the drawing
     try {
       if (G.phase === 'countdown') {
         G.cdT -= dt;
@@ -2820,15 +2834,15 @@
         }
         updateProjs(dt);
       }
-      FX.update(dt);
-      if (G.phase === 'play' || G.phase === 'countdown' || G.phase === 'ended') {
-        render(dt);
-        UI.tick(G);
-      }
-    } catch (err) {
-      // one bad frame must not kill the match: report once, keep going
-      if (!G.errShown) { G.errShown = true; console.error(err); UI.toast('오류가 발생했지만 전투를 계속합니다'); }
+    } catch (err) { bad = frameErr(err); }
+    try { FX.update(dt); } catch (err) { bad = frameErr(err); }
+    if (G.phase === 'play' || G.phase === 'countdown' || G.phase === 'ended') {
+      try { render(dt); } catch (err) { bad = frameErr(err); }
+      try { UI.tick(G); } catch (err) { bad = frameErr(err); }
     }
+    // one bad frame must not kill the match; one that fails every frame for a second is stuck: offer a reload
+    G.errRun = bad ? (G.errRun || 0) + 1 : 0;
+    if (G.errRun === 60) UI.fatal('전투 화면을 갱신할 수 없습니다. 다시 불러와 주세요.', true);
     perfTick(interval, performance.now() - t0);
   }
 
@@ -2943,13 +2957,14 @@
     get cameraPos() { return camera ? [camera.position.x, camera.position.y] : [0, 0]; },
     get perf() { return perf; }, QUALITY, autoLevel: MOBILE ? 1 : 0,
     useSupport: () => useSupport('blue'),
-    supportOf: (side) => { const S = G.sides && G.sides[side]; return S && S.sup ? Object.assign({ ready: supportReady(S), faction: S.faction }, S.sup, SUPPORT[S.faction]) : null; },
+    // per-frame readers fill one reused object per side / per call (no garbage at 60 fps); read the fields right away
+    supportOf: (side) => { const S = G.sides && G.sides[side]; if (!S || !S.sup) return null; const o = supOut[side] || (supOut[side] = {}); o.ready = supportReady(S); o.faction = S.faction; o.charge = S.sup.charge; o.used = S.sup.used; o.name = SUPPORT[S.faction].name; o.desc = SUPPORT[S.faction].desc; return o; },
     _useSupport: (side) => useSupport(side), // (smoke test)
     _perfTick: (interval, work) => perfTick(interval, work),
     _frame: (ms) => frameBody(Math.min(0.1, ms / 1000), ms), // (smoke test: one real frame, error guard included) // (smoke test: drives the auto-quality governor with synthetic frame times)
     get qualityLevel() { return perf.level; },
     get info() { return renderer ? { geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, calls: perf.calls || 0, scene: scene.children.length, fx: FX.count() } : null; },
-    skillState(u) { return { ready: skillReady(u), cd: Math.max(0, u.skillCd), cdMax: u.card.skill.cd * (G.mut && G.mut.skillCd || 1), cost: skillCost(u) }; },
+    skillState(u) { const o = skOut; o.ready = skillReady(u); o.cd = Math.max(0, u.skillCd); o.cdMax = u.card.skill.cd * (G.mut && G.mut.skillCd || 1); o.cost = skillCost(u); return o; },
     // test hooks: run the battle for `sec` seconds at once (background tabs throttle requestAnimationFrame)
     _playCard: playCard, _canDeploy: canDeploy,
     _fx: (n, x, y, k) => spawnStatic(n, x, y, k),

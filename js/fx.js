@@ -556,7 +556,7 @@
   function update(dt) {
     for (let i = timers.length - 1; i >= 0; i--) {
       timers[i].t -= dt;
-      if (timers[i].t <= 0) { const f = timers[i].fn; timers.splice(i, 1); f(); }
+      if (timers[i].t <= 0) { const f = timers[i].fn; timers[i] = timers[timers.length - 1]; timers.pop(); try { f(); } catch (e) { console.error(e); } } // swap-remove (bursts queue dozens); one failing callback never stops the others
     }
     for (let i = tickers.length - 1; i >= 0; i--) if (!tickers[i](dt)) tickers.splice(i, 1);
 
