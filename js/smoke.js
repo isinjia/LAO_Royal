@@ -60,7 +60,16 @@
     if (prac && G.sides.red.deck.slice().sort().join() !== UI.save.decks[pf].slice().sort().join()) out.errors.push(`practice: the opponent is not playing the picked deck (${G.sides.red.deck.join()})`);
     const t0 = performance.now();
     let steps = 0;
-    for (let s = 0; s < 640 && G.phase !== 'ended'; s++) { GAME._run(0.5); bot(G); steps++; if (s % 40 === 0) await wait(0); }
+    for (let s = 0; s < 640 && G.phase !== 'ended'; s++) {
+      GAME._run(0.5); bot(G); steps++; if (s % 40 === 0) await wait(0);
+      // once: the window is resized mid-match (rotation, split screen): the board must still map onto the stage
+      if (s === 20 && !match.resized) {
+        match.resized = true;
+        window.dispatchEvent(new Event('resize')); await wait(400);
+        const r = document.getElementById('stage').getBoundingClientRect();
+        for (const t of G.sides.blue.towers.concat(G.sides.red.towers)) { const p = GAME._toScreen(t.x, t.z * 0.86); if (!(p[0] > 0 && p[0] < r.width && p[1] > 0 && p[1] < r.height)) out.errors.push(`check: after a resize a ${t.side} ${t.type} tower maps off the stage (${p.map(Math.round)})`); }
+      }
+    }
     const ms = (performance.now() - t0) / steps;
     await until(() => document.getElementById('result').classList.contains('on'), 5000);
     if (prac) { const moved = RK.filter((k, i) => JSON.stringify(UI.save[k]) !== rec0[i]); if (moved.length) out.errors.push('practice: the match changed ' + moved.join(', ')); }

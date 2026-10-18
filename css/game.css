@@ -658,3 +658,12 @@ button:disabled { cursor: default; }
 /* champion skill buttons: a row along the bottom-right edge, under the tower plates (a column covered the right plate) */
 #skillBar { flex-direction: row-reverse; align-items: flex-end; gap: 6px; right: 6px; bottom: 10px; }
 @media (max-width:430px) { #skillBar .skb { width: 52px; height: 52px; } }
+/* battle hand: no level tags (as in Clash Royale) — the card art and cost carry it */
+#hand .card .lv, #nextCard .lv { display: none; }
+.chest b { font-size: 10.5px; }
+.chest small { font-size: 10px; }
+.card.mini .lv { font-size: 9.5px; }
+#hand .card.afford { animation: afford .18s ease-out; }
+@keyframes afford { 50% { transform: scale(1.07); filter: brightness(1.3); } }
+.supbtn.bump { animation: supBump .35s ease-out; }
+@keyframes supBump { 40% { transform: scale(1.12); } }

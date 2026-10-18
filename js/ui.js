@@ -362,6 +362,7 @@
       const fill = lack > 0 ? Math.round(Math.max(0, 1 - lack / c.cost) * 20) * 5 : 100; // 5% steps: few style writes
       if (el._fill === fill) continue;
       el._fill = fill;
+      if (lack <= 0 && el.classList.contains('poor')) { el.classList.remove('afford'); requestAnimationFrame(() => el.classList.add('afford')); SFX.play('click', 0.12); } // just became affordable: a small pop
       el.classList.toggle('poor', lack > 0);
       el.style.setProperty('--fill', fill + '%');
     }
@@ -374,6 +375,10 @@
     if (!sp) { b.hidden = true; return; }
     const key = (sp.used ? 'u' : sp.ready ? 'r' : Math.floor(sp.charge * 50)) + sp.faction;
     if (key === supKey) return;
+    const step = sp.ready ? 2 : sp.charge >= 0.8 ? 1 : sp.charge >= 0.5 ? 0 : -1; // a bump at 50% and 80% so the charge is felt
+    if (step >= 0 && step < 2 && b._step !== step && b._step != null && !b.hidden) { b.classList.remove('bump'); requestAnimationFrame(() => b.classList.add('bump')); }
+    b._step = step;
+    if (step === 2) b.classList.remove('bump'); // (the ready pulse takes over)
     if (sp.ready && !b.classList.contains('ready') && !b.hidden) { SFX.play('charge', 0.7); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); } // the moment it charges: a cue and a bump
     supKey = key;
     b.hidden = sp.used;

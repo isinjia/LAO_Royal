@@ -735,8 +735,8 @@
     u.holder = new THREE.Group();
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.8), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
-    u.disc = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 4.8, 1.7, 3), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
-    u.glow = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 5.2, 1.9, 3.2), aspect: TILT, color: teamHex(side), alpha: (side === 'red' ? 0.48 : 0.6) * (u.r > 0.6 ? 0.7 : 1), /* big mechs: a capped, fainter pool that never hides the bridge */ tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
+    u.disc = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 4.8, 1.7, 3), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 0.75, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
+    u.glow = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 5.2, 1.9, 3.2), aspect: TILT, color: teamHex(side), alpha: (side === 'red' ? 0.48 : 0.42) * (u.r > 0.6 ? 0.7 : 1), /* big mechs: a capped, fainter pool that never hides the bridge */ tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.4 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
@@ -1722,7 +1722,7 @@
       }
       if (u.sd) { u.sd.update(dt); if (u.dieT > fade0) u.sd.setOpacity(Math.max(0, 1 - (u.dieT - fade0) / 0.4)); }
       if (u.placeholder) { u.placeholder.material.opacity = Math.max(0, 1 - u.dieT / u.dieDur); u.placeholder.position.y = 0.75 - u.dieT * 0.4; }
-      u.shadow.alpha = Math.max(0, 0.62 - u.dieT); u.disc.alpha = Math.max(0, 0.95 - u.dieT * 2); if (u.halo) u.halo.alpha = Math.max(0, 0.2 - u.dieT);
+      u.shadow.alpha = Math.max(0, 0.62 - u.dieT); u.disc.alpha = Math.max(0, u.disc.a0 - u.dieT * 2); if (u.halo) u.halo.alpha = Math.max(0, 0.2 - u.dieT);
       u.glow.alpha = Math.max(0, 0.16 - u.dieT * 0.3);
       return u.dieT > u.dieDur;
     }
@@ -2241,7 +2241,8 @@
             e.bar.bg.alpha = e.deployT > 0 ? 0.45 : 0.95; // a deploy timer's backing is faint: no dark block over a fresh unit
             if (e.deployT > 0) { // a deploy timer stays a light sliver, and a swarm shows one timer, not one per member
               e.bar.ol.hidden = true;
-              if (deployBars.some((o) => Math.abs(o.bg.x - e.x) < 1.6 && Math.abs(o.bg.y - by) < 1.2)) hideBar(e.bar); else deployBars.push(e.bar);
+              let near = false; for (let k = 0; k < deployBars.length; k++) { const o = deployBars[k]; if (Math.abs(o.bg.x - e.x) < 1.6 && Math.abs(o.bg.y - by) < 1.2) { near = true; break; } }
+              if (near) hideBar(e.bar); else deployBars.push(e.bar);
             } else shownBars.push(e.bar);
           } else hideBar(e.bar);
           if (e.shieldT > 0 || e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.45, size: 0.3, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
@@ -2249,7 +2250,7 @@
           // your champion's skill is ready: a pulsing ring at its feet points to the button
           if (e.side === 'blue' && e.card.skill && (e.readyT = (e.readyT || 0) - dt) <= 0 && skillReady(e) && G.sides.blue.elixir >= skillCost(e)) {
             e.readyT = 0.7;
-            FX.groundRing(e.x, e.z * TILT, 0.3, 1.3, e.card.skill.color, 0.6, 0.8);
+            FX.groundRing(e.x, e.z * TILT, 0.3, 1.0, e.card.skill.color, 0.6, 0.45);
           }
           if (e.freezeT > 0 && Math.random() < 0.15) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: -0.4, life: 0.5, size: 0.22, size1: 0, color: 0xdff8ff, tex: FX.tex.snow });
         }
@@ -2689,7 +2690,7 @@
     if (aimMarks.length) aimMarks[0].alpha = 0.65 + 0.3 * Math.sin(amb.t * 9); // the aim reticle pulses
     if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = Math.min(1, 0.58 + Math.sin(amb.t * 2.1) * 0.12 + G.surge * 0.42); }
     if (G.surge > 0) G.surge = Math.max(0, G.surge - dt * 0.7);
-    if (amb.foam) { amb.foam[0].material.map.offset.x += dt * 0.06; amb.foam[1].material.map.offset.x -= dt * 0.06; }
+    if (amb.foam) { const on = perf.level < 2; amb.foam[0].visible = amb.foam[1].visible = on; if (on) { amb.foam[0].material.map.offset.x += dt * 0.06; amb.foam[1].material.map.offset.x -= dt * 0.06; } } // (low quality: no foam, fewer full-width layers)
     if (amb.river2) { amb.river2.material.map.offset.x += dt * 0.05; amb.river2.material.opacity = 0.35 + Math.sin(amb.t * 1.3 + 1) * 0.1; }
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)
@@ -2837,6 +2838,9 @@
     for (const sz of [-1, 1]) { FX.groundRing(0, sz * 7 * TILT, 0.5, 9, c, 0.9, 0.55); FX.later(0.15, () => FX.groundRing(0, sz * 7 * TILT, 0.3, 6, 0xffffff, 0.6, 0.35)); }
     FX.flash(c, 0.18);
   }
+  // anything thrown outside the frame (a timer, a rejected promise) is reported the same way, once per match
+  window.addEventListener('error', (ev) => { if (G.phase === 'play') frameErr(ev.error || ev.message, 'async'); });
+  window.addEventListener('unhandledrejection', (ev) => { if (G.phase === 'play') frameErr(ev.reason, 'async'); });
   function frameErr(err, stage) {
     G.errStage = stage; // which part failed (shown if it keeps failing)
     if (!G.errShown) { G.errShown = true; console.error(stage, err); UI.toast('오류가 발생했지만 전투를 계속합니다'); }
