@@ -365,9 +365,25 @@
     }
   }
   let lastClock = '';
+  // commander support button: a charging ring, then a pulsing call button; gone once used
+  let supKey = '';
+  function tickSupport() {
+    const sp = GAME.supportOf('blue'), b = $('supBtn');
+    if (!sp) { b.hidden = true; return; }
+    const key = (sp.used ? 'u' : sp.ready ? 'r' : Math.floor(sp.charge * 50)) + sp.faction;
+    if (key === supKey) return;
+    supKey = key;
+    b.hidden = sp.used;
+    b.classList.toggle('ready', sp.ready);
+    b.classList.toggle('iron', sp.faction === 'iron');
+    b.style.setProperty('--p', Math.round(sp.charge * 100) + '%');
+    b.querySelector('small').textContent = sp.ready ? sp.name : Math.floor(sp.charge * 100) + '%';
+    b.title = `${sp.name}: ${sp.desc}`;
+  }
   function tick(G) {
     if (!G.sides) return;
     tickCards();
+    tickSupport();
     const t = Math.max(0, Math.ceil(G.clock));
     const s = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     if (s !== lastClock) {
@@ -954,6 +970,7 @@
     };
     $('tutSkip').onclick = () => { $('tutOv').hidden = true; if (!save.tutorial) { save.tutorial = true; persist(); startBattle(); } };
     $('btnPause').onclick = () => pause(true);
+    $('supBtn').onclick = () => { if (GAME.useSupport()) { SFX.play('click', 0.5); supKey = ''; } };
     $('btnResume').onclick = () => pause(false);
     $('btnPauseSet').onclick = () => openSettings();
     $('btnSurrender').onclick = () => {

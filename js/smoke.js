@@ -195,6 +195,19 @@
       ok(lit >= 6, `the restored frame is drawn (${lit}/9 sample points lit)`);
       out.runs.push(['context loss', 'lost → restored → deploy ok']);
     }
+    // commander support: orca repairs towers and adds energy, iron drops drones; once per match, never before it is charged
+    {
+      const B = G.sides.blue, R = G.sides.red;
+      ok(!GAME._useSupport('blue') || B.sup.charge >= 1, 'support cannot be called before it is charged');
+      B.sup.charge = R.sup.charge = 1; B.sup.used = R.sup.used = false;
+      const tw = B.towers.find((t) => t.alive); tw.hp = tw.max * 0.5; const e0 = B.elixir = 3;
+      const before = G.ents.filter((e) => e.kind === 'troop' && e.side === 'red').length;
+      const okB = GAME._useSupport('blue'), okR = GAME._useSupport('red');
+      ok(okB && B.faction === 'orca' ? tw.hp > tw.max * 0.6 && B.elixir >= e0 + 1.9 : okB, `orca support repairs and adds energy (${Math.round(tw.hp)}/${tw.max})`);
+      ok(okR && G.ents.filter((e) => e.kind === 'troop' && e.side === 'red').length >= before + 3, 'iron support drops drones');
+      ok(!GAME._useSupport('blue'), 'support is once per match');
+      out.runs.push(['commander support', `blue ${B.faction}`, `red ${R.faction}`]);
+    }
     // the auto-quality governor: sustained heavy frames step quality down, a long calm stretch steps it back up
     if (GAME._perfTick && UI.save.autoQuality !== false) {
       const q0 = GAME.qualityLevel;

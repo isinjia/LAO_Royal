@@ -852,13 +852,48 @@
     if (Math.abs(dx) > 0.15) u.face = dx > 0 ? 1 : -1;
   }
 
+  // ── commander support (owner-approved): one call per match, charged over time and by the damage your towers take ──
+  const SUPPORT_TIME = 75; // seconds of play to charge it without taking damage
+  const SUPPORT = {
+    orca: { name: '긴급 수리', desc: '모든 아군 타워 체력 15% 회복 · 에너지 +2' },
+    iron: { name: '군단 호출', desc: '킹 타워 앞에 드론 편대 투입' },
+  };
+  const supportReady = (S) => !!(S && S.sup && !S.sup.used && S.sup.charge >= 1);
+  function useSupport(side) {
+    const S = G.sides && G.sides[side];
+    if (G.phase !== 'play' || !supportReady(S)) return false;
+    S.sup.used = true;
+    const king = S.towers.find((t) => t.type === 'king'), fz = king ? king.z - SGN[side] * 2.6 : SGN[side] * 10;
+    if (S.faction === 'iron') {
+      for (let i = 0; i < 3; i++) spawnTroop(side, CARD.drone, (i - 1) * 1.8, fz, i * 0.12);
+      FX.groundRing(0, fz * TILT, 0.4, 3.4, 0xff5a6a, 0.6, 0.9);
+      SFX.play('genB', 0.6);
+    } else {
+      for (const t of S.towers) if (t.alive) {
+        t.hp = Math.min(t.max, t.hp + t.max * 0.15);
+        FX.groundRing(t.x, t.z * TILT, 0.4, 3.2, 0x7dffb0, 0.7, 0.9);
+        for (let i = 0; i < 8; i++) FX.particle({ x: t.x + rnd(-1, 1), y: t.z * TILT + rnd(0, 2), vy: rnd(1.2, 2.2), life: rnd(0.6, 1), size: 0.22, size1: 0, color: 0x9fffc8, tex: FX.tex.dot });
+      }
+      S.elixir = Math.min(BAL.elixirMax, S.elixir + 2);
+      SFX.play('reinforce', 0.7);
+    }
+    UI.banner(`${side === 'blue' ? '' : '적 '}지휘관 지원 · ${SUPPORT[S.faction].name}`, side === 'blue' ? 'good' : 'bad');
+    logEvent(`지휘관 지원: ${SUPPORT[S.faction].name}`, side, 'support');
+    return true;
+  }
+  // the opponent calls its support when it matters: repairs once a tower is hurt, reinforcements a moment after they are ready
+  function aiSupport(S) {
+    if (S.faction === 'orca') { if (S.towers.some((t) => t.alive && t.hp < t.max * 0.7)) useSupport(S.side); }
+    else if ((S.sup.readyT = (S.sup.readyT || G.time)) && G.time - S.sup.readyT > 2.5) useSupport(S.side);
+  }
+
   function damage(t, amt, src) {
     // once the match is decided, shots still in flight are only visuals
     if (!t.alive || amt <= 0 || G.phase !== 'play') return;
     if (t.shieldT > 0) amt *= t.card.skill.k;
     t.hp -= amt;
     t.hitT = 0.1;
-    if (t.kind === 'tower' && t.type !== 'bld') t.dmgAcc = (t.dmgAcc || 0) + Math.min(amt, t.hp + amt); // shown as floating numbers (render)
+    if (t.kind === 'tower' && t.type !== 'bld') { t.dmgAcc = (t.dmgAcc || 0) + Math.min(amt, t.hp + amt); const so = G.sides[t.side].sup; if (so && !so.used) so.charge = Math.min(1, so.charge + amt / 2500); } // floating numbers (render); a battered side charges its support faster
     else if (t.kind === 'troop' && amt >= 250 && G.time - (t.numT || -1) > 0.4) { t.numT = G.time; const q = toScreen(t.x + rnd(-0.2, 0.2), sy(t) + (t.bodyH || 1.5) + 0.2); UI.dmgNum(q[0], q[1], Math.round(amt), t.side); } // heavy blows on troops pop a number too
     if (G.stats && src && src.side) {
       const st = G.stats[src.side], d = Math.min(amt, t.hp + amt);
@@ -1866,6 +1901,8 @@
       G.stats[side].wasted += Math.max(0, before + gain - BAL.elixirMax); // only what spilled over the cap
       if (before < BAL.elixirMax && S.elixir >= BAL.elixirMax) S.fullT = 0;
       if (S.elixir >= BAL.elixirMax) S.fullT = (S.fullT || 0) + dt;
+      if (S.sup && !S.sup.used) S.sup.charge = Math.min(1, S.sup.charge + dt / SUPPORT_TIME); // the commander's support charges over the match
+      if (S.ai && supportReady(S)) aiSupport(S);
     }
     if (G.sides.red.ai) aiUpdate(dt);
     for (let i = G.ents.length - 1; i >= 0; i--) {
@@ -2496,7 +2533,7 @@
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function makeSide(side, faction, deck, ai, levels, lvl) {
     const d = shuffle(deck.slice());
-    return { side, faction, deck: d, hand: d.slice(0, 4), queue: d.slice(4), elixir: BAL.elixirStart, crowns: 0, towers: [], blds: [], ai, levels, lvl, syn: DATA.synergyOf(deck) };
+    return { side, faction, deck: d, hand: d.slice(0, 4), queue: d.slice(4), elixir: BAL.elixirStart, crowns: 0, towers: [], blds: [], ai, levels, lvl, syn: DATA.synergyOf(deck), sup: { charge: 0, used: false } };
   }
 
   function clearBattle() {
@@ -2680,6 +2717,7 @@
     for (const s of ['blue', 'red']) {
       const f = FACTIONS[G.sides[s].faction];
       rigs.add(f.king.rig); rigs.add(f.princess.rig);
+      if (G.sides[s].faction === 'iron') rigs.add(CARD.drone.rig); // the commander's support call drops drones
       G.sides[s].deck.forEach((id) => {
         const c = CARD[id];
         if (c.rig) rigs.add(c.rig);
@@ -2894,6 +2932,9 @@
     get cameraZoom() { return camera ? camera.zoom : 1; },
     get cameraPos() { return camera ? [camera.position.x, camera.position.y] : [0, 0]; },
     get perf() { return perf; }, QUALITY, autoLevel: MOBILE ? 1 : 0,
+    useSupport: () => useSupport('blue'),
+    supportOf: (side) => { const S = G.sides && G.sides[side]; return S && S.sup ? Object.assign({ ready: supportReady(S), faction: S.faction }, S.sup, SUPPORT[S.faction]) : null; },
+    _useSupport: (side) => useSupport(side), // (smoke test)
     _perfTick: (interval, work) => perfTick(interval, work),
     _frame: (ms) => frameBody(Math.min(0.1, ms / 1000), ms), // (smoke test: one real frame, error guard included) // (smoke test: drives the auto-quality governor with synthetic frame times)
     get qualityLevel() { return perf.level; },
