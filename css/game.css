@@ -675,3 +675,5 @@ button:disabled { cursor: default; }
 /* energy spilling at the cap: the bar flashes red for each point lost */
 #elixir.leak .ebar { animation: leak .4s ease-out; }
 @keyframes leak { 0% { box-shadow: 0 0 0 2px #ff4a5a, 0 0 14px rgba(255,74,90,.8); } 100% { box-shadow: none; } }
+/* the opponent's emote reads as theirs */
+.bubble.red { box-shadow: 0 0 0 2px #e8404f, 0 4px 12px rgba(0,0,0,.5); }

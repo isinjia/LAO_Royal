@@ -1357,7 +1357,7 @@
     const S = G.sides[u.side], sk = u.card.skill;
     if (!skillReady(u) || S.elixir < skillCost(u) - 1e-6 || G.phase !== 'play' || G.paused) return false;
     S.elixir -= skillCost(u);
-    if (u.card.faction === 'orca') say(unitLine(u.card, 'skill'), 0.95, u.side === 'blue' ? 3 : 2); // the champion calls its skill
+    if (voiced(u.card) && say(unitLine(u.card, 'skill'), 0.95, u.side === 'blue' ? 3 : 2)) FX.groundRing(u.x, u.z * TILT, 0.3, 1.4, sk.color, 0.5, 0.7); // the champion calls its skill (a ring marks who speaks)
     u.skillCd = sk.cd * (G.mut && G.mut.skillCd || 1);
     u.casting = 0.9;
     u.skillFired = false;
@@ -1632,7 +1632,8 @@
       });
       FX.groundRing(x, z * TILT, 0.2, 1.6, FACTIONS[S.faction].hex, 0.5);
       SFX.play(c.rarity >= 3 ? 'genSS' : c.rarity >= 2 ? 'genS' : 'genB', 0.3);
-      if (side === 'blue' && c.faction === 'orca' && (c.skill || Math.random() < 0.6)) FX.later(0.3, () => say(unitLine(c, 'deploy'), 0.85, c.skill ? 2 : 1)); // the unit answers the call
+      if (side === 'blue' && voiced(c) && (c.skill || Math.random() < 0.6)) FX.later(0.3, () => say(unitLine(c, 'deploy'), 0.85, c.skill ? 2.5 : 1)); // the unit answers the call (your champion wins a tie)
+      else if (side === 'blue' && c.faction === 'iron' && !voiced(c)) SFX.play('elec', 0.35); // the silent machines power up audibly
       FX.later(0.25, () => FX.summonBurst(x, z * TILT + 0.3, c.rarity >= 3 ? 3 : c.rarity >= 1 ? 2 : 1, teamHex(side))); // every deploy lands with a team-coloured burst (bigger for rarer cards)
       FX.particle({ x, y: z * TILT, life: 1.4, size: 1.2, size1: 2.6, aspect: TILT, color: teamHex(side), tex: FX.tex.ring, alpha: 0.55, order: L.GROUND + 3 }); // a lingering drop circle
     } else if (c.type === 'building') {
@@ -2743,7 +2744,8 @@
     if (window.SFX && SFX.warm) {
       SFX.warm(['rankUp', 'charge', 'reinforce', 'missile', 'warning', 'expB', 'quake', 'energy']); // big-moment sounds ready before they first play
       SFX.warm(['3', '2', '1', 'gamestart', 'timelimit', 'becareful', 'nice', 'great', 'aamazing', 'danger', 'bossalert', 'clear', 'perfect', 'fail', 'notready', '10', '9', '8', '7', '6', '5', '4'].map((k) => 'ann:' + k));
-      const vc = new Set(); for (const id of (opts.deck || []).concat(opts.foeDeck || [])) { const c = CARD[id]; if (c && c.faction === 'orca') ['deploy', 'skill', 'win'].forEach((k) => vc.add('unit:' + id + '_' + k)); } // this match's voices
+      const vc = new Set(); for (const id of (opts.deck || []).concat(opts.foeDeck || [])) { const c = CARD[id]; if (c && voiced(c)) ['deploy', 'skill', 'win'].forEach((k) => vc.add('unit:' + id + '_' + k)); } // this match's voices
+      if (SFX.phone && SFX.forget) SFX.forget('unit:', vc);
       SFX.warm([...vc]);
     }
     G.arena = opts.arena || 0;
@@ -2770,7 +2772,7 @@
     };
     const st0 = () => ({ dmg: 0, kills: 0, spent: 0, wasted: 0, skills: 0, cards: 0, by: {} });
     G.stats = { blue: st0(), red: st0() };
-    if (window.SFX && SFX.warm) SFX.warm(G.sides.red.deck.filter((id) => CARD[id].faction === 'orca' && CARD[id].skill).map((id) => 'unit:' + id + '_skill')); // an orca opponent's champions call their skills too
+    if (window.SFX && SFX.warm) SFX.warm(G.sides.red.deck.filter((id) => voiced(CARD[id]) && CARD[id].skill).map((id) => 'unit:' + id + '_skill')); // an orca opponent's champions call their skills too
     G.log = [];
     G.phase = 'loading';
     // every rig and baked effect this match can show
@@ -2829,7 +2831,7 @@
     UI.hand(); UI.crowns();
     G.phase = 'countdown';
     G.cdT = 3.2; G.cdN = null;
-    SFX.music(opts.mode === 1 ? 'battle2' : 'battle');
+    SFX.music(opts.mode === 1 ? 'battle2' : G.arena > 0 && G.arena <= 4 ? 'arena' + G.arena : 'battle'); // each arena has its own battle theme
     resize(true);
   }
 
@@ -2853,7 +2855,10 @@
   }
   // voice lines (the original announcer and the characters' own lines): one at a time, see SFX.voice
   const say = (key, vol, prio) => window.SFX && SFX.voice && SFX.voice(key, vol, prio);
-  const unitLine = (card, kind) => 'unit:' + card.id + '_' + kind; // orca cards have deploy / skill / win lines; the iron machines are silent
+  const unitLine = (card, kind) => 'unit:' + card.id + '_' + kind;
+  // who has lines: every orca card, and the iron machines that are AGS units in the source game (their own AGS voices)
+  const IRON_VOICED = new Set(['gigantes', 'fortress', 'goltarion', 'rampart', 'fallen', 'pupphead']);
+  const voiced = (c) => c.type === 'troop' && (c.faction === 'orca' || IRON_VOICED.has(c.id));
   // the energy rate steps up: the chasm flares and a wave of light rolls over both halves
   function energySurge() {
     G.surge = 1;
@@ -3033,6 +3038,7 @@
     _fx: (n, x, y, k) => spawnStatic(n, x, y, k),
     _toScreen: (x, y) => toScreen(x, y),
     _damage: (t, amt) => damage(t, amt, null), // (tests)
+    voiced: (c) => voiced(c),
     autoSpot(u) { const sk = u.card.skill, tg = u.target && u.target.alive ? u.target : null; const a = sk.kind === 'barrage' ? bestSpot(u, sk.reach, sk.radius * 1.5) : (sk.kind === 'laser' ? tg || nearestTower(u) : dashTarget(u)); return a ? (Array.isArray(a) ? { x: a[0], z: a[1] } : { x: a.x, z: a.z }) : null; },
     clientToField(cx, cy) { const r = stageEl.getBoundingClientRect(); if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null; return toField(cx - r.left, cy - r.top); },
     aimable: (u) => !!AIMABLE[u.card.skill.kind], aimPreview, aimHide, aiEmote: (i, chance) => aiEmote(i, chance),

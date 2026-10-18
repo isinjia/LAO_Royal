@@ -17,7 +17,7 @@
     if (!(s.mode >= 0 && s.mode < BAL.modes.length)) s.mode = 0;
     if (!['ai', 'orca', 'iron'].includes(s.practiceFoe)) s.practiceFoe = 'ai';
     const unit = (v, d) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : d);
-    s.music = unit(s.music, 1); s.sfx = unit(s.sfx, 1);
+    s.music = unit(s.music, 1); s.sfx = unit(s.sfx, 1); s.voice = unit(s.voice, 1);
     s.quality = s.quality === null || s.quality === undefined || !(+s.quality >= 0 && +s.quality <= 2) ? null : Math.round(+s.quality);
     s.autoQuality = s.autoQuality !== false;
     // crates: known kinds only, at most four, unlock start times that make sense
@@ -806,7 +806,7 @@
     $('resLog').hidden = !lg.length;
     $('resLog').innerHTML = lg.map(([t, line, sd]) => `<div class="${sd}"><em>${t}</em>${esc(line)}</div>`).join('');
     const mvp = Object.entries(s.by || {}).sort((x, y) => y[1] - x[1])[0];
-    { const mo = win && mvp && CARD[mvp[0]]; if (mo && mo.faction === 'orca') setTimeout(() => SFX.voice('unit:' + mo.id + '_win', 0.95, 4), 1600); } // the battle's MVP has the last word
+    { const mo = win && mvp && CARD[mvp[0]]; if (mo && GAME.voiced && GAME.voiced(mo)) setTimeout(() => SFX.voice('unit:' + mo.id + '_win', 0.95, 4), 1600); } // the battle's MVP has the last word
     $('resMvp').hidden = !mvp;
     if (mvp && CARD[mvp[0]]) $('resMvp').innerHTML = `<span class="pf" style="background-image:url(${art(CARD[mvp[0]])})"></span><div><small>MVP</small><b>${esc(CARD[mvp[0]].name)}</b><em>피해 ${Math.round(mvp[1]).toLocaleString()}</em></div>`;
     // damage by card: who carried the battle (top five, against the MVP's bar)
@@ -859,11 +859,12 @@
   function openSettings() {
     $('setMusic').value = save.music;
     $('setSfx').value = save.sfx;
+    $('setVoice').value = save.voice;
     $('setQuality').value = save.autoQuality ? 'auto' : String(save.quality == null ? GAME.perf.level : save.quality);
     $('setInfo').textContent = `현재 품질: ${GAME.QUALITY[GAME.perf.level].name} · 최근 FPS ${GAME.perf.fps || '-'} · 버전 1.4`;
     $('settingsOv').hidden = false;
   }
-  function applyAudio() { SFX.setVolume('bgm', save.music); SFX.setVolume('sfx', save.sfx); SFX.setMuted(save.music === 0 && save.sfx === 0); }
+  function applyAudio() { SFX.setVolume('bgm', save.music); SFX.setVolume('sfx', save.sfx); SFX.setVolume('voice', save.voice); SFX.setMuted(save.music === 0 && save.sfx === 0 && save.voice === 0); }
 
   // tutorial
   const TUT = [
@@ -990,6 +991,8 @@
     $('btnSetClose').onclick = () => { $('settingsOv').hidden = true; };
     $('setMusic').oninput = (e) => { save.music = +e.target.value; applyAudio(); persist(); };
     $('setSfx').oninput = (e) => { save.sfx = +e.target.value; applyAudio(); persist(); SFX.play('click'); };
+    $('setVoice').oninput = (e) => { save.voice = +e.target.value; applyAudio(); persist(); };
+    $('setVoice').onchange = () => SFX.voice('ann:great', 1, 5); // a sample line at the new level
     $('setQuality').onchange = (e) => {
       const v = e.target.value;
       save.autoQuality = v === 'auto';

@@ -109,5 +109,9 @@ window.BGM = {
 "title": "assets/bgm/title.mp3",
 "battle": "assets/bgm/battle.mp3",
 "battle2": "assets/bgm/battle2.mp3",
-"boss": "assets/bgm/boss.mp3"
+"boss": "assets/bgm/boss.mp3",
+"arena1": "assets/bgm/arena1.mp3",
+"arena2": "assets/bgm/arena2.mp3",
+"arena3": "assets/bgm/arena3.mp3",
+"arena4": "assets/bgm/arena4.mp3"
 };

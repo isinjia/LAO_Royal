@@ -4,7 +4,7 @@
   const pools = {};
   let held = false; // the pause menu holds the music: taps / tab switches must not restart it
   const last = {};
-  const VOL = { sfx: 0.45, bgm: 0.35 };
+  const VOL = { sfx: 0.45, bgm: 0.35, voice: 0.95 };
   // ?mute=1 (testing): silent for this page only; the saved sound option is left alone
   const FORCE_MUTE = /[?&]mute=1(&|$)/.test(location.search);
   let muted = FORCE_MUTE, userMuted = false;
@@ -62,6 +62,7 @@
       .catch(() => { missing.add(key); /* leave it silent */ });
   }
 
+  function setBgm(v) { bgmGain.gain.cancelScheduledValues(ctx.currentTime); bgmGain.gain.value = v; } // (clears a pending duck)
   // one voice at a time: a line plays over the effects; a more important one cuts a lesser one, an equal one waits its turn
   let vSrc = null, vEnd = 0, vPrio = 0;
   function voice(key, vol = 1, prio = 1) {
@@ -73,8 +74,10 @@
     if (now < vEnd && prio <= vPrio) return false;
     if (vSrc && now < vEnd) { try { vSrc.stop(); } catch (e) { /* ended */ } }
     const src = c.createBufferSource(), g = c.createGain();
-    g.gain.value = Math.min(1, VOL.sfx * 2.1 * vol);
+    g.gain.value = Math.min(1, VOL.voice * vol);
     src.buffer = buf; src.connect(g).connect(sfxGain); src.start();
+    // the music dips under the line and comes back after it
+    if (bgmGain && !muted) { const t = c.currentTime; bgmGain.gain.cancelScheduledValues(t); bgmGain.gain.setTargetAtTime(VOL.bgm * 0.45, t, 0.05); bgmGain.gain.setTargetAtTime(VOL.bgm, t + buf.duration, 0.25); }
     vSrc = src; vEnd = now + buf.duration * 1000; vPrio = prio;
     return true;
   }
@@ -149,14 +152,14 @@
     muted = m;
     if (bgm) bgm.muted = m;
     if (sfxGain) sfxGain.gain.value = m ? 0 : 1;
-    if (bgmGain) bgmGain.gain.value = m ? 0 : VOL.bgm;
+    if (bgmGain) setBgm(m ? 0 : VOL.bgm);
   }
 
   // settings screen: 0..1 multipliers for music and effects
-  const BASE = { sfx: VOL.sfx, bgm: VOL.bgm };
+  const BASE = { sfx: VOL.sfx, bgm: VOL.bgm, voice: VOL.voice };
   function setVolume(kind, v) {
     VOL[kind] = BASE[kind] * Math.max(0, Math.min(1, v));
-    if (kind === 'bgm') { if (bgmGain) bgmGain.gain.value = muted ? 0 : VOL.bgm; else if (bgm) bgm.volume = VOL.bgm; }
+    if (kind === 'bgm') { if (bgmGain) setBgm(muted ? 0 : VOL.bgm); else if (bgm) bgm.volume = VOL.bgm; }
   }
   function getVolume(kind) { return VOL[kind] / BASE[kind]; }
 
@@ -167,6 +170,7 @@
       if (ctx && ctx.state === 'running') ctx.suspend();
     } else {
       if (ctx && ctx.state !== 'running') ctx.resume();
+      missing.clear(); // lines that failed on a network blip get another chance
       if (bgm && !held) bgm.play().catch(() => {});
     }
   });
@@ -186,7 +190,11 @@
   function warm(keys) { if (web) keys.forEach(load); else keys.filter((k) => window.SND[k]).forEach(get); }
 
   // hold / resume the current track (pause menu)
-  function pauseMusic(p) { held = !!p; if (!bgm) return; if (p) bgm.pause(); else if (!document.hidden) bgm.play().catch(() => {}); }
+  function pauseMusic(p) { held = !!p; if (p && vSrc) { try { vSrc.stop(); } catch (e) { /* ended */ } vEnd = 0; } // a line is cut by the pause menu
+    if (!bgm) return; if (p) bgm.pause(); else if (!document.hidden) bgm.play().catch(() => {}); }
 
-  window.SFX = { warm, voice, hasVoice: (k) => !!buffers[k], play, music, pauseMusic, setMuted, setVolume, getVolume, preload, get muted() { return muted; }, get userMuted() { return userMuted; } };
+  // phones: decoded lines of cards not in this match are dropped (decoded audio is ~10x the file)
+  function forget(prefix, keep) { for (const k in buffers) if (k.startsWith(prefix) && !keep.has(k)) delete buffers[k]; }
+
+  window.SFX = { warm, voice, forget, phone: PHONE, hasVoice: (k) => !!buffers[k], play, music, pauseMusic, setMuted, setVolume, getVolume, preload, get muted() { return muted; }, get userMuted() { return userMuted; } };
 })();
