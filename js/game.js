@@ -949,6 +949,7 @@
         FX.sparks(e.x, y, 0xffa040, 6, 3, 0.12, 0.4);
         // a mech dies in two beats: a secondary pop a moment later, then a slow plume of black smoke and thrown plates
         const ex = e.x, ey = y, big = clamp(e.r * 1.4, 0.6, 1.4);
+        if (e.r >= 0.6 && !e.air) FX.later(0.4, () => crater(ex, e.z * TILT, e.r * 2.6, Math.random() < 0.5 ? 'wreck' : 'wreck2'));
         FX.later(0.22, () => { FX.particle({ x: ex + rnd(-0.2, 0.2), y: ey + 0.2, life: 0.18, size: 0.3 * big, size1: 0.9 * big, color: 0xffd090, tex: FX.tex.glow, alpha: 0.9 }); FX.sparks(ex, ey + 0.2, 0xffc060, 5, 3.5, 0.1, 0.35); FX.shake(0.05); });
         for (let i = 0; i < 3; i++) FX.particle({ x: ex + rnd(-0.25, 0.25), y: ey + 0.1, vx: rnd(-0.2, 0.2), vy: rnd(0.5, 0.9), life: rnd(1.4, 2), size: 0.4 * big, size1: 1.6 * big, color: 0x2a2a2c, alpha: 0.55, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), fadeIn: 0.15, order: L.FX - 1 });
         for (let i = 0; i < 4; i++) { const a = rnd(0.35, Math.PI - 0.35), v = rnd(2.5, 4.5); FX.particle({ x: ex, y: ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, grav: 11, life: rnd(0.5, 0.75), size: 0.16, size1: 0.12, color: 0x5d646c, tex: FX.tex.dot, normal: true, spin: rnd(-6, 6) }); }
@@ -1026,6 +1027,7 @@
   // craters from the original ground-crack art (tower collapses, heavy shells); they fade after a while
   const decalTex = {};
   ['crack', 'crack_red'].forEach((k) => new THREE.TextureLoader().load(`assets/icon/${k}.png`, (tx) => { decalTex[k] = tx; }, undefined, () => {}));
+  ['wreck', 'wreck2'].forEach((k) => new THREE.TextureLoader().load(`assets/prop/${k}.png`, (tx) => { decalTex[k] = tx; }, undefined, () => {})); // a big mech leaves its wreck for a while
   function crater(x, y, w, kind) {
     const tx = decalTex[kind || 'crack'];
     if (!tx || !tx.image) return;
@@ -3009,6 +3011,7 @@
     _playCard: playCard, _canDeploy: canDeploy,
     _fx: (n, x, y, k) => spawnStatic(n, x, y, k),
     _toScreen: (x, y) => toScreen(x, y),
+    _damage: (t, amt) => damage(t, amt, null), // (tests)
     autoSpot(u) { const sk = u.card.skill, tg = u.target && u.target.alive ? u.target : null; const a = sk.kind === 'barrage' ? bestSpot(u, sk.reach, sk.radius * 1.5) : (sk.kind === 'laser' ? tg || nearestTower(u) : dashTarget(u)); return a ? (Array.isArray(a) ? { x: a[0], z: a[1] } : { x: a.x, z: a.z }) : null; },
     clientToField(cx, cy) { const r = stageEl.getBoundingClientRect(); if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null; return toField(cx - r.left, cy - r.top); },
     aimable: (u) => !!AIMABLE[u.card.skill.kind], aimPreview, aimHide, aiEmote: (i, chance) => aiEmote(i, chance),

@@ -143,6 +143,19 @@
       if (aimed) ok(u.skillSpot && Math.hypot(u.skillSpot[0] - aimed.x, u.skillSpot[1] - aimed.z) < 0.01, 'aimed skill keeps the dragged spot: ' + c.id);
       GAME._run(1.2);
     }
+    // a rig that failed to load: the card portrait stands in, the unit fights and dies, and nothing is left behind
+    {
+      const orig = SD.ready, rig = DATA.card.brownie.rig;
+      SD.ready = (r) => (r === rig ? false : orig(r));
+      try {
+        const us = put('blue', 'brownie', -3, -6);
+        ok(us.length > 0 && us.every((u) => u.placeholder && !u.sd), 'failed rig load: the portrait stands in');
+        GAME._run(1.5);
+        for (const u of us) GAME._damage(u, 1e6);
+        GAME._run(3);
+        ok(us.every((u) => !G.ents.includes(u) && !u.placeholder), 'failed rig load: the stand-in is cleaned up');
+      } finally { SD.ready = orig; }
+    }
     // a ground dash aimed straight across the chasm (off the bridges) stops on the bank
     {
       const ex = put('red', 'executioner', 0, 3.4)[0];
