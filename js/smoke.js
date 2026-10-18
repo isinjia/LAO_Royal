@@ -461,11 +461,14 @@
         for (const sh of document.styleSheets) { let rules = []; try { rules = sh.cssRules; } catch (e) { continue; } for (const r of rules) for (const m of (r.cssText || '').matchAll(/var\(--s-([a-z0-9_]+)\)/g)) used.add(m[1]); }
         const cs = getComputedStyle(document.documentElement), gone = [...used].filter((k) => !cs.getPropertyValue('--s-' + k).trim());
         if (!used.size || gone.length) out.errors.push('check: atlas sprites used by the css but missing: ' + (gone.join(', ') || 'none found at all'));
+        // ...and their files are served, and the UI font is in
+        for (const k of used) { const u = (cs.getPropertyValue('--s-' + k).match(/url\(["']?([^"')]+)/) || [])[1]; if (u) { const r = await fetch(u, { method: 'HEAD' }).catch(() => null); if (!r || !r.ok) out.errors.push('check: atlas file not served: ' + u); } }
+        await document.fonts.ready;
+        if (!document.fonts.check('700 16px Godo')) out.errors.push('check: the Godo UI font did not load');
       }
       // voice lines: every announcer line the game asks for and each orca card's deploy / skill / win line is on the server
       {
-        const ann = ['battlestart', 'gamestart', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'timelimit', 'becareful', 'nice', 'great', 'aamazing', 'fail', 'perfect', 'notready'].map((k) => `assets/voice/ann/${k}.wav`)
-          .concat(['danger', 'bossalert', 'clear', 'levelup', 'stageclear'].map((k) => `assets/voice/ann/${k}.mp3`));
+        const ann = ['battlestart', 'gamestart', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'timelimit', 'becareful', 'nice', 'great', 'aamazing', 'fail', 'perfect', 'notready'].concat(['danger', 'bossalert', 'clear', 'levelup', 'stageclear']).map((k) => `assets/voice/ann/${k}.mp3`);
         const units = DATA.CARDS.filter((c) => GAME.voiced(c)).flatMap((c) => ['deploy', 'skill', 'win'].map((k) => `assets/voice/unit/${c.id}_${k}.mp3`));
         const bgm = ['arena1', 'arena2', 'arena3', 'arena4'].map((k) => window.BGM[k]);
         const bad = [];

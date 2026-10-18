@@ -710,3 +710,7 @@ button:disabled { cursor: default; }
 .coll .card .rkic.ss { width: 23px; height: 20px; }
 #cardTip .role { font-size: 11px; color: #9fb0c2; margin-left: 4px; }
 .rstats[hidden] { display: none; }
+/* BATTLE START never wider than the screen */
+#countdown.go { background-size: min(92vw, 420px) auto; }
+/* an empty support gauge still shows its track */
+.supbtn .ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }

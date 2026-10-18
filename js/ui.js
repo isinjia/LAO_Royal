@@ -786,7 +786,7 @@
     let delta = practice || draw ? 0 : win ? Math.round((26 + b * 3) * d.trophy) : -Math.round(18 + a0 * 3);
     if (!practice && !win && save.trophy + delta < floor) delta = floor - save.trophy; // never drop out of a reached arena
     save.trophy += delta;
-    save.best = Math.max(save.best, save.trophy);
+    if (!practice) save.best = Math.max(save.best, save.trophy);
     if (practice) { /* not on the record */ } else if (win) { save.wins++; save.streak++; } else if (draw) save.draws++; else { save.losses++; save.streak = 0; }
     save.gold += rw.gold;
     const a1 = arena();

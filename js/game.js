@@ -330,8 +330,8 @@
     g.fillStyle = tg;
     g.beginPath(); V.forEach(([x, y], i) => (i ? g.lineTo(X(x), Y(y + E)) : g.moveTo(X(x), Y(y + E)))); g.closePath(); g.fill();
     if (wallPat) { g.save(); g.clip(); g.globalAlpha = dead ? 0.5 : 0.62; g.fillStyle = wallPat; g.fill(); g.restore(); } // roof plating
-    if (!dead) { g.save(); g.clip(); g.globalCompositeOperation = 'overlay'; g.fillStyle = team[0]; g.globalAlpha = 0.55; g.fill(); g.restore(); } // the roof carries the team colour
-    if (!dead && type !== 'bld') { g.save(); g.strokeStyle = team[1]; g.lineWidth = 3; g.shadowColor = team[0]; g.shadowBlur = 14; g.stroke(); g.restore(); } // a lit team rim around the roof
+    if (!dead) { g.save(); g.clip(); g.globalCompositeOperation = 'overlay'; g.fillStyle = team[0]; g.globalAlpha = side === 'red' ? 0.3 : 0.55; g.fill(); g.restore(); } // the roof carries the team colour (red is stronger to the eye: less of it, so the bunker reads as steel, not a red box)
+    if (!dead && type !== 'bld') { g.save(); g.strokeStyle = team[1]; g.lineWidth = 3; g.shadowColor = team[0]; g.shadowBlur = side === 'red' ? 7 : 14; g.stroke(); g.restore(); } // a lit team rim around the roof
     if (!dead && type !== 'bld' && faction === 'iron') for (const i of [0, 2, 4]) { const [vx, vy] = V[i], bx = X(vx * 0.92), by = Y(vy * 0.92 + E); const bg2 = g.createRadialGradient(bx, by, 0, bx, by, 16); bg2.addColorStop(0, 'rgba(255,90,90,1)'); bg2.addColorStop(1, 'rgba(255,40,40,0)'); g.fillStyle = bg2; g.fillRect(bx - 16, by - 16, 32, 32); g.fillStyle = '#ffd0d0'; g.beginPath(); g.arc(bx, by, 3.5, 0, Math.PI * 2); g.fill(); } // beacon lamps
     g.strokeStyle = dead ? '#1d1f22' : '#e9f0f6'; g.lineWidth = 3; g.stroke();
     if (dead) {
@@ -766,7 +766,7 @@
     const tkey = side + type + S.faction;
     const tc = towerTex[tkey] || (towerTex[tkey] = towerCanvas(type, side, false, emblems[S.faction], S.faction));
     t.stage = 0; t.texKey = tkey;
-    t.pad = FX.sprite({ x, y: z * TILT, size: (sp.r + 0.6) * 3.4, aspect: TILT, color: teamHex(side), alpha: 0.3, tex: FX.tex.glow, order: L.GROUND + 3 }); // a slow team-coloured glow under a standing tower
+    t.pad = FX.sprite({ x, y: z * TILT, size: (sp.r + 0.6) * 3.4, aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.16 : 0.3, tex: FX.tex.glow, order: L.GROUND + 3 }); // a slow team-coloured glow under a standing tower
     t.base = quad(tc.tex, 0xffffff, 1, false, 0);
     t.base.scale.set(tc.w, tc.h, 1);
     t.base.position.set(x, z * TILT + tc.cy, 0);
@@ -774,7 +774,7 @@
     t.holder = new THREE.Group();
     scene.add(t.holder);
     // the team ring on the tower top breathes (brighter while the tower is firing)
-    t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: 0.25, tex: FX.tex.glow, order: 1150 });
+    t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.14 : 0.25, tex: FX.tex.glow, order: 1150 });
     const gk = type === 'princess' ? (isIron(guard.rig) ? 1.2 : 1.95) : (isIron(guard.rig) ? 1.1 : 1.6); // the orca bioroids are drawn up to stand as tall as the iron emplacements opposite // the orca gunners stand as large as the iron emplacements
     attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
@@ -2294,7 +2294,7 @@
           const st = e.hp < e.max * 0.35 ? 2 : e.hp < e.max * 0.7 ? 1 : 0; // damage shows early and builds up
           if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; e.tintMul0 = e.tintMul0 || e.tintMul || 1; e.tintMul = e.tintMul0 * (st === 2 ? 0.68 : st === 1 ? 0.86 : 1); /* the guard on a battered tower is scorched too */ /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); SFX.play('expM', 0.5); } }
         }
-        if (e.pad) { if (!e.alive) { FX.kill(e.pad); e.pad = null; } else e.pad.alpha = 0.24 + 0.1 * Math.sin(amb.t * 1.8 + e.x); }
+        if (e.pad) { if (!e.alive) { FX.kill(e.pad); e.pad = null; } else e.pad.alpha = (0.24 + 0.1 * Math.sin(amb.t * 1.8 + e.x)) * (e.side === 'red' ? 0.55 : 1); } // (the red pool kept fainter: red reads stronger)
         if (e.fireGlow) { if (!e.alive) { FX.kill(e.fireGlow); e.fireGlow = null; } else e.fireGlow.alpha = 0.32 + 0.18 * Math.sin(amb.t * 11 + e.x) * Math.sin(amb.t * 7); }
         // a tower under half health smokes; a ruin keeps a slow plume for the rest of the match
         if (e.type !== 'bld' && (!e.alive || e.hp < e.max * 0.7) && (e.smkT = (e.smkT || 0) - dt) <= 0) {
@@ -2314,7 +2314,7 @@
           UI.dmgNum(q[0], q[1], Math.round(e.dmgAcc), e.side);
           e.dmgAcc = 0;
         }
-        if (e.aura) e.aura.alpha = !e.alive ? 0 : !e.active ? 0.06 : (e.target ? 0.26 : 0.14) + Math.sin(amb.t * 3 + e.x) * 0.05; // a soft pool, not a slab
+        if (e.aura) e.aura.alpha = (!e.alive ? 0 : !e.active ? 0.06 : (e.target ? 0.26 : 0.14) + Math.sin(amb.t * 3 + e.x) * 0.05) * (e.side === 'red' ? 0.6 : 1); // a soft pool, not a slab
         // the player's plates sit on the front wall of each tower (as in Clash Royale); the opponent's float above
         const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r * 0.85) * TILT + TOWER_E[e.type] * 0.42) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + (e.type === 'king' ? 0.45 : 0.35));
         const lt = `translate(${Math.round(p[0])}px,${Math.round(p[1])}px)`;
@@ -2889,7 +2889,7 @@
       if (G.phase === 'countdown') {
         G.cdT -= dt;
         const n = Math.ceil(G.cdT - 0.2);
-        if (n !== G.cdN) { G.cdN = n; if (n > 0) { UI.countdown(n); SFX.play('click', 0.5); if (n <= 3) say('ann:' + n, 1, 4); } else { UI.countdown(0); SFX.play('start', 0.6); say('ann:gamestart', 1, 4); G.phase = 'play'; } }
+        if (n !== G.cdN) { G.cdN = n; if (n > 0) { UI.countdown(n); SFX.play('click', 0.5); if (n <= 3) say('ann:' + n, 1, 4); FX.groundRing(0, 0, 0.5, 6 + (3 - n) * 1.5, 0xffffff, 0.5, 0.3); } else { UI.countdown(0); SFX.play('start', 0.6); say('ann:gamestart', 1, 4); G.phase = 'play'; } }
         for (const e of G.ents) if (e.sd) e.sd.update(dt);
       }
       if (G.phase === 'play') {

@@ -42,13 +42,12 @@
   ['pointerdown', 'touchend', 'keydown'].forEach((ev) => window.addEventListener(ev, unlock, { passive: true }));
 
   // voice lines: 'ann:<line>' (the original minigame announcer) and 'unit:<card>_<deploy|skill|win>' (the character's own line)
-  const ANN_MP3 = new Set(['bossalert', 'clear', 'danger', 'levelup', 'stageclear']);
   function urlOf(key) {
     if (window.SND[key]) return window.SND[key];
     const i = key.indexOf(':');
     if (i < 0) return null;
     const kind = key.slice(0, i), name = key.slice(i + 1);
-    return kind === 'ann' ? `assets/voice/ann/${name}.${ANN_MP3.has(name) ? 'mp3' : 'wav'}` : kind === 'unit' ? `assets/voice/unit/${name}.mp3` : null;
+    return kind === 'ann' ? `assets/voice/ann/${name}.mp3` : kind === 'unit' ? `assets/voice/unit/${name}.mp3` : null;
   }
   const missing = new Set(); // lines with no file (a card without a voice): asked once, then skipped
   function load(key) {
@@ -132,7 +131,7 @@
     if (!bgmEl) {
       bgmEl = new Audio();
       bgmEl.loop = true;
-      bgmEl.preload = 'auto';
+      bgmEl.preload = 'none'; // a track loads when it is asked to play
       const c = ensureCtx();
       if (c) {
         try { c.createMediaElementSource(bgmEl).connect(bgmGain); bgmEl.volume = 1; } catch (e) { bgmEl.volume = VOL.bgm; }
