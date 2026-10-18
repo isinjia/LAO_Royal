@@ -374,6 +374,7 @@
     if (!sp) { b.hidden = true; return; }
     const key = (sp.used ? 'u' : sp.ready ? 'r' : Math.floor(sp.charge * 50)) + sp.faction;
     if (key === supKey) return;
+    if (sp.ready && !b.classList.contains('ready') && !b.hidden) { SFX.play('charge', 0.7); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); } // the moment it charges: a cue and a bump
     supKey = key;
     b.hidden = sp.used;
     b.classList.toggle('ready', sp.ready);
@@ -537,6 +538,15 @@
     setTimeout(done, 900);
   }
   const dmgPool = [];
+  // a heal number (commander repair): green, rising, never merged with damage numbers
+  function healNum(x, y, txt) {
+    const el = document.createElement('span');
+    el.className = 'dmgn heal';
+    el.textContent = txt;
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    $('labels').appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
   // champion skills: tap = auto aim; barrage / laser / dash can also be dragged onto the field to aim them
   let aim = null;
   function fireSkill(u, spot) {
@@ -1021,6 +1031,6 @@
     } else if (!e.target.closest || !e.target.closest('#emotePanel')) { const p = $('emotePanel'); if (p) p.hidden = true; }
   }, true);
 
-  window.UI = { _sync: () => syncCollection(), init, dmgNum, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
+  window.UI = { _sync: () => syncCollection(), init, dmgNum, healNum, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
   window.addEventListener('DOMContentLoaded', init);
 })();

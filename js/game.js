@@ -695,7 +695,7 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x4a5560, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.95 });
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x1a2129, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.95 });
     const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
     const ol = FX.sprite({ x: 0, y: -99, size: w + 0.22, aspect: 0.66 / (w + 0.22), color: 0x05070a, tex: FX.tex.white, normal: true, order: L.BAR - 1, alpha: 0.95 }); // a crisp dark frame, like the tower plates
     bg.hidden = fill.hidden = ol.hidden = true;
@@ -865,14 +865,22 @@
     S.sup.used = true;
     const king = S.towers.find((t) => t.type === 'king'), fz = king ? king.z - SGN[side] * 2.6 : SGN[side] * 10;
     if (S.faction === 'iron') {
-      for (let i = 0; i < 3; i++) spawnTroop(side, CARD.drone, (i - 1) * 1.8, fz, i * 0.12);
+      // a target mark first, then each drone streaks down onto it with a dust puff
+      for (let i = 0; i < 3; i++) {
+        const dx = (i - 1) * 1.8, dl = 0.35 + i * 0.12;
+        FX.groundRing(dx, fz * TILT, 0.2, 1.1, 0xff5a6a, 0.7, 0.4);
+        spawnTroop(side, CARD.drone, dx, fz, dl);
+        for (let k = 0; k < 4; k++) FX.later(dl - 0.12 + k * 0.03, () => FX.particle({ x: dx + rnd(-0.15, 0.15), y: fz * TILT + 6 - k * 1.2, vy: -16, life: 0.22, size: 0.34, size1: 0.1, color: 0xff8a90, tex: FX.tex.dot }));
+        FX.later(dl + 0.28, () => { for (let k = 0; k < 6; k++) { const a = rnd(0, 6.28); FX.particle({ x: dx, y: fz * TILT, vx: Math.cos(a) * 1.6, vy: Math.sin(a) * 0.8, life: 0.5, size: 0.3, size1: 0.6, color: 0x8a7f74, alpha: 0.5, tex: FX.tex.dot }); } });
+      }
       FX.groundRing(0, fz * TILT, 0.4, 3.4, 0xff5a6a, 0.6, 0.9);
-      SFX.play('genB', 0.6);
+      SFX.play('missile', 0.6);
     } else {
       for (const t of S.towers) if (t.alive) {
         t.hp = Math.min(t.max, t.hp + t.max * 0.15);
         FX.groundRing(t.x, t.z * TILT, 0.4, 3.2, 0x7dffb0, 0.7, 0.9);
-        for (let i = 0; i < 8; i++) FX.particle({ x: t.x + rnd(-1, 1), y: t.z * TILT + rnd(0, 2), vy: rnd(1.2, 2.2), life: rnd(0.6, 1), size: 0.22, size1: 0, color: 0x9fffc8, tex: FX.tex.dot });
+        for (let i = 0; i < 14; i++) FX.particle({ x: t.x + rnd(-1.1, 1.1), y: t.z * TILT + rnd(0, 2.4), vy: rnd(1.2, 2.4), life: rnd(0.6, 1.1), size: 0.3, size1: 0, color: i % 3 ? 0x9fffc8 : 0xffffff, tex: FX.tex.dot });
+        { const q = toScreen(t.x, t.z * TILT + TOWER_E[t.type] + 0.6); UI.healNum(q[0], q[1], '+' + Math.round(t.max * 0.15)); }
       }
       S.elixir = Math.min(BAL.elixirMax, S.elixir + 2);
       SFX.play('reinforce', 0.7);
@@ -1186,7 +1194,7 @@
         const big = b.dmg ? clamp(b.dmg / 220, 0.75, 1.5) : 0.7;
         if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big * 0.85))) FX.hit(b.ex, b.ey, b.atk.color, 1.05 * big);
         { const a0 = Math.atan2(dy, dx); for (let s = 0; s < 3 + big * 3; s++) { const a = a0 + rnd(-0.7, 0.7), v = rnd(3, 6); FX.particle({ x: b.ex, y: b.ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, drag: 5, life: rnd(0.15, 0.3), size: 0.12, size1: 0.02, color: b.atk.color, tex: FX.tex.dot }); } } // sparks carry on in the shot's direction
-        if (b.atk.splash) FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8);
+        if (b.atk.splash) { FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8); FX.groundGlow(b.tx, b.tz * TILT, b.atk.splash * 0.45, b.atk.color, 0.3, 0.35); } // the blast area lights up, not just its edge
         if (b.dmg) hit(b.src, b.atk, b.target, b.tx, b.tz, b.dmg);
         b.inst.dispose();
         G.bfx.splice(i, 1);
@@ -1230,7 +1238,7 @@
           else FX.hit(p.tx, gy, c, 0.7);
         }
       }
-      if (p.atk.splash) FX.groundRing(p.tx, ground, 0.2, p.atk.splash, c, 0.35, 0.8);
+      if (p.atk.splash) { FX.groundRing(p.tx, ground, 0.2, p.atk.splash, c, 0.35, 0.8); FX.groundGlow(p.tx, ground, p.atk.splash * 0.45, c, 0.3, 0.35); }
       if (p.dmg) hit(p.src, p.atk, p.target, p.tx, p.tz, p.dmg);
     }
   }
