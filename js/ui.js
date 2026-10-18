@@ -659,11 +659,12 @@
     const row = $('chestRow');
     // the slots are rebuilt only when their set changes; the timers update text and classes in place
     const key = save.chests.map((c) => c.k).join() + '|' + save.chests.length;
-    if (key !== chestKey || row.childElementCount !== 4) {
+    const slots = save.chests.length ? 4 : 1; // no crates at all: one slim full-width hint instead of four empty boxes
+    if (key !== chestKey || row.childElementCount !== slots) {
       chestKey = key;
-      row.innerHTML = [0, 1, 2, 3].map((i) => {
+      row.innerHTML = (slots === 1 ? [0] : [0, 1, 2, 3]).map((i) => {
         const c = save.chests[i];
-        if (!c) return `<div class="chest empty"><small>${i === 0 && !save.chests.length ? '승리 시 보급 상자' : '빈 슬롯'}</small></div>`;
+        if (!c) return slots === 1 ? '<div class="chest empty all"><small>승리하면 보급 상자를 받습니다</small></div>' : '<div class="chest empty"><small>빈 슬롯</small></div>';
         return `<button class="chest ${c.k}" data-i="${i}"><i class="box"></i><b>${esc(CH[c.k].name)}</b><small></small></button>`;
       }).join('');
     }

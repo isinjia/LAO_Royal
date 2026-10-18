@@ -613,3 +613,6 @@ button:disabled { cursor: default; }
 /* deck: locked cards stay recognisable */
 .card.locked .art{filter:grayscale(1) brightness(.55)}
 #title .tbg{background-position:0 0,center 9vh}
+.chest.empty.all{grid-column:1/-1;height:34px}
+.rreason{font-size:13px;color:#ff9aa4;letter-spacing:.5px}
+.rtro em:not(.up):not(.down){color:var(--dim)}
