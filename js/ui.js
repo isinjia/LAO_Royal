@@ -663,7 +663,7 @@
       chestKey = key;
       row.innerHTML = [0, 1, 2, 3].map((i) => {
         const c = save.chests[i];
-        if (!c) return '<div class="chest empty"><small>빈 슬롯</small></div>';
+        if (!c) return `<div class="chest empty"><small>${i === 0 && !save.chests.length ? '승리 시 보급 상자' : '빈 슬롯'}</small></div>`;
         return `<button class="chest ${c.k}" data-i="${i}"><i class="box"></i><b>${esc(CH[c.k].name)}</b><small></small></button>`;
       }).join('');
     }
