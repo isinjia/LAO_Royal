@@ -47,9 +47,10 @@
 
   // ── textures ──────────────────────────────────────────
   const FX_ = { x0: -10.5, x1: 10.5, z0: -17.5, z1: 31, P: 36 }; // z1 reaches past the far wall: the band above the arena is the bunker's back wall
+  let fieldCv = null;
   function fieldCanvas(ar) {
     const { x0, x1, z0, z1, P } = FX_;
-    const cv = document.createElement('canvas');
+    const cv = fieldCv || (fieldCv = document.createElement('canvas')); // one canvas, redrawn per arena (setting the size clears it)
     cv.width = (x1 - x0) * P; cv.height = (z1 - z0) * P;
     const g = cv.getContext('2d');
     const X = (x) => (x - x0) * P, Y = (z) => (z1 - z) * P;
@@ -170,7 +171,7 @@
       sg.addColorStop(0, 'rgba(30,26,22,0.13)'); sg.addColorStop(1, 'rgba(30,26,22,0)'); g.fillStyle = sg; g.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
     }
     // centre emblem
-    g.save(); g.globalAlpha = 0.16; g.strokeStyle = '#fff'; g.lineWidth = 6;
+    g.save(); g.globalAlpha = 0.1; g.strokeStyle = '#fff'; g.lineWidth = 5; // quiet: the marks must not compete with the units
     for (const sz of [-1, 1]) { g.beginPath(); g.arc(X(0), Y(sz * 6.5), 2.2 * P, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(X(0), Y(sz * 6.5), 1.2 * P, 0, Math.PI * 2); g.stroke(); }
     g.restore();
     // raised bulkhead walls around the arena (dark steel with a lit top edge), casting a shadow onto the deck
@@ -891,6 +892,8 @@
       SFX.play('reinforce', 0.7);
     }
     UI.banner(`${side === 'blue' ? '' : '적 '}지휘관 지원 · ${SUPPORT[S.faction].name}`, side === 'blue' ? 'good' : 'bad');
+    G.hitStop = Math.max(G.hitStop || 0, 0.06); FX.shake(0.08); // the call lands with a beat
+    if (side !== 'blue') SFX.play('warning', 0.5); // the opponent's call is heard, not only read
     logEvent(`지휘관 지원: ${SUPPORT[S.faction].name}`, side, 'support');
     return true;
   }
@@ -1516,7 +1519,7 @@
             const y = z * TILT;
             if (sk.pillar) { FX.pillar(x, y, 0.6, sk.color); spawnStatic('Azazel_skill1_Hit_m', x, y + 0.3, 0.2); }
             else FX.meteor(x, y, null, sk.color);
-            FX.later(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { const bk = rnd(0.85, 1.2); spawnStatic('simple_explosion', x, y + 0.3, 0.22 * bk); scorch(x, y, sk.radius * 0.5 * bk); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
+            FX.later(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { const bk = rnd(0.85, 1.2); spawnStatic('simple_explosion', x, y + 0.3, 0.22 * bk); scorch(x, y, sk.radius * 0.5 * bk); if (!i) crater(x, y, sk.radius * 0.9); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
           });
         }
         break;
@@ -1966,7 +1969,8 @@
     // every tower fall and phase change, plus the last six champion skills (in battle order)
     const skillIdx = G.log.map((e, i) => (e[3] === 'skill' ? i : -1)).filter((i) => i >= 0).slice(-6);
     stats.log = G.log.filter((e, i) => e[3] !== 'skill' || skillIdx.includes(i));
-    setTimeout(() => { if (G.opts === opts) UI.result(winner, cb, cr, stats, reason); }, 1800);
+    G.resultShown = false;
+    setTimeout(() => { if (G.opts === opts && G.phase === 'ended' && !G.resultShown) { G.resultShown = true; UI.result(winner, cb, cr, stats, reason); } }, 1800); // once, and only for this match
   }
 
   // ── AI ────────────────────────────────────────────────
@@ -2288,7 +2292,7 @@
           const w = (e.hp / e.max * 100).toFixed(1) + '%';
           if (e.labelW !== w) { e.labelW = w; e.label.firstChild.firstChild.style.width = w; }
           const hv = Math.ceil(e.hp);
-          if (e.hpShown !== hv) { if (e.hpShown > hv && G.time - (e.plateT || -1) > 0.25) { e.plateT = G.time; e.label.classList.remove('hit'); requestAnimationFrame(() => e.label.classList.add('hit')); } e.hpShown = hv; e.label.children[1].textContent = hv; const low = e.hp < e.max * 0.3; if (e.labelLow !== low) { e.labelLow = low; e.label.classList.toggle('low', low); } } // a plate under 30% pulses
+          if (e.hpShown !== hv) { if (e.hpShown > hv && G.time - (e.plateT || -1) > 0.25) { e.plateT = G.time; plateHit(e.label); } e.hpShown = hv; e.label.children[1].textContent = hv; const low = e.hp < e.max * 0.3; if (e.labelLow !== low) { e.labelLow = low; e.label.classList.toggle('low', low); } } // a plate under 30% pulses
         }
       }
     }
@@ -2573,9 +2577,9 @@
     const ik = G.ironHalves ? (G.ironHalves.home ? 'h' : '') + (G.ironHalves.far ? 'f' : '') : 'f';
     if (G.arenaDrawn === a && G.ironDrawn === ik) return;
     G.arenaDrawn = a; G.ironDrawn = ik;
-    if (fieldTex) fieldTex.dispose();
-    fieldTex = new THREE.CanvasTexture(fieldCanvas(ARENAS[a]));
-    fieldTex.anisotropy = 4;
+    const cv = fieldCanvas(ARENAS[a]);
+    if (fieldTex && fieldTex.image === cv) fieldTex.needsUpdate = true; // the same canvas: re-upload, no new texture
+    else { if (fieldTex) fieldTex.dispose(); fieldTex = new THREE.CanvasTexture(cv); fieldTex.anisotropy = 4; }
     fieldMesh.material.map = fieldTex;
     fieldMesh.material.needsUpdate = true;
     if (amb.river) { amb.river.material.color.setHex(ARENAS[a].glow); if (amb.river2) amb.river2.material.color.setHex(ARENAS[a].glow); amb.lamps.forEach((l) => { l.color = ARENAS[a].glow; }); }
@@ -2596,7 +2600,7 @@
       setBackdropTint(a);
       amb.back.visible = false;
       if (bgTex[url]) use(bgTex[url]);
-      else if (url) new THREE.TextureLoader().load(url, (tx) => { bgTex[url] = tx; if (G.arenaDrawn === a) use(tx); }, undefined, () => {}); // file://: stays dark
+      else if (url) new THREE.TextureLoader().load(url, (tx) => { if (G.arenaDrawn !== a) { tx.dispose(); return; } bgTex[url] = tx; use(tx); }, undefined, () => {}); // file://: stays dark; a late load for an arena already left is dropped
     }
   }
   const bgTex = {};
@@ -2705,6 +2709,7 @@
   async function start(opts) {
     clearBattle();
     G.opts = opts;
+    if (window.SFX && SFX.warm) SFX.warm(['rankUp', 'charge', 'reinforce', 'missile', 'warning', 'expB', 'quake', 'energy']); // big-moment sounds ready before they first play
     G.arena = opts.arena || 0;
     G.mut = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null;
     G.opDay = DATA.dayIndex(); // credited to the day the rule was drawn (a match may end past midnight)
@@ -2802,8 +2807,16 @@
     frameBody(dt, interval);
   }
   // one frame of work (also driven directly by the smoke test, which may run with rAF throttled)
-  function frameErr(err) {
-    if (!G.errShown) { G.errShown = true; console.error(err); UI.toast('오류가 발생했지만 전투를 계속합니다'); }
+  // tower plate hit pulse: a Web Animation on the bar (no class toggle, no forced layout; same look as css plateHit)
+  const PLATE_HIT = [{ transform: 'translateX(-50%) scale(1.12)', filter: 'brightness(2.2)' }, { transform: 'translateX(-50%) scale(1)', filter: 'none' }];
+  function plateHit(el) {
+    const bar = el._bar || (el._bar = el.querySelector('.bar'));
+    if (bar && bar.animate) { bar.animate(PLATE_HIT, { duration: 220, easing: 'ease-out' }); return; }
+    el.classList.remove('hit'); requestAnimationFrame(() => el.classList.add('hit'));
+  }
+  function frameErr(err, stage) {
+    G.errStage = stage; // which part failed (shown if it keeps failing)
+    if (!G.errShown) { G.errShown = true; console.error(stage, err); UI.toast('오류가 발생했지만 전투를 계속합니다'); }
     return true;
   }
   function frameBody(dt, interval) {
@@ -2834,15 +2847,15 @@
         }
         updateProjs(dt);
       }
-    } catch (err) { bad = frameErr(err); }
-    try { FX.update(dt); } catch (err) { bad = frameErr(err); }
+    } catch (err) { bad = frameErr(err, 'sim'); }
+    try { FX.update(dt); } catch (err) { bad = frameErr(err, 'fx'); }
     if (G.phase === 'play' || G.phase === 'countdown' || G.phase === 'ended') {
-      try { render(dt); } catch (err) { bad = frameErr(err); }
-      try { UI.tick(G); } catch (err) { bad = frameErr(err); }
+      try { render(dt); } catch (err) { bad = frameErr(err, 'render'); }
+      try { UI.tick(G); } catch (err) { bad = frameErr(err, 'ui'); }
     }
     // one bad frame must not kill the match; one that fails every frame for a second is stuck: offer a reload
     G.errRun = bad ? (G.errRun || 0) + 1 : 0;
-    if (G.errRun === 60) UI.fatal('전투 화면을 갱신할 수 없습니다. 다시 불러와 주세요.', true);
+    if (G.errRun === 60) UI.fatal(`전투 화면을 갱신할 수 없습니다 (${G.errStage}). 다시 불러와 주세요.`, true);
     perfTick(interval, performance.now() - t0);
   }
 

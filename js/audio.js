@@ -153,8 +153,11 @@
     else FREQUENT.slice(0, 11).forEach(get);
   }
 
+  // the sounds a battle's big moments need, decoded before the first one (play() on a cold sound only starts loading it)
+  function warm(keys) { if (web) keys.forEach(load); else keys.forEach(get); }
+
   // hold / resume the current track (pause menu)
   function pauseMusic(p) { held = !!p; if (!bgm) return; if (p) bgm.pause(); else if (!document.hidden) bgm.play().catch(() => {}); }
 
-  window.SFX = { play, music, pauseMusic, setMuted, setVolume, getVolume, preload, get muted() { return muted; }, get userMuted() { return userMuted; } };
+  window.SFX = { warm, play, music, pauseMusic, setMuted, setVolume, getVolume, preload, get muted() { return muted; }, get userMuted() { return userMuted; } };
 })();
