@@ -290,9 +290,9 @@
         const S = G.sides.blue, ch = DATA.CARDS.find((c) => c.skill && c.faction === 'iron');
         S.hand[0] = ch.id; S.elixir = 10;
         const u = GAME._playCard('blue', 0, 0, -8)[0];
-        const lvm = DATA.LEVEL.mult(u.lv);
-        ok(Math.abs(u.max - ch.hp * lvm * (M.hp || 1)) < 2, `${M.key}: champion HP ${u.max.toFixed(0)}`);
-        ok(!ch.dmg || Math.abs(u.atk.dmg - ch.dmg * lvm) < 2, `${M.key}: damage unchanged (${u.atk.dmg})`);
+        const lvm = DATA.LEVEL.mult(u.lv), sy = S.syn, bond = sy && sy.tier && ch.faction === sy.faction ? sy : { hp: 1, dmg: 1 }; // (the deck's faction bond applies on top)
+        ok(Math.abs(u.max - ch.hp * lvm * (M.hp || 1) * bond.hp) < 2, `${M.key}: champion HP ${u.max.toFixed(0)}`);
+        ok(!ch.dmg || Math.abs(u.atk.dmg - ch.dmg * lvm * bond.dmg) < 2, `${M.key}: damage unchanged (${u.atk.dmg})`);
         ok(GAME.skillState(u).cost === Math.max(1, ch.skill.cost + (M.skillCost || 0)), `${M.key}: skill cost`);
         GAME.surrender();
         await until(() => document.getElementById('result').classList.contains('on'), 5000);
@@ -370,6 +370,10 @@
         if (DATA.CARDS.some((c) => !UI.save.cards[c.id])) out.errors.push('check: every card is open from the start');
         UI.save.decks.orca = keep; UI.save.trophy = t0; UI._sync();
         out.runs.push(['free decks', `${DATA.CARDS.length} cards open`, 'mixed deck kept']);
+        // faction bond: 6+ of one faction = tier 2, 4-5 = tier 1, a 4/4 split = none
+        const orcaIds = DATA.byFaction('orca').map((c) => c.id), ironIds = DATA.byFaction('iron').map((c) => c.id);
+        const t2 = DATA.synergyOf(orcaIds.slice(0, 8)), t1 = DATA.synergyOf(orcaIds.slice(0, 5).concat(ironIds.slice(0, 3))), t0s = DATA.synergyOf(orcaIds.slice(0, 4).concat(ironIds.slice(0, 4)));
+        if (!(t2.tier === 2 && t2.hp > 1 && t1.tier === 1 && t0s.tier === 0 && t0s.hp === 1)) out.errors.push(`check: faction bond tiers (${t2.tier}/${t1.tier}/${t0s.tier})`);
       }
       const arenas = DATA.ARENAS.map((a) => a.trophy);
       let k = 0;

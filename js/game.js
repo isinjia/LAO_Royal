@@ -718,8 +718,9 @@
   }
 
   function spawnTroop(side, card, x, z, delay, lvl) {
-    const lv = lvl || lvlOf(side, card), m = LEVEL.mult(lv), hm = G.mut && G.mut.hp || 1;
-    const atk = Object.assign({}, card, { dmg: card.dmg * m });
+    const sy = G.sides && G.sides[side] && G.sides[side].syn, bond = sy && sy.tier && card.faction === sy.faction ? sy : null; // faction bond (deck synergy)
+    const lv = lvl || lvlOf(side, card), m = LEVEL.mult(lv), hm = (G.mut && G.mut.hp || 1) * (bond ? bond.hp : 1);
+    const atk = Object.assign({}, card, { dmg: card.dmg * m * (bond ? bond.dmg : 1) });
     const u = {
       id: G.nextId++, kind: 'troop', side, card, atk, lv, x, z, r: card.radius, mass: card.mass, hp: card.hp * m * hm, max: card.hp * m * hm,
       air: card.air, alive: true, deployT: card.deploy + (delay || 0), deploy0: card.deploy + (delay || 0), target: null, retarget: 0,
@@ -2495,7 +2496,7 @@
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function makeSide(side, faction, deck, ai, levels, lvl) {
     const d = shuffle(deck.slice());
-    return { side, faction, deck: d, hand: d.slice(0, 4), queue: d.slice(4), elixir: BAL.elixirStart, crowns: 0, towers: [], blds: [], ai, levels, lvl };
+    return { side, faction, deck: d, hand: d.slice(0, 4), queue: d.slice(4), elixir: BAL.elixirStart, crowns: 0, towers: [], blds: [], ai, levels, lvl, syn: DATA.synergyOf(deck) };
   }
 
   function clearBattle() {

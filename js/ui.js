@@ -182,7 +182,7 @@
     const row = $('deckPreview');
     row.innerHTML = '';
     save.decks[save.faction].forEach((id) => row.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
-    $('avgCost').textContent = avg(save.decks[save.faction]);
+    $('avgCost').innerHTML = avg(save.decks[save.faction]) + ' ' + synChip(save.decks[save.faction]);
     const foe = foeFaction({ faction: save.faction, mode: save.mode });
     $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>`;
     const up = DATA.CARDS.some((c) => canUpgrade(c));
@@ -211,10 +211,16 @@
 
   // deck builder
   let deckSel = null, swapMode = false;
+  // faction bond chip: what the deck's faction mix gives (4 / 6 cards of one faction)
+  function synChip(deck) {
+    const s = DATA.synergyOf(deck);
+    if (!s.tier) return `<span class="syn off" title="한 진영 카드 4장 이상이면 결속 보너스">결속 없음 (${s.count}/4)</span>`;
+    return `<span class="syn ${s.faction}" title="${esc(s.desc)}">${esc(s.name)}</span>`;
+  }
   function renderDeck() {
     const f = save.faction, deck = save.decks[f];
     $('deckTitle').textContent = `덱 편성 · ${FACTIONS[f].name}`;
-    $('deckAvg').innerHTML = `평균 에너지 <b>${avg(deck)}</b> · <i class="gold-i"></i>${save.gold}`;
+    $('deckAvg').innerHTML = `평균 에너지 <b>${avg(deck)}</b> · <i class="gold-i"></i>${save.gold} · ${synChip(deck)}`;
     const slots = $('deckSlots');
     slots.innerHTML = '';
     deck.forEach((id, i) => {

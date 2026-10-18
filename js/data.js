@@ -250,8 +250,20 @@
     { k: 'orca', name: '오르카 진영으로 승리', goal: 2, gold: 70 },
   ];
 
+  // faction bond: a deck built mostly from one faction strengthens that faction's units (mixing factions trades the bond for freedom)
+  const SYNERGY = {
+    orca: [null, { name: '오르카 결속', hp: 1.1, dmg: 1, desc: '오르카 유닛 체력 +10%' }, { name: '오르카 결속 II', hp: 1.15, dmg: 1.05, desc: '오르카 유닛 체력 +15% · 공격력 +5%' }],
+    iron: [null, { name: '철충 군단', hp: 1, dmg: 1.1, desc: '철충 유닛 공격력 +10%' }, { name: '철충 군단 II', hp: 1.05, dmg: 1.15, desc: '철충 유닛 공격력 +15% · 체력 +5%' }],
+  };
+  function synergyOf(deck) {
+    const n = { orca: 0, iron: 0 };
+    deck.forEach((id) => { const c = CARDS.find((x) => x.id === id); if (c) n[c.faction]++; });
+    const f = n.orca >= n.iron ? 'orca' : 'iron', tier = n.orca === n.iron ? 0 : n[f] >= 6 ? 2 : n[f] >= 4 ? 1 : 0; // (an even split bonds neither)
+    return tier ? Object.assign({ faction: f, tier, count: n[f] }, SYNERGY[f][tier]) : { faction: f, tier: 0, count: n[f], hp: 1, dmg: 1, name: '', desc: '' };
+  }
+
   window.DATA = {
-    RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf,
+    RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf,
     card: Object.fromEntries(CARDS.map((c) => [c.id, c])),
     byFaction: (f) => CARDS.filter((c) => c.faction === f),
   };
