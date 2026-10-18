@@ -559,9 +559,18 @@
   const SPELL_FX = { fireball: ['RPG_skill2_hit', 'simple_explosion'], zap: ['Raven_skill1_Hit'], freeze: ['Titania_skill1_Ground_ice', 'Titania_skill1_Ground_ice_smoke'] };
   const SKILL_FX = { nova: 'RPG_skill2_hit', barrage: 'simple_explosion', storm: 'Raven_skill1_Hit', laser: 'Constantia_hit', dash: 'valkyrie_Hit_skill2', summon: 'skill_hit_simple', shield: 'Thetis_Skill2_Chaff_Hit', haste: 'Kunoichi_skill2_after_Lighting' };
   // the champion's own skill effect from the original skill clip (an effect event, else its projectile's hit)
+  // champions whose original skill impact was baked for this game (tools/fxbake): [effect, scale] — kept modest so the small units stay readable
+  const OWN_SKILL = {
+    empress: ['Empress_skill1_ice_Hit', 0.2], labiata: ['Labiata_buff_skill1_hit', 0.2], fafnir: ['vfx_fafnir_ns1_hit_last', 0.2],
+    sleipnir: ['Sleipnir_skill1_last_hit', 0.22], tiamat: ['vfx_Tiamet_NS3_skill1_bullet_Hit', 0.24], titania: ['Titania_skill1_hit', 0.2],
+    e_Nidhogg_N: ['nidhogg_skill1_hit', 0.2], e_Juggernaut_N: ['Juggernaut_skill2_last_hit', 0.16], e_Executioner_EW: ['Executioner_skill1_Hit', 0.14],
+    e_EmperorChick_N: ['EmperorChick_skill2_hit', 0.2], e_Goltarion_N: ['Goltarion_N_Skill1_A', 0.22],
+  };
+  const skillFxK = (u) => (OWN_SKILL[u.card.rig] && OWN_SKILL[u.card.rig][0] === skillFxFor(u.card.rig) ? OWN_SKILL[u.card.rig][1] : u.fxk * 1.2);
   const skillFxCache = {};
   function skillFxFor(rig) {
     if (rig in skillFxCache) return skillFxCache[rig];
+    if (OWN_SKILL[rig] && window.FX_META && FX_META.meta[OWN_SKILL[rig][0]] && fxOk(OWN_SKILL[rig][0])) return (skillFxCache[rig] = OWN_SKILL[rig][0]);
     const M = window.FX_META;
     let n = null;
     if (M) {
@@ -1511,7 +1520,7 @@
     const hitArea = (x, z, r, dmg, extra) => spellHit(side, Object.assign({ radius: r, dmg: dmg * m, towerK: 0.3 }, extra), x, z, u);
     const y0 = u.z * TILT;
     const own = skillFxFor(u.card.rig); // the original skill effect, on the skill's focus
-    if (own && sk.kind !== 'dash' && sk.kind !== 'laser') { const t = u.target && u.target.alive ? u.target : null, sp = sk.kind === 'barrage' && u.skillSpot; spawnStatic(own, sp ? sp[0] : t ? t.x : u.x, (sp ? sp[1] : t ? t.z : u.z) * TILT + 0.4, u.fxk * 1.2, u.face); }
+    if (own && sk.kind !== 'dash' && sk.kind !== 'laser') { const t = u.target && u.target.alive ? u.target : null, sp = sk.kind === 'barrage' && u.skillSpot; spawnStatic(own, sp ? sp[0] : t ? t.x : u.x, (sp ? sp[1] : t ? t.z : u.z) * TILT + 0.4, skillFxK(u), u.face); }
     switch (sk.kind) {
       case 'nova': {
         spawnStatic(sk.freeze ? 'Titania_skill1_Ground_ice' : SKILL_FX.nova, u.x, y0 + (sk.freeze ? 0 : 0.5), sk.freeze ? 0.3 : 0.5);
@@ -1552,7 +1561,7 @@
         const ex = u.x + dx / Ld * sk.reach, ez = u.z + dz / Ld * sk.reach;
         const [mx, my] = muzzle(u, 1);
         FX.orbital(mx, my, ex, ez * TILT + 0.6, sk.color, 0.7);
-        if (own) spawnStatic(own, ex, ez * TILT + 0.4, u.fxk * 1.2, u.face);
+        if (own) spawnStatic(own, ex, ez * TILT + 0.4, skillFxK(u), u.face);
         for (let f = 0.15; f <= 1; f += 0.15) scorch(u.x + (ex - u.x) * f, (u.z + (ez - u.z) * f) * TILT, 0.7);
         for (const o of enemiesNear(side, u.x, u.z, sk.reach + 0.5)) {
           const px = o.x - u.x, pz = o.z - u.z, along = (px * dx + pz * dz) / Ld;
