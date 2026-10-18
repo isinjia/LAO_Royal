@@ -677,3 +677,8 @@ button:disabled { cursor: default; }
 @keyframes leak { 0% { box-shadow: 0 0 0 2px #ff4a5a, 0 0 14px rgba(255,74,90,.8); } 100% { box-shadow: none; } }
 /* the opponent's emote reads as theirs */
 .bubble.red { box-shadow: 0 0 0 2px #e8404f, 0 4px 12px rgba(0,0,0,.5); }
+/* the original rank badge: bottom-left on deck cards, inline before names */
+.card .rkic { position: absolute; z-index: 3; left: 1px; bottom: calc(19% + 2px); width: 22px; height: 22px; background: center / contain no-repeat; filter: drop-shadow(0 1px 2px rgba(0,0,0,.8)); pointer-events: none; }
+.card .rkic.ss { width: 28px; height: 25px; left: -2px; }
+.ci-body h4 .rkic, #cardTip .rkic { display: inline-block; width: 24px; height: 24px; margin-right: 6px; vertical-align: -6px; background: center / contain no-repeat; }
+.ci-body h4 .rkic.ss, #cardTip .rkic.ss { width: 30px; height: 26px; }

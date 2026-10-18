@@ -143,6 +143,9 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
   // opts: { lv, cls, locked, progress }
+  // the original game's rank badge (B / A / S / SS) in the card's role shape: attacker, defender or support
+  const roleOf = (c) => (c.type !== 'troop' ? 'sup' : c.aim === 'buildings' || (c.hp * (c.count || 1) >= 1500 && c.range <= 2.5) ? 'def' : 'atk');
+  const rankIc = (c) => `<i class="rkic${c.rarity === 3 ? ' ss' : ''}" title="${RARITY[c.rarity].name}" style="background-image:url(assets/icon/rank/${RARITY[c.rarity].name}_${roleOf(c)}.webp)"></i>`;
   function cardEl(c, cls, opt) {
     opt = opt || {};
     const el = document.createElement('div');
@@ -151,6 +154,7 @@
     if (c.count > 1) h += `<span class="cnt">x${c.count}</span>`;
     if (opt.lv) h += `<span class="lv">Lv.${opt.lv}</span>`;
     if (opt.progress != null) h += `<span class="prog${opt.progress >= 1 ? ' full' : ''}"><i style="width:${Math.min(100, opt.progress * 100)}%"></i></span>`;
+    if (opt.rank) h += rankIc(c);
     if (opt.isNew) h += '<span class="newb">NEW</span>';
     if (opt.locked) h += `<span class="lock"><i></i>${esc(ARENAS[c.arena].name)}</span>`;
     el.innerHTML = h;
@@ -226,7 +230,7 @@
     const slots = $('deckSlots');
     slots.innerHTML = '';
     deck.forEach((id, i) => {
-      const el = cardEl(CARD[id], (deckSel === id ? 'sel' : '') + (swapMode ? ' swap' : ''), { lv: levelOf(id) });
+      const el = cardEl(CARD[id], (deckSel === id ? 'sel' : '') + (swapMode ? ' swap' : ''), { lv: levelOf(id), rank: true });
       el.onclick = () => {
         if (swapMode && deckSel && !deck.includes(deckSel)) { deck[i] = deckSel; swapMode = false; persist(); SFX.play('click'); }
         else { deckSel = id; swapMode = false; }
@@ -241,7 +245,7 @@
       const o = save.cards[c.id];
       const locked = !unlocked(c) || !o;
       const prog = o && o.lv < LEVEL.max ? o.n / upCost(c, o.lv).n : null;
-      const el = cardEl(c, (deck.includes(c.id) ? 'used' : '') + (deckSel === c.id ? ' sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, progress: locked ? null : prog, isNew: !locked && save.newCards && save.newCards[c.id] });
+      const el = cardEl(c, (deck.includes(c.id) ? 'used' : '') + (deckSel === c.id ? ' sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, progress: locked ? null : prog, isNew: !locked && save.newCards && save.newCards[c.id], rank: true });
       el.onclick = () => { deckSel = c.id; swapMode = false; if (save.newCards && save.newCards[c.id]) { delete save.newCards[c.id]; persist(); } renderDeck(); };
       col.appendChild(el);
     });
@@ -283,10 +287,10 @@
       act += inDeck ? ' <span class="hint">덱에 포함됨</span>' : swapMode ? ' <span class="hint blink">위의 덱에서 교체할 카드를 누르세요</span>' : ' <button class="btn y sm" id="btnUse">덱에 넣기</button>';
     }
     const skill = c.skill ? `<div class="skillinfo"><b>챔피언 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
-    info.innerHTML = `<div class="ci-head"></div><div class="ci-body"><h4><span class="rk r${c.rarity}">${RARITY[c.rarity].name}</span>${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
+    info.innerHTML = `<div class="ci-head"></div><div class="ci-body"><h4>${rankIc(c)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
       <dl>${st.map(([k2, v]) => `<div><dt>${k2}</dt><dd>${v}</dd></div>`).join('')}</dl>
       <div class="ci-act">${act}</div></div>`;
-    info.querySelector('.ci-head').appendChild(cardEl(c, '', { lv: o && o.lv, locked: !o || !unlocked(c) }));
+    info.querySelector('.ci-head').appendChild(cardEl(c, '', { lv: o && o.lv, locked: !o || !unlocked(c), rank: true }));
     const b = $('btnUse');
     if (b) b.onclick = () => { swapMode = true; SFX.play('click'); renderDeck(); };
     const u = $('btnUp');
@@ -331,7 +335,7 @@
     costPrev();
     const tip = $('cardTip'), sc = G.sel >= 0 && CARD[S.hand[G.sel]];
     tip.hidden = !sc;
-    if (sc) tip.innerHTML = `<b>${esc(sc.name)}</b> <span class="rk r${sc.rarity}">${RARITY[sc.rarity].name}</span> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
+    if (sc) tip.innerHTML = `${rankIc(sc)}<b>${esc(sc.name)}</b> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
   }
   let lastEl = -1;
   // the selected card's cost marked on the energy bar (red when it cannot be paid yet)
