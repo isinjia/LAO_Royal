@@ -146,6 +146,7 @@
   // the original game's rank badge (B / A / S / SS) in the card's role shape: attacker, defender or support
   const roleOf = (c) => (c.type !== 'troop' ? 'sup' : c.aim === 'buildings' || (c.hp * (c.count || 1) >= 1500 && c.range <= 2.5) ? 'def' : 'atk');
   const rankIc = (c) => `<i class="rkic${c.rarity === 3 ? ' ss' : ''}" title="${RARITY[c.rarity].name}" style="background-image:url(assets/icon/rank/${RARITY[c.rarity].name}_${roleOf(c)}.webp)"></i>`;
+  const ROLE_NAME = { atk: '공격형', def: '방어형', sup: '지원형' };
   function cardEl(c, cls, opt) {
     opt = opt || {};
     const el = document.createElement('div');
@@ -335,7 +336,7 @@
     costPrev();
     const tip = $('cardTip'), sc = G.sel >= 0 && CARD[S.hand[G.sel]];
     tip.hidden = !sc;
-    if (sc) tip.innerHTML = `${rankIc(sc)}<b>${esc(sc.name)}</b> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
+    if (sc) tip.innerHTML = `${rankIc(sc)}<b>${esc(sc.name)}</b><span class="role">${ROLE_NAME[roleOf(sc)]}</span> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
   }
   let lastEl = -1;
   // the selected card's cost marked on the energy bar (red when it cannot be paid yet)
@@ -805,6 +806,7 @@
     if (practice) $('resTrophy').innerHTML = '<span class="prac">연습전 · 트로피와 보상 변동 없음</span>';
     const s = stats.blue;
     $('resStats').innerHTML = `<div><b>${Math.round(s.dmg).toLocaleString()}</b><small>입힌 피해</small></div><div><b>${s.kills}</b><small>처치</small></div><div><b>${s.spent}</b><small>사용 에너지</small></div><div><b>${s.wasted.toFixed(1)}</b><small>낭비 에너지</small></div>`;
+    $('resStats').hidden = !s.cards && !s.dmg; // a match won before a single card was played has no stats to show
     // how the battle went: tower falls, champion skills, energy phases
     const lg = stats.log || [];
     $('resLog').hidden = !lg.length;
@@ -850,7 +852,7 @@
     }
     $('resArena').hidden = !notes.length;
     $('resArena').innerHTML = notes.join('<br>');
-    if (win) setTimeout(() => SFX.play('coin', 0.6), 700);
+    if (win) { setTimeout(() => SFX.play('rankUp', 0.45), 350); setTimeout(() => SFX.play('coin', 0.6), 700); } // the MISSION COMPLETE sweep, then the rewards
     persist();
   }
 

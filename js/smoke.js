@@ -455,6 +455,13 @@
       await mutatorChecks();
       await contextLossCheck();
       await corruptSaveCheck(backup);
+      // every atlas sprite the stylesheet uses is defined (ui_assets.js was trimmed to what is referenced)
+      {
+        const used = new Set();
+        for (const sh of document.styleSheets) { let rules = []; try { rules = sh.cssRules; } catch (e) { continue; } for (const r of rules) for (const m of (r.cssText || '').matchAll(/var\(--s-([a-z0-9_]+)\)/g)) used.add(m[1]); }
+        const cs = getComputedStyle(document.documentElement), gone = [...used].filter((k) => !cs.getPropertyValue('--s-' + k).trim());
+        if (!used.size || gone.length) out.errors.push('check: atlas sprites used by the css but missing: ' + (gone.join(', ') || 'none found at all'));
+      }
       // voice lines: every announcer line the game asks for and each orca card's deploy / skill / win line is on the server
       {
         const ann = ['battlestart', 'gamestart', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'timelimit', 'becareful', 'nice', 'great', 'aamazing', 'fail', 'perfect', 'notready'].map((k) => `assets/voice/ann/${k}.wav`)

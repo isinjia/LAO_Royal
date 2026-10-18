@@ -212,6 +212,12 @@
       const bx0 = X(bx - w - 0.15), bx1 = X(bx + w + 0.15), by0 = Y(BAL.river + 0.8), by1 = Y(-BAL.river - 0.8);
       // a chunky steel span: drop shadow, a side face toward the camera, a plated deck and railings with posts
       g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(bx0 + 8, by0 + 12, bx1 - bx0, by1 - by0);
+      // the span casts a soft shadow onto the water on both sides (the bridges sit above the chasm)
+      for (const [ex, d] of [[bx0, -1], [bx1, 1]]) {
+        const sg = g.createLinearGradient(ex, 0, ex + d * 0.75 * P, 0);
+        sg.addColorStop(0, 'rgba(0,0,0,0.5)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = sg; g.fillRect(Math.min(ex, ex + d * 0.75 * P), ry0, 0.75 * P, ry1 - ry0);
+      }
       g.fillStyle = '#2a3036'; g.fillRect(bx0, by1, bx1 - bx0, 0.32 * P); // side face
       g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(bx0, by1, bx1 - bx0, 3);
       const bg = g.createLinearGradient(bx0, 0, bx1, 0);

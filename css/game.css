@@ -697,3 +697,16 @@ button:disabled { cursor: default; }
 #result.win #resTitle::after { content: ''; display: block; width: min(70%, 240px); height: 18px; margin: 4px auto 0; background: var(--s-mc_label) center / contain no-repeat; }
 /* the fatal notice leads with the warning sign */
 #fatal .dlg::before { content: ''; display: block; width: 44px; height: 44px; margin: 0 auto 8px; background: var(--s-i_warning) center / contain no-repeat; }
+/* result portrait: fades on every edge (no hard cut at the box corner) */
+.rhero { mask-image: radial-gradient(ellipse 60% 60% at 62% 42%, #000 35%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 60% 60% at 62% 42%, #000 35%, transparent 75%); }
+/* MISSION COMPLETE sweeps in */
+#result.win #resTitle::after { animation: mcIn .55s .3s both; }
+@keyframes mcIn { 0% { opacity: 0; transform: scaleX(.2); filter: brightness(3); } 60% { opacity: 1; transform: scaleX(1.06); filter: brightness(1.8); } 100% { transform: none; filter: none; } }
+/* SS badges glint */
+.rkic.ss { animation: ssGlint 2.4s ease-in-out infinite; }
+@keyframes ssGlint { 0%, 70%, 100% { filter: drop-shadow(0 1px 2px rgba(0,0,0,.8)); } 80% { filter: drop-shadow(0 0 6px #ffe27a) brightness(1.35); } }
+/* the collection grid is tight: smaller badges there */
+.coll .card .rkic { width: 18px; height: 18px; }
+.coll .card .rkic.ss { width: 23px; height: 20px; }
+#cardTip .role { font-size: 11px; color: #9fb0c2; margin-left: 4px; }
+.rstats[hidden] { display: none; }
