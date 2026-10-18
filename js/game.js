@@ -2329,6 +2329,16 @@
     resize(true);
     if (!quiet) UI.toast(`그래픽 품질: ${q.name}`);
   }
+  // the screen's own refresh rate (rAF cadence with no game work): decides whether long frames mean "fill-bound" or "a 30 Hz screen".
+  // Measured at boot and again whenever the page comes back (power-saving modes can change it); our own frames can only confirm 60 Hz.
+  function probeHz() {
+    perf.fast = false;
+    let n = 0, t0 = 0;
+    const tick = (t) => { if (document.hidden) return; if (!t0) t0 = t; if (++n < 31) requestAnimationFrame(tick); else perf.fast = (t - t0) / 30 < 20; };
+    requestAnimationFrame(tick);
+  }
+  probeHz();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) probeHz(); });
   function perfTick(interval, work) {
     if (G.phase !== 'play' || G.paused) { perf.acc = perf.n = perf.work = 0; return; }
     perf.acc += interval; perf.work += work; perf.n++;
