@@ -34,10 +34,11 @@
     return ctx;
   }
   // browsers (iOS in particular) only start audio inside a user gesture
+  const away = () => document.hidden || (document.hasFocus && !document.hasFocus()); // tab hidden or window not focused
   function unlock() {
     const c = ensureCtx();
-    if (c && c.state !== 'running' && !document.hidden) c.resume(); // 'suspended' or iOS 'interrupted' (call, Siri)
-    if (bgm && bgm.paused && !document.hidden && !held) bgm.play().catch(() => {});
+    if (c && c.state !== 'running' && !away()) c.resume(); // 'suspended' or iOS 'interrupted' (call, Siri)
+    if (bgm && bgm.paused && !away() && !held) bgm.play().catch(() => {});
   }
   ['pointerdown', 'touchend', 'keydown'].forEach((ev) => window.addEventListener(ev, unlock, { passive: true }));
 
@@ -65,7 +66,7 @@
   // one voice at a time: a line plays over the effects; a more important one cuts a lesser one, an equal one waits its turn
   let vSrc = null, vEnd = 0, vPrio = 0;
   function voice(key, vol = 1, prio = 1) {
-    if (muted || !web) return false;
+    if (muted || !web || away()) return false;
     const c = ensureCtx(), buf = buffers[key];
     if (!buf) { load(key); return false; }
     if (c.state !== 'running') return false;
@@ -95,7 +96,7 @@
   }
 
   function play(key, vol = 1) {
-    if (muted || !window.SND[key]) return;
+    if (muted || !window.SND[key] || away()) return; // (nothing plays while the window is in the background)
     const now = performance.now();
     if (now - (last[key] || 0) < (GAP[key] || 45)) return;
     last[key] = now;
@@ -142,7 +143,7 @@
     bgm = bgmEl;
     bgm.src = window.BGM[key];
     bgm.muted = muted;
-    if (!document.hidden) bgm.play().catch(() => {});
+    if (!away()) bgm.play().catch(() => {});
   }
 
   function setMuted(m) {
@@ -163,16 +164,21 @@
   function getVolume(kind) { return VOL[kind] / BASE[kind]; }
 
   // background tab / locked phone: silence everything, resume when back
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
+  // also when the window loses focus (another app or window in front): silent until it is back
+  function awayChanged() {
+    if (away()) {
       if (bgm) bgm.pause();
       if (ctx && ctx.state === 'running') ctx.suspend();
+      if (vSrc) { try { vSrc.stop(); } catch (e) { /* ended */ } vEnd = 0; }
     } else {
       if (ctx && ctx.state !== 'running') ctx.resume();
       missing.clear(); // lines that failed on a network blip get another chance
       if (bgm && !held) bgm.play().catch(() => {});
     }
-  });
+  }
+  document.addEventListener('visibilitychange', awayChanged);
+  window.addEventListener('blur', awayChanged);
+  window.addEventListener('focus', awayChanged);
 
   // Warm up the frequent sounds; the rest decode on first use (decoded PCM is ~10x the mp3 size).
   // Last Royal plays nearly every effect in a match (end jingles, tower collapses, champion skills): warm them all
@@ -190,7 +196,7 @@
 
   // hold / resume the current track (pause menu)
   function pauseMusic(p) { held = !!p; if (p && vSrc) { try { vSrc.stop(); } catch (e) { /* ended */ } vEnd = 0; } // a line is cut by the pause menu
-    if (!bgm) return; if (p) bgm.pause(); else if (!document.hidden) bgm.play().catch(() => {}); }
+    if (!bgm) return; if (p) bgm.pause(); else if (!away()) bgm.play().catch(() => {}); }
 
   // phones: decoded lines of cards not in this match are dropped (decoded audio is ~10x the file)
   function forget(prefix, keep) { for (const k in buffers) if (k.startsWith(prefix) && !keep.has(k)) delete buffers[k]; }

@@ -30,6 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
+  const APP_VERSION = 'V0.15'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -867,7 +868,7 @@
     $('setSfx').value = save.sfx;
     $('setVoice').value = save.voice;
     $('setQuality').value = save.autoQuality ? 'auto' : String(save.quality == null ? GAME.perf.level : save.quality);
-    $('setInfo').textContent = `현재 품질: ${GAME.QUALITY[GAME.perf.level].name} · 최근 FPS ${GAME.perf.fps || '-'} · 버전 1.4`;
+    $('setInfo').textContent = `현재 품질: ${GAME.QUALITY[GAME.perf.level].name} · 최근 FPS ${GAME.perf.fps || '-'} · 버전 ${APP_VERSION}`;
     $('settingsOv').hidden = false;
   }
   function applyAudio() { SFX.setVolume('bgm', save.music); SFX.setVolume('sfx', save.sfx); SFX.setVolume('voice', save.voice); SFX.setMuted(save.music === 0 && save.sfx === 0 && save.voice === 0); }
@@ -911,6 +912,7 @@
     GAME.start(Object.assign({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] }, po));
   }
   function init() {
+    $('appVer').textContent = APP_VERSION;
     syncCollection();
     applyAudio();
     if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${new URL(IMG.bg_title, location.href).href})`); // absolute: the stylesheet would resolve a relative one under css/

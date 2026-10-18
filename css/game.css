@@ -714,3 +714,5 @@ button:disabled { cursor: default; }
 #countdown.go { background-size: min(92vw, 420px) auto; }
 /* an empty support gauge still shows its track */
 .supbtn .ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+/* app version under the title */
+.logo .appver { display: block; margin-top: 2px; font: 600 11px var(--en-font); font-style: normal; letter-spacing: 1px; color: rgba(220,230,240,.55); }
