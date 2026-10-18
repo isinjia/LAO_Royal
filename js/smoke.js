@@ -49,14 +49,22 @@
   async function match(faction, mode, trophy, diff) {
     const G = GAME.G;
     Object.assign(UI.save, { faction, mode, trophy, diff, tutorial: true });
+    // practice: the opponent plays the player's other saved deck; nothing on the record may move
+    const prac = BAL.modes[mode].key === 'practice', pf = faction === 'orca' ? 'iron' : 'orca';
+    if (prac) UI.save.practiceFoe = pf;
+    const RK = ['trophy', 'best', 'gold', 'wins', 'losses', 'draws', 'streak', 'chests', 'cards', 'missions'];
+    const rec0 = prac && RK.map((k) => JSON.stringify(UI.save[k]));
     document.getElementById('result').className = 'screen';
     document.getElementById('btnBattle').click();
     if (!await until(() => G.phase === 'countdown', 45000)) { out.errors.push(`load timeout ${faction}/${mode}/${trophy}`); return; }
+    if (prac && G.sides.red.deck.slice().sort().join() !== UI.save.decks[pf].slice().sort().join()) out.errors.push(`practice: the opponent is not playing the picked deck (${G.sides.red.deck.join()})`);
     const t0 = performance.now();
     let steps = 0;
     for (let s = 0; s < 640 && G.phase !== 'ended'; s++) { GAME._run(0.5); bot(G); steps++; if (s % 40 === 0) await wait(0); }
     const ms = (performance.now() - t0) / steps;
     await until(() => document.getElementById('result').classList.contains('on'), 5000);
+    if (prac) { const moved = RK.filter((k, i) => JSON.stringify(UI.save[k]) !== rec0[i]); if (moved.length) out.errors.push('practice: the match changed ' + moved.join(', ')); }
+    if (prac && !document.getElementById('resReward').hidden) out.errors.push('practice: the reward row is shown');
     const info = GAME.info;
     out.runs.push([faction, BAL.modes[mode].key, 'arena' + DATA.arenaOf(trophy), BAL.diffs[diff].key, G.result, `${G.sides.blue.crowns}-${G.sides.red.crowns}`,
       `skills ${G.stats.blue.skills}/${G.stats.red.skills}`, `${ms.toFixed(1)}ms/0.5s`, `geo ${info.geo} tex ${info.tex}`]);

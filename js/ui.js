@@ -15,6 +15,7 @@
     if (!FACTIONS[s.faction]) s.faction = 'orca';
     if (!(s.diff >= 0 && s.diff <= 2)) s.diff = 1;
     if (!(s.mode >= 0 && s.mode < BAL.modes.length)) s.mode = 0;
+    if (!['ai', 'orca', 'iron'].includes(s.practiceFoe)) s.practiceFoe = 'ai';
     const unit = (v, d) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : d);
     s.music = unit(s.music, 1); s.sfx = unit(s.sfx, 1);
     s.quality = s.quality === null || s.quality === undefined || !(+s.quality >= 0 && +s.quality <= 2) ? null : Math.round(+s.quality);
@@ -183,8 +184,9 @@
     row.innerHTML = '';
     save.decks[save.faction].forEach((id) => row.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
     $('avgCost').innerHTML = avg(save.decks[save.faction]) + ' ' + synChip(save.decks[save.faction]);
-    const foe = foeFaction({ faction: save.faction, mode: save.mode });
-    $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>`;
+    const foe = foeFaction(Object.assign({ faction: save.faction, mode: save.mode }, practiceOpts()));
+    $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>` +
+      (save.mode === 4 ? `<div class="seg pfoe" id="pfoeSel">${Object.entries(PFOE).map(([k, n]) => `<button data-p="${k}" class="${save.practiceFoe === k ? 'on' : ''}">${n}</button>`).join('')}</div>` : '');
     const up = DATA.CARDS.some((c) => canUpgrade(c));
     $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id])));
     renderChests();
@@ -586,7 +588,16 @@
   // VS loading screen (the commander is picked when the battle starts: opts.foe)
   let foe = null;
   // mirror operation: the opponent fights with the player's own faction (and one of its commanders)
-  const foeFaction = (o) => o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca';
+  const foeFaction = (o) => (o.mode === 4 && o.foeFaction ? o.foeFaction : o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca');
+  // practice: the opponent plays one of the player's own decks (its faction is the deck's majority) or an AI deck
+  const PFOE = { ai: 'AI 덱', orca: '내 오르카 덱', iron: '내 철충 덱' };
+  function practiceOpts() {
+    if (save.mode !== 4) return {};
+    const k = save.practiceFoe, d = k !== 'ai' && save.decks[k];
+    if (!d) return {};
+    const n = { orca: 0, iron: 0 }; d.forEach((id) => { if (CARD[id] && n[CARD[id].faction] != null) n[CARD[id].faction]++; });
+    return { foeDeck: d.slice(), foeFaction: n.orca === n.iron ? k : n.orca > n.iron ? 'orca' : 'iron' };
+  }
   function loading(f, opts) {
     const el = $('loading');
     if (el.hidden && opts) {
@@ -742,12 +753,13 @@
     const G = GAME.G, d = BAL.diffs[G.opts.diff];
     const a0 = arena();
     const floor = ARENAS[a0].trophy;
-    const rw = rollRewards(win, b); // rolled at the arena the match was played in (before trophies move)
-    let delta = draw ? 0 : win ? Math.round((26 + b * 3) * d.trophy) : -Math.round(18 + a0 * 3);
-    if (!win && save.trophy + delta < floor) delta = floor - save.trophy; // never drop out of a reached arena
+    const practice = G.opts.mode === 4; // practice: no trophies, rewards, record, missions or bonuses
+    const rw = practice ? { gold: 0, picks: [], chest: null } : rollRewards(win, b); // rolled at the arena the match was played in (before trophies move)
+    let delta = practice || draw ? 0 : win ? Math.round((26 + b * 3) * d.trophy) : -Math.round(18 + a0 * 3);
+    if (!practice && !win && save.trophy + delta < floor) delta = floor - save.trophy; // never drop out of a reached arena
     save.trophy += delta;
     save.best = Math.max(save.best, save.trophy);
-    if (win) { save.wins++; save.streak++; } else if (draw) save.draws++; else { save.losses++; save.streak = 0; }
+    if (practice) { /* not on the record */ } else if (win) { save.wins++; save.streak++; } else if (draw) save.draws++; else { save.losses++; save.streak = 0; }
     save.gold += rw.gold;
     const a1 = arena();
     syncCollection();
@@ -755,7 +767,7 @@
     el.className = 'screen on ' + (win ? 'win' : draw ? 'draw' : 'lose');
     $('resTitle').textContent = win ? '승리!' : draw ? '무승부' : '패배';
     const REASON = { king: '킹 타워 파괴', crowns: '크라운 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
-    $('resReason').textContent = REASON[reason] || '';
+    $('resReason').textContent = (practice ? '연습전 · ' : '') + (REASON[reason] || '');
     // the winning side's original cut-scene art behind the result
     const wf = (win || draw ? G.sides.blue : G.sides.red).faction;
     el.style.backgroundImage = `linear-gradient(rgba(4,6,10,.5), rgba(4,6,10,.88)), url(assets/bg/${WIN_ART[wf][Math.floor(Math.random() * WIN_ART[wf].length)]}.jpg)`;
@@ -763,6 +775,7 @@
     $('resCrowns').innerHTML = `<div class="rc blue"><small>${FACTIONS[G.sides.blue.faction].name}</small><span>${[0, 1, 2].map((i) => `<i class="${i < b ? 'on' : ''}"></i>`).join('')}</span></div>
       <div class="rc red"><small>${esc(foe ? foe.name : FACTIONS[G.sides.red.faction].name)}</small><span>${[0, 1, 2].map((i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</span></div>`;
     $('resTrophy').innerHTML = `<i class="tro"></i>${save.trophy} <em class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${delta}</em>`;
+    if (practice) $('resTrophy').innerHTML = '<span class="prac">연습전 · 트로피와 보상 변동 없음</span>';
     const s = stats.blue;
     $('resStats').innerHTML = `<div><b>${Math.round(s.dmg).toLocaleString()}</b><small>입힌 피해</small></div><div><b>${s.kills}</b><small>처치</small></div><div><b>${s.spent}</b><small>사용 에너지</small></div><div><b>${s.wasted.toFixed(1)}</b><small>낭비 에너지</small></div>`;
     // how the battle went: tower falls, champion skills, energy phases
@@ -779,15 +792,16 @@
     const rwEl = $('resReward');
     rwEl.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${rw.gold}</b></div>` + (rw.chest ? `<div class="rw"><span class="chest-i ${rw.chest.key}"></span><b>${esc(rw.chest.name)}</b></div>` : '') + rw.picks.map(([c, n]) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>x${n}</b></div>`).join('');
     rwEl.querySelectorAll('.rw').forEach((x, i) => { x.style.animationDelay = (0.5 + i * 0.25) + 's'; });
-    const mDone = progressMissions(win, b, s, G.opts);
+    rwEl.hidden = rwEl.previousElementSibling.hidden = practice;
+    const mDone = practice ? 0 : progressMissions(win, b, s, G.opts);
     const notes = [];
     if (a1 > a0) save.pendingReveal = a1;
     if (a1 > a0) { notes.push(`<b>새 아레나 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => SFX.play('rankUpSS', 0.6), 900); }
     if (mDone) notes.push(`<b>임무 완료 ${mDone}개!</b> 메인 화면에서 보상을 받으세요`);
-    if (win && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
+    if (win && !practice && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
     // the day's first win pays a bonus (parts and a handful of cards)
     const today = 'd' + (G.opDay != null ? G.opDay : DATA.dayIndex()); // the same (KST) day as the daily operation
-    if (win && save.firstWin !== today) {
+    if (win && !practice && save.firstWin !== today) {
       save.firstWin = today;
       const bg = 80 + arena() * 30;
       save.gold += bg;
@@ -861,8 +875,9 @@
     save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
     DATA.CARDS.forEach((c) => { if (!(c.id in levels) && save.cards[c.id]) levels[c.id] = save.cards[c.id].lv; });
     const mut = save.mode === 3 ? DATA.mutatorOf() : null; // drawn once: the commander, the VS screen and the battle all use the same rule (no midnight race)
-    const ff = foeFaction({ faction: save.faction, mode: save.mode, mut }), cs = DATA.COMMANDERS[ff];
-    GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] });
+    const po = practiceOpts();
+    const ff = foeFaction(Object.assign({ faction: save.faction, mode: save.mode, mut }, po)), cs = DATA.COMMANDERS[ff];
+    GAME.start(Object.assign({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] }, po));
   }
   function init() {
     syncCollection();
@@ -870,6 +885,7 @@
     if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${new URL(IMG.bg_title, location.href).href})`); // absolute: the stylesheet would resolve a relative one under css/
     $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; persist(); SFX.play('click'); renderTitle(); });
     $('diffSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.diff = +b.dataset.d; persist(); SFX.play('click'); renderTitle(); });
+    $('vsLine').addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; save.practiceFoe = b.dataset.p; persist(); SFX.play('click'); renderTitle(); });
     $('modeSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.mode = +b.dataset.m; persist(); SFX.play('click'); renderTitle(); toast(save.mode === 3 ? `오늘의 작전: ${DATA.mutatorOf().name} — ${DATA.mutatorOf().desc}` : BAL.modes[save.mode].desc); });
     document.querySelectorAll('#factionSel button').forEach((b) => { b.querySelector('.fp').style.backgroundImage = `url(${IMG[FACTIONS[b.dataset.f].banner]})`; });
     $('btnBattle').onclick = startBattle;

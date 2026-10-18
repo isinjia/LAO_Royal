@@ -184,6 +184,7 @@
       { key: 'rush', name: '에너지 폭주', desc: '처음부터 에너지 2배 · 연장전 3배' },
       { key: 'draft', name: '무작위 덱', desc: '양측 모두 해금 카드로 만든 무작위 덱' },
       { key: 'daily', name: '오늘의 작전', desc: '날마다 바뀌는 특수 규칙' },
+      { key: 'practice', name: '연습전', desc: '상대 덱을 골라 연습 · 트로피/보상 없음' },
     ],
   };
 

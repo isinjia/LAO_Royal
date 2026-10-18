@@ -634,3 +634,8 @@ button:disabled { cursor: default; }
 .supbtn.ready{background:radial-gradient(circle at 50% 40%,#2f6fa0,#13304a);color:#fff;animation:supPulse 1s ease-in-out infinite alternate}
 .supbtn.iron.ready{background:radial-gradient(circle at 50% 40%,#a03a46,#4a1219)}
 @keyframes supPulse{from{box-shadow:0 0 0 0 rgba(79,192,255,.6),0 3px 8px rgba(0,0,0,.6)}to{box-shadow:0 0 0 8px rgba(79,192,255,0),0 3px 8px rgba(0,0,0,.6)}}
+/* practice mode: the fifth mode spans the row; the opponent-deck picker sits under the VS line */
+.seg.s4 button:nth-child(5) { grid-column: 1 / -1; }
+#vsLine .pfoe { margin: 6px auto 0; max-width: 320px; font-size: 11px; }
+#vsLine .pfoe button { padding: 5px 0; font: 600 11px var(--kr); }
+.rtro .prac { font-size: 13px; color: #9fb0c2; font-weight: 600; }

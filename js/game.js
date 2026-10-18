@@ -2689,14 +2689,16 @@
     clearBattle();
     G.opts = opts;
     G.arena = opts.arena || 0;
-    { const mir = opts.mode === 3 && (opts.mut || DATA.mutatorOf()).mirror; G.ironHalves = { home: opts.faction === 'iron', far: mir ? opts.faction === 'iron' : opts.faction !== 'iron' }; } // (mirror: both halves are the player's faction) // the floor shows which half the iron side holds
-    setArena(G.arena);
     G.mut = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null;
     G.opDay = DATA.dayIndex(); // credited to the day the rule was drawn (a match may end past midnight)
-    const foeF = G.mut && G.mut.mirror ? opts.faction : opts.faction === 'orca' ? 'iron' : 'orca'; // mirror: the same faction too
+    // practice: the opponent's faction comes with the deck the player picked for it; mirror: the same faction too
+    const practice = opts.mode === 4 && Array.isArray(opts.foeDeck) && opts.foeDeck.length === 8 && opts.foeDeck.every((id) => CARD[id]);
+    const foeF = practice && FACTIONS[opts.foeFaction] ? opts.foeFaction : G.mut && G.mut.mirror ? opts.faction : opts.faction === 'orca' ? 'iron' : 'orca';
+    G.ironHalves = { home: opts.faction === 'iron', far: foeF === 'iron' }; // the floor shows which half the iron side holds
+    setArena(G.arena);
     const diff = BAL.diffs[opts.diff] || BAL.diffs[1];
     const style = DATA.STYLES[(opts.foe && opts.foe.style) || 'balanced'];
-    const aiDeck0 = buildDeck(foeF, G.arena, style, false, opts.mode === 2 ? null : opts.deck);
+    const aiDeck0 = practice ? opts.foeDeck.slice() : buildDeck(foeF, G.arena, style, false, opts.mode === 2 ? null : opts.deck);
     const myDeck = opts.mode === 2 ? buildDeck(opts.faction, G.arena, null, true) : opts.deck; // random-deck mode (unlocked cards only)
     const aiDeck = G.mut && G.mut.mirror ? myDeck.slice() : aiDeck0; // mirror operation: the same eight cards
     G.hints = G.mut && G.mut.mirror ? ['당신과 똑같은 덱으로 맞섭니다'] : hints.slice();
