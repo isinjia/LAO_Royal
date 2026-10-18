@@ -152,6 +152,9 @@
     ok(fr < 16, `crowded field: ${fr.toFixed(1)} ms per frame (budget 16)`);
     const calls = GAME.info ? GAME.info.calls : 0; // draw calls of the last crowded frame (batched effects and shared rig materials keep this low)
     ok(calls > 0 && calls <= 380, `crowded field: ${calls} draw calls (budget 380; ~3 per rig: every unit keeps its own tint/outline material)`);
+    // draws per troop rig (blend runs in draw order): most rigs are a single draw; the figure is logged so a regression shows up
+    { let draws = 0, n = 0; for (const e of G.ents) if (e.kind === 'troop' && e.sd) { n++; e.sd.root.traverse((o) => { if (o.isMesh) draws += Math.max(1, o.geometry.groups.length); }); }
+      if (n) { out.runs.push(['draws per rig', (draws / n).toFixed(2), `${n} troops`]); ok(draws / n <= 3.2, `troop rigs average ${(draws / n).toFixed(2)} draws (budget 3.2)`); } }
     out.runs.push(['unit checks', `${champs.length} champion skills`, `sim ${ms.toFixed(1)}ms/0.5s`, `frame ${fr.toFixed(1)}ms`, `${calls} draws`, `${G.ents.length} entities`]);
     GAME.surrender();
     await until(() => document.getElementById('result').classList.contains('on'), 5000);
