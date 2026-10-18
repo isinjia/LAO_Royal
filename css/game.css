@@ -655,3 +655,6 @@ button:disabled { cursor: default; }
 #grade.danger::after { animation: otPulse .9s ease-in-out infinite; }
 @keyframes otPulse { 0%, 100% { opacity: .25; } 50% { opacity: .8; } }
 #stage.paused #grade::after { animation-play-state: paused; }
+/* champion skill buttons: a row along the bottom-right edge, under the tower plates (a column covered the right plate) */
+#skillBar { flex-direction: row-reverse; align-items: flex-end; gap: 6px; right: 6px; bottom: 10px; }
+@media (max-width:430px) { #skillBar .skb { width: 52px; height: 52px; } }

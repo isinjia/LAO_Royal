@@ -696,10 +696,10 @@
 
   // ── entities ──────────────────────────────────────────
   function makeBar(w, color) {
-    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.12, aspect: 0.55 / (w + 0.12), color: 0x1a2129, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.95 });
-    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
-    const ol = FX.sprite({ x: 0, y: -99, size: w + 0.22, aspect: 0.66 / (w + 0.22), color: 0x05070a, tex: FX.tex.white, normal: true, order: L.BAR - 1, alpha: 0.95 }); // a crisp dark frame, like the tower plates
-    const lag = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.4 / w, color: 0xfff4e0, tex: FX.tex.white, normal: true, order: L.BAR + 0.5, alpha: 0.9 }); // lost health drains away behind the fill
+    const bg = FX.sprite({ x: 0, y: -99, size: w + 0.1, aspect: 0.36 / (w + 0.1), color: 0x1a2129, tex: FX.tex.white, normal: true, order: L.BAR, alpha: 0.95 });
+    const fill = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.26 / w, color, tex: FX.tex.white, normal: true, order: L.BAR + 1, alpha: 1 });
+    const ol = FX.sprite({ x: 0, y: -99, size: w + 0.18, aspect: 0.44 / (w + 0.18), color: 0x05070a, tex: FX.tex.white, normal: true, order: L.BAR - 1, alpha: 0.95 }); // a crisp dark frame, like the tower plates
+    const lag = FX.sprite({ x: 0, y: -99, size: w, aspect: 0.26 / w, color: 0xfff4e0, tex: FX.tex.white, normal: true, order: L.BAR + 0.5, alpha: 0.9 }); // lost health drains away behind the fill
     bg.hidden = fill.hidden = ol.hidden = lag.hidden = true;
     return { bg, fill, ol, lag, w, lagF: 1 };
   }
@@ -708,11 +708,11 @@
     b.bg.hidden = b.fill.hidden = b.ol.hidden = false;
     b.bg.x = b.ol.x = x; b.bg.y = b.ol.y = y;
     const w = Math.max(0.01, b.w * f);
-    b.fill.sz = w; b.fill.aspect = 0.4 / w;
+    b.fill.sz = w; b.fill.aspect = 0.26 / w;
     b.fill.x = x - b.w / 2 + w / 2; b.fill.y = y;
     b.lagF = f >= b.lagF ? f : b.lagF + (f - b.lagF) * 0.07; // eases down over ~0.4 s
     b.lag.hidden = b.lagF - f < 0.005;
-    if (!b.lag.hidden) { const lw = b.w * b.lagF; b.lag.sz = lw; b.lag.aspect = 0.4 / lw; b.lag.x = x - b.w / 2 + lw / 2; b.lag.y = y; }
+    if (!b.lag.hidden) { const lw = b.w * b.lagF; b.lag.sz = lw; b.lag.aspect = 0.26 / lw; b.lag.x = x - b.w / 2 + lw / 2; b.lag.y = y; }
     if (color != null) b.fill.color = color;
   }
   function hideBar(b) { b.bg.hidden = b.fill.hidden = b.ol.hidden = b.lag.hidden = true; }
@@ -742,7 +742,7 @@
     if (isIron(card.rig)) u.tintMul = 1.4;
     if (u.sd) { if (side === 'blue') u.sd.setRim(0.04, 0.1, 0.2, 0.9); else u.sd.setRim(0.62, 0.08, 0.1, 0.7); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
     if (u.sd) { u.sd.setOpacity(0.6); u.sd.play('idle'); u.sd.time = Math.random(); }
-    u.bar = makeBar(clamp(u.r * 3.2, 1.7, 2.5), teamHex(side));
+    u.bar = makeBar(clamp(u.r * 2.6, 1.3, 2), teamHex(side)); // slim bars: small units stay the focus
     G.ents.push(u);
     return u;
   }
@@ -2238,6 +2238,7 @@
             const by = y + e.bodyH * (e.air ? 0.9 : 1.05) + 0.15;
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
+            e.bar.bg.alpha = e.deployT > 0 ? 0.45 : 0.95; // a deploy timer's backing is faint: no dark block over a fresh unit
             if (e.deployT > 0) { // a deploy timer stays a light sliver, and a swarm shows one timer, not one per member
               e.bar.ol.hidden = true;
               if (deployBars.some((o) => Math.abs(o.bg.x - e.x) < 1.6 && Math.abs(o.bg.y - by) < 1.2)) hideBar(e.bar); else deployBars.push(e.bar);
@@ -2311,7 +2312,7 @@
         const b = shownBars[i];
         for (let j = 0; j < i; j++) {
           const o = shownBars[j];
-          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.22) { const up = o.bg.y + 0.24 - b.bg.y; b.bg.y += up; b.fill.y += up; b.ol.y += up; b.lag.y += up; }
+          if (Math.abs(o.bg.x - b.bg.x) < (o.w + b.w) * 0.5 && Math.abs(o.bg.y - b.bg.y) < 0.18) { const up = o.bg.y + 0.2 - b.bg.y; b.bg.y += up; b.fill.y += up; b.ol.y += up; b.lag.y += up; }
         }
       }
     }
@@ -2664,6 +2665,11 @@
     amb.river2 = quad(tx2, ARENAS[0].glow, 0.35, true, -9.5);
     amb.river2.scale.set(18, BAL.river * 2 * TILT * 0.75, 1);
     scene.add(amb.river2);
+    // foam along both banks: broken bright streaks drifting opposite ways (the chasm edge reads as moving water/energy)
+    { const fc = document.createElement('canvas'); fc.width = 256; fc.height = 8; const fg = fc.getContext('2d');
+      for (let i = 0; i < 18; i++) { const x = Math.random() * 256, w = 6 + Math.random() * 26, gr = fg.createLinearGradient(x, 0, x + w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); fg.fillStyle = gr; fg.fillRect(x, 2 + Math.random() * 3, w, 2); }
+      const ft = new THREE.CanvasTexture(fc); ft.wrapS = THREE.RepeatWrapping; ft.repeat.set(3, 1);
+      amb.foam = [-1, 1].map((sg) => { const t2 = sg < 0 ? ft : ft.clone(); t2.needsUpdate = true; const q = quad(t2, 0xffffff, 0.4, true, -8.8); q.scale.set(18, 0.32, 1); q.position.set(0, sg * (BAL.river * TILT - 0.3), 0); scene.add(q); return q; }); }
     // a soft diagonal light sweep that crosses the floor now and then
     const sc = document.createElement('canvas'); sc.width = 128; sc.height = 4;
     const sg = sc.getContext('2d'), sgr = sg.createLinearGradient(0, 0, 128, 0);
@@ -2683,6 +2689,7 @@
     if (aimMarks.length) aimMarks[0].alpha = 0.65 + 0.3 * Math.sin(amb.t * 9); // the aim reticle pulses
     if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = Math.min(1, 0.58 + Math.sin(amb.t * 2.1) * 0.12 + G.surge * 0.42); }
     if (G.surge > 0) G.surge = Math.max(0, G.surge - dt * 0.7);
+    if (amb.foam) { amb.foam[0].material.map.offset.x += dt * 0.06; amb.foam[1].material.map.offset.x -= dt * 0.06; }
     if (amb.river2) { amb.river2.material.map.offset.x += dt * 0.05; amb.river2.material.opacity = 0.35 + Math.sin(amb.t * 1.3 + 1) * 0.1; }
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)
