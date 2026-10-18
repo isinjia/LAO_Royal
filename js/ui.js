@@ -387,6 +387,9 @@
     if (!G.sides) return;
     tickCards();
     tickSupport();
+    // your king under 30%: the screen edge pulses red (shows existing state only)
+    const kg = G.phase === 'play' && G.sides.blue.towers.find((t) => t.type === 'king'), dz = !!(kg && kg.alive && kg.hp < kg.max * 0.3);
+    const gd = $('grade'); if (gd.classList.contains('danger') !== dz) gd.classList.toggle('danger', dz);
     const t = Math.max(0, Math.ceil(G.clock));
     const s = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     if (s !== lastClock) {

@@ -23,12 +23,12 @@
 
   const G = {
     phase: 'title', after: [], ents: [], projs: [], bfx: [], sfx: [], zones: [], decals: [], punch: 0, sides: null, time: 0, clock: 0, overtime: false, mult: 1,
-    sel: -1, ghost: null, opts: null, nextId: 1, endT: 0, result: null, paused: false, riverT: 0, zoneKey: '', arena: 0,
+    sel: -1, ghost: null, opts: null, nextId: 1, endT: 0, result: null, paused: false, riverT: 0, surge: 0, zoneKey: '', arena: 0,
     stats: null,
   };
 
   // battle log for the result screen: [clock text, line, side]
-  function logEvent(text, side, kind) { if (!G.log) return; const t = Math.max(0, Math.ceil(G.clock)); G.log.push([(G.overtime ? '연장 ' : '') + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'), text, side || '', kind || '']); }
+  function logEvent(text, side, kind) { if (!G.log) return; const t = Math.max(0, Math.ceil(G.clock)); G.log.push([(G.overtime ? '연장 ' : '') + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'), text, side || '', kind || '']); if (G.log.length > 400) G.log.splice(0, G.log.length - 400); } // bounded (long overtime / soak runs)
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const rnd = (a, b) => a + Math.random() * (b - a);
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -735,8 +735,8 @@
     u.holder = new THREE.Group();
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.8), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
-    u.disc = FX.sprite({ x, y: z * TILT, size: Math.max(1.7, u.r * 4.8), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
-    u.glow = FX.sprite({ x, y: z * TILT, size: Math.max(1.9, u.r * 5.2), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.48 : 0.6, tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
+    u.disc = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 4.8, 1.7, 3), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 1, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
+    u.glow = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 5.2, 1.9, 3.2), aspect: TILT, color: teamHex(side), alpha: (side === 'red' ? 0.48 : 0.6) * (u.r > 0.6 ? 0.7 : 1), /* big mechs: a capped, fainter pool that never hides the bridge */ tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.4 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
@@ -1737,6 +1737,11 @@
         u.elev = 0;
         FX.groundRing(u.x, u.z * TILT, 0.2, u.r * 2.4, 0xffffff, 0.3, 0.7);
         FX.groundRing(u.x, u.z * TILT, 0.3, u.r * 3.6, teamHex(u.side), 0.45, 0.8); // the team's flare on landing
+        if (u.card.skill) { // a champion lands as an event: a wide ring in its skill colour and rising glints
+          const sc = u.card.skill.color;
+          FX.groundRing(u.x, u.z * TILT, 0.4, u.r * 5.4, sc, 0.6, 0.9);
+          for (let i = 0; i < 10; i++) FX.particle({ x: u.x + rnd(-0.6, 0.6), y: u.z * TILT + rnd(0, 0.4), vy: rnd(1.8, 3.2), life: rnd(0.5, 0.8), size: 0.26, size1: 0, color: i % 2 ? sc : 0xffffff, tex: FX.tex.dot });
+        }
         FX.particle({ x: u.x, y: u.z * TILT + u.bodyH * 0.4, life: 0.25, size: 0.6, size1: u.bodyH * 1.6, color: teamHex(u.side), tex: FX.tex.glow, alpha: 0.6 });
         for (let i = 0; i < 8; i++) FX.particle({ x: u.x + rnd(-0.4, 0.4), y: u.z * TILT, vx: rnd(-1, 1), vy: rnd(0.2, 0.6), life: 0.45, size: 0.3, size1: 0.8, color: 0x8a96a3, alpha: 0.35, normal: true, frames: FX.sheets.smoke, order: L.LOW });
         // on the bright deck additive light alone washes out: a dark contact mark and a kicked-up ring of grit sell the landing
@@ -1906,6 +1911,7 @@
     if (mult !== G.mult) {
       G.mult = mult;
       UI.banner(mult === 2 ? '에너지 2배!' : '에너지 3배!', 'warn');
+      energySurge();
       logEvent(mult === 2 ? '에너지 2배 돌입' : '에너지 3배 돌입');
       SFX.play('warning', 0.5);
       if (mult === 2) SFX.music('battle2');
@@ -1937,6 +1943,8 @@
       if (!G.overtime && b === r) {
         G.overtime = true; G.clock = BAL.overtime; G.mult = 3; // (no separate 'energy x3' banner over the overtime rule)
         UI.banner('연장전! 먼저 타워를 파괴하면 승리', 'warn');
+        energySurge();
+        { const gr = document.getElementById('grade'); if (gr) gr.classList.add('ot'); } // overtime: the screen edge glows red until the end
         logEvent('연장전 돌입');
         SFX.music('boss');
         SFX.play('warning');
@@ -2563,7 +2571,7 @@
     if (camera) { camera.zoom = 1; camera.position.x = camera.position.y = 0; camera.updateProjectionMatrix(); }
     G.ents = []; G.projs = []; G.bfx = []; G.sfx = []; G.zones = []; G.punch = 0;
     aimHide();
-    G.drag = null; G.errShown = false; G.slowmo = 0; G.hitStop = 0; G.lastBlue = null; G.troops = { blue: [], red: [] };
+    G.drag = null; G.errShown = false; G.slowmo = 0; G.hitStop = 0; G.surge = 0; { const gr = document.getElementById('grade'); if (gr) gr.classList.remove('ot', 'danger'); } G.lastBlue = null; G.troops = { blue: [], red: [] };
     (G.after || []).forEach(({ hold, c }) => { scene.remove(hold); SD.release(c); }); G.after = [];
     FX.clear();
     FXB.trimPools(4);
@@ -2673,7 +2681,8 @@
   function updateAmbient(dt) {
     amb.t += dt;
     if (aimMarks.length) aimMarks[0].alpha = 0.65 + 0.3 * Math.sin(amb.t * 9); // the aim reticle pulses
-    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = 0.58 + Math.sin(amb.t * 2.1) * 0.12; }
+    if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = Math.min(1, 0.58 + Math.sin(amb.t * 2.1) * 0.12 + G.surge * 0.42); }
+    if (G.surge > 0) G.surge = Math.max(0, G.surge - dt * 0.7);
     if (amb.river2) { amb.river2.material.map.offset.x += dt * 0.05; amb.river2.material.opacity = 0.35 + Math.sin(amb.t * 1.3 + 1) * 0.1; }
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)
@@ -2813,6 +2822,13 @@
     const bar = el._bar || (el._bar = el.querySelector('.bar'));
     if (bar && bar.animate) { bar.animate(PLATE_HIT, { duration: 220, easing: 'ease-out' }); return; }
     el.classList.remove('hit'); requestAnimationFrame(() => el.classList.add('hit'));
+  }
+  // the energy rate steps up: the chasm flares and a wave of light rolls over both halves
+  function energySurge() {
+    G.surge = 1;
+    const c = ARENAS[G.arena].glow;
+    for (const sz of [-1, 1]) { FX.groundRing(0, sz * 7 * TILT, 0.5, 9, c, 0.9, 0.55); FX.later(0.15, () => FX.groundRing(0, sz * 7 * TILT, 0.3, 6, 0xffffff, 0.6, 0.35)); }
+    FX.flash(c, 0.18);
   }
   function frameErr(err, stage) {
     G.errStage = stage; // which part failed (shown if it keeps failing)
