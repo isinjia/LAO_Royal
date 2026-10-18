@@ -682,3 +682,18 @@ button:disabled { cursor: default; }
 .card .rkic.ss { width: 28px; height: 25px; left: -2px; }
 .ci-body h4 .rkic, #cardTip .rkic { display: inline-block; width: 24px; height: 24px; margin-right: 6px; vertical-align: -6px; background: center / contain no-repeat; }
 .ci-body h4 .rkic.ss, #cardTip .rkic.ss { width: 30px; height: 26px; }
+
+/* ── original UI art pass (the source game's battle/common atlas, already bundled in ui_assets.js) ── */
+/* buttons: the game's own cut-corner plates (9-slice) */
+.btn.y { background: none; border: 9px solid transparent; border-image: var(--s-btn02_y) 42 fill / 9px stretch; padding: 3px 11px; }
+.btn.d { background: none; border: 9px solid transparent; border-image: var(--s-btn02_d) 42 fill / 9px stretch; padding: 3px 11px; }
+.btn.big { padding: 7px 19px; }
+.btn.sm { padding: 0 4px; border-width: 7px; border-image-width: 7px; }
+/* dialog titles sit on the game's title bar */
+.dlg h4 { background: var(--s-title_bar) center / 100% 100% no-repeat; padding: 9px 12px 10px; margin: -6px -6px 12px; color: #0e141a; text-shadow: 0 0 8px rgba(255,255,255,.9); }
+/* warning banners carry the game's CAUTION mark */
+.banner.warn { background: var(--s-caution_text) center 4px / 92px auto no-repeat, linear-gradient(90deg, transparent, rgba(40,20,0,.85) 15%, rgba(40,20,0,.85) 85%, transparent); padding-top: 26px; }
+/* a won battle says MISSION COMPLETE under the title */
+#result.win #resTitle::after { content: ''; display: block; width: min(70%, 240px); height: 18px; margin: 4px auto 0; background: var(--s-mc_label) center / contain no-repeat; }
+/* the fatal notice leads with the warning sign */
+#fatal .dlg::before { content: ''; display: block; width: 44px; height: 44px; margin: 0 auto 8px; background: var(--s-i_warning) center / contain no-repeat; }
