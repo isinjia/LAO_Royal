@@ -204,8 +204,11 @@
         for (let i = 0; i < 240; i++) GAME._perfTick(25, 16);
         const q1 = GAME.qualityLevel;
         for (let i = 0; i < 720; i++) GAME._perfTick(34, 3);
-        ok(GAME.qualityLevel === q1, `long frames with light work do not raise quality (${q1} → ${GAME.qualityLevel})`);
+        ok(GAME.qualityLevel >= q1, `long frames with light work do not raise quality (${q1} → ${GAME.qualityLevel})`);
         for (let i = 0; i < 720; i++) GAME._perfTick(16.7, 3);
+        // and on a screen that has shown 60 Hz, ~30 fps with light JS (fill-bound) steps quality down
+        const q2 = GAME.qualityLevel;
+        if (q2 < 2) { for (let i = 0; i < 240; i++) GAME._perfTick(34, 3); ok(GAME.qualityLevel === q2 + 1, `fill-bound frames lower the quality (${q2} → ${GAME.qualityLevel})`); for (let i = 0; i < 720; i++) GAME._perfTick(16.7, 3); }
         out.runs.push(['auto quality', `${q0} → slow → ${GAME.qualityLevel}`]);
       }
     }

@@ -2337,7 +2337,8 @@
     perf.fps = Math.round(1000 / avg);
     perf.acc = perf.n = perf.work = 0;
     // our own frame work decides (a throttled / 30 Hz display alone is not a reason to drop quality)
-    const slow = wk > 12 || (avg > 30 && wk > 7);
+    if (avg < 20) perf.fast = true; // this display can run near 60 Hz (a 30 Hz-capped screen never sets this)
+    const slow = wk > 12 || (avg > 30 && wk > 7) || (perf.fast && avg > 30); // long frames on a 60 Hz screen with light JS = GPU/fill-bound: step down too
     perf.slow = slow ? perf.slow + 1 : 0;
     if (UI.save.autoQuality === false) return;
     if (perf.slow >= 2 && perf.level < QUALITY.length - 1) { perf.slow = 0; perf.good = 0; setQuality(perf.level + 1); return; }
