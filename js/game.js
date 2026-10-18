@@ -893,7 +893,7 @@
     }
     UI.banner(`${side === 'blue' ? '' : '적 '}지휘관 지원 · ${SUPPORT[S.faction].name}`, side === 'blue' ? 'good' : 'bad');
     G.hitStop = Math.max(G.hitStop || 0, 0.06); FX.shake(0.08); // the call lands with a beat
-    if (side !== 'blue') SFX.play('warning', 0.5); // the opponent's call is heard, not only read
+    if (side !== 'blue') { SFX.play('warning', 0.5); say('ann:bossalert', 1, 3); } // the opponent's call is heard, not only read
     logEvent(`지휘관 지원: ${SUPPORT[S.faction].name}`, side, 'support');
     return true;
   }
@@ -986,6 +986,7 @@
     UI.crowns();
     UI.banner(e.side === 'red' ? '적 타워 파괴!' : '아군 타워 파괴!', e.side === 'red' ? 'gold' : 'bad');
     if (e.side === 'red') FX.later(0.5, () => SFX.play('rankUp', 0.55)); // a taken tower is a win moment: a fanfare after the blast
+    FX.later(0.7, () => say(e.side === 'red' ? 'ann:' + ['nice', 'great', 'aamazing'][Math.floor(Math.random() * 3)] : 'ann:danger', 1, 3));
     if (e.side === 'blue') aiEmote(1, 0.6); else aiEmote(2, 0.4);
     const king = S.towers.find((t) => t.type === 'king');
     if (king) activateKing(king);
@@ -1356,6 +1357,7 @@
     const S = G.sides[u.side], sk = u.card.skill;
     if (!skillReady(u) || S.elixir < skillCost(u) - 1e-6 || G.phase !== 'play' || G.paused) return false;
     S.elixir -= skillCost(u);
+    if (u.card.faction === 'orca') say(unitLine(u.card, 'skill'), 0.95, u.side === 'blue' ? 3 : 2); // the champion calls its skill
     u.skillCd = sk.cd * (G.mut && G.mut.skillCd || 1);
     u.casting = 0.9;
     u.skillFired = false;
@@ -1630,6 +1632,7 @@
       });
       FX.groundRing(x, z * TILT, 0.2, 1.6, FACTIONS[S.faction].hex, 0.5);
       SFX.play(c.rarity >= 3 ? 'genSS' : c.rarity >= 2 ? 'genS' : 'genB', 0.3);
+      if (side === 'blue' && c.faction === 'orca' && (c.skill || Math.random() < 0.6)) FX.later(0.3, () => say(unitLine(c, 'deploy'), 0.85, c.skill ? 2 : 1)); // the unit answers the call
       FX.later(0.25, () => FX.summonBurst(x, z * TILT + 0.3, c.rarity >= 3 ? 3 : c.rarity >= 1 ? 2 : 1, teamHex(side))); // every deploy lands with a team-coloured burst (bigger for rarer cards)
       FX.particle({ x, y: z * TILT, life: 1.4, size: 1.2, size1: 2.6, aspect: TILT, color: teamHex(side), tex: FX.tex.ring, alpha: 0.55, order: L.GROUND + 3 }); // a lingering drop circle
     } else if (c.type === 'building') {
@@ -1912,6 +1915,9 @@
     G.time += dt;
     G.clock -= dt;
     const rush = G.opts.mode === 1 || !!(G.mut && G.mut.rush);
+    // announcer cues: thirty seconds left, your king in danger (once each per match)
+    if (!G.overtime && G.clock <= 30 && !G.said30) { G.said30 = true; say('ann:timelimit', 1, 2); }
+    if (!G.saidKing) { const kg = G.sides.blue.towers.find((t) => t.type === 'king'); if (kg && kg.alive && kg.hp < kg.max * 0.3) { G.saidKing = true; say('ann:becareful', 1, 3); } }
     const mult = G.overtime ? 3 : rush || G.clock <= BAL.doubleAt ? 2 : 1;
     if (mult !== G.mult) {
       G.mult = mult;
@@ -1968,6 +1974,7 @@
     if (G.phase !== 'play') return;
     G.phase = 'ended';
     G.result = winner;
+    if (winner !== 'draw') FX.later(0.3, () => say(winner === 'blue' ? (G.sides.blue.crowns >= 3 ? 'ann:perfect' : 'ann:clear') : 'ann:fail', 1, 5));
     for (const e of G.ents) { e.hitT = 0; e.shieldT = 0; e.hasteT = 0; } // nothing stays mid-flash in the final frame
     G.endT = 0;
     deselect();
@@ -2580,7 +2587,7 @@
     if (camera) { camera.zoom = 1; camera.position.x = camera.position.y = 0; camera.updateProjectionMatrix(); }
     G.ents = []; G.projs = []; G.bfx = []; G.sfx = []; G.zones = []; G.punch = 0;
     aimHide();
-    G.drag = null; G.errShown = false; G.slowmo = 0; G.hitStop = 0; G.surge = 0; { const gr = document.getElementById('grade'); if (gr) gr.classList.remove('ot', 'danger'); } G.lastBlue = null; G.troops = { blue: [], red: [] };
+    G.drag = null; G.errShown = false; G.slowmo = 0; G.hitStop = 0; G.surge = 0; G.said30 = G.saidKing = false; { const gr = document.getElementById('grade'); if (gr) gr.classList.remove('ot', 'danger'); } G.lastBlue = null; G.troops = { blue: [], red: [] };
     (G.after || []).forEach(({ hold, c }) => { scene.remove(hold); SD.release(c); }); G.after = [];
     FX.clear();
     FXB.trimPools(4);
@@ -2733,7 +2740,12 @@
   async function start(opts) {
     clearBattle();
     G.opts = opts;
-    if (window.SFX && SFX.warm) SFX.warm(['rankUp', 'charge', 'reinforce', 'missile', 'warning', 'expB', 'quake', 'energy']); // big-moment sounds ready before they first play
+    if (window.SFX && SFX.warm) {
+      SFX.warm(['rankUp', 'charge', 'reinforce', 'missile', 'warning', 'expB', 'quake', 'energy']); // big-moment sounds ready before they first play
+      SFX.warm(['3', '2', '1', 'gamestart', 'timelimit', 'becareful', 'nice', 'great', 'aamazing', 'danger', 'bossalert', 'clear', 'perfect', 'fail', 'notready', '10', '9', '8', '7', '6', '5', '4'].map((k) => 'ann:' + k));
+      const vc = new Set(); for (const id of (opts.deck || []).concat(opts.foeDeck || [])) { const c = CARD[id]; if (c && c.faction === 'orca') ['deploy', 'skill', 'win'].forEach((k) => vc.add('unit:' + id + '_' + k)); } // this match's voices
+      SFX.warm([...vc]);
+    }
     G.arena = opts.arena || 0;
     G.mut = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null;
     G.opDay = DATA.dayIndex(); // credited to the day the rule was drawn (a match may end past midnight)
@@ -2758,6 +2770,7 @@
     };
     const st0 = () => ({ dmg: 0, kills: 0, spent: 0, wasted: 0, skills: 0, cards: 0, by: {} });
     G.stats = { blue: st0(), red: st0() };
+    if (window.SFX && SFX.warm) SFX.warm(G.sides.red.deck.filter((id) => CARD[id].faction === 'orca' && CARD[id].skill).map((id) => 'unit:' + id + '_skill')); // an orca opponent's champions call their skills too
     G.log = [];
     G.phase = 'loading';
     // every rig and baked effect this match can show
@@ -2838,6 +2851,9 @@
     if (bar && bar.animate) { bar.animate(PLATE_HIT, { duration: 220, easing: 'ease-out' }); return; }
     el.classList.remove('hit'); requestAnimationFrame(() => el.classList.add('hit'));
   }
+  // voice lines (the original announcer and the characters' own lines): one at a time, see SFX.voice
+  const say = (key, vol, prio) => window.SFX && SFX.voice && SFX.voice(key, vol, prio);
+  const unitLine = (card, kind) => 'unit:' + card.id + '_' + kind; // orca cards have deploy / skill / win lines; the iron machines are silent
   // the energy rate steps up: the chasm flares and a wave of light rolls over both halves
   function energySurge() {
     G.surge = 1;
@@ -2862,7 +2878,7 @@
       if (G.phase === 'countdown') {
         G.cdT -= dt;
         const n = Math.ceil(G.cdT - 0.2);
-        if (n !== G.cdN) { G.cdN = n; if (n > 0) { UI.countdown(n); SFX.play('click', 0.5); } else { UI.countdown(0); SFX.play('start', 0.6); G.phase = 'play'; } }
+        if (n !== G.cdN) { G.cdN = n; if (n > 0) { UI.countdown(n); SFX.play('click', 0.5); if (n <= 3) say('ann:' + n, 1, 4); } else { UI.countdown(0); SFX.play('start', 0.6); say('ann:gamestart', 1, 4); G.phase = 'play'; } }
         for (const e of G.ents) if (e.sd) e.sd.update(dt);
       }
       if (G.phase === 'play') {

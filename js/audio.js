@@ -41,14 +41,42 @@
   }
   ['pointerdown', 'touchend', 'keydown'].forEach((ev) => window.addEventListener(ev, unlock, { passive: true }));
 
+  // voice lines: 'ann:<line>' (the original minigame announcer) and 'unit:<card>_<deploy|skill|win>' (the character's own line)
+  const ANN_MP3 = new Set(['bossalert', 'clear', 'danger', 'levelup', 'stageclear']);
+  function urlOf(key) {
+    if (window.SND[key]) return window.SND[key];
+    const i = key.indexOf(':');
+    if (i < 0) return null;
+    const kind = key.slice(0, i), name = key.slice(i + 1);
+    return kind === 'ann' ? `assets/voice/ann/${name}.${ANN_MP3.has(name) ? 'mp3' : 'wav'}` : kind === 'unit' ? `assets/voice/unit/${name}.mp3` : null;
+  }
+  const missing = new Set(); // lines with no file (a card without a voice): asked once, then skipped
   function load(key) {
-    if (buffers[key] || loading[key] || !window.SND[key]) return;
+    const url = urlOf(key);
+    if (buffers[key] || loading[key] || !url || missing.has(key)) return;
     const c = ensureCtx();
     if (!c) return;
-    loading[key] = fetch(window.SND[key]).then((r) => r.arrayBuffer())
+    loading[key] = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r; }).then((r) => r.arrayBuffer())
       .then((ab) => new Promise((res, rej) => c.decodeAudioData(ab, res, rej)))
       .then((buf) => { buffers[key] = buf; })
-      .catch(() => { /* leave it silent */ });
+      .catch(() => { missing.add(key); /* leave it silent */ });
+  }
+
+  // one voice at a time: a line plays over the effects; a more important one cuts a lesser one, an equal one waits its turn
+  let vSrc = null, vEnd = 0, vPrio = 0;
+  function voice(key, vol = 1, prio = 1) {
+    if (muted || !web) return false;
+    const c = ensureCtx(), buf = buffers[key];
+    if (!buf) { load(key); return false; }
+    if (c.state !== 'running') return false;
+    const now = performance.now();
+    if (now < vEnd && prio <= vPrio) return false;
+    if (vSrc && now < vEnd) { try { vSrc.stop(); } catch (e) { /* ended */ } }
+    const src = c.createBufferSource(), g = c.createGain();
+    g.gain.value = Math.min(1, VOL.sfx * 2.1 * vol);
+    src.buffer = buf; src.connect(g).connect(sfxGain); src.start();
+    vSrc = src; vEnd = now + buf.duration * 1000; vPrio = prio;
+    return true;
   }
 
   function get(key) {
@@ -149,15 +177,16 @@
     'win', 'clear', 'expB', 'quake', 'charge', 'genS', 'genSS', 'handgun', 'laserBig', 'energy', 'ice', 'spray', 'swing', 'reinforce', 'rankUp', 'rankUpSS', 'pickSS', 'purchase', 'beam', 'expSF'];
   const PHONE = /[?&]mobile=1\b/.test(location.search) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   function preload() {
+    if (web) ['ann:levelup', 'ann:stageclear', 'ann:battlestart', 'ann:3', 'ann:2', 'ann:1', 'ann:gamestart'].forEach(load); // menu and opening lines (the rest warm at battle start)
     if (web) (PHONE ? FREQUENT.slice(0, 17) : FREQUENT).forEach(load); // phones warm only the combat sounds (decoded audio is ~10x the mp3: ~18 MB for all of them)
     else FREQUENT.slice(0, 11).forEach(get);
   }
 
   // the sounds a battle's big moments need, decoded before the first one (play() on a cold sound only starts loading it)
-  function warm(keys) { if (web) keys.forEach(load); else keys.forEach(get); }
+  function warm(keys) { if (web) keys.forEach(load); else keys.filter((k) => window.SND[k]).forEach(get); }
 
   // hold / resume the current track (pause menu)
   function pauseMusic(p) { held = !!p; if (!bgm) return; if (p) bgm.pause(); else if (!document.hidden) bgm.play().catch(() => {}); }
 
-  window.SFX = { warm, play, music, pauseMusic, setMuted, setVolume, getVolume, preload, get muted() { return muted; }, get userMuted() { return userMuted; } };
+  window.SFX = { warm, voice, hasVoice: (k) => !!buffers[k], play, music, pauseMusic, setMuted, setVolume, getVolume, preload, get muted() { return muted; }, get userMuted() { return userMuted; } };
 })();

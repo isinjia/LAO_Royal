@@ -295,7 +295,7 @@
       if (o.n < k.n || save.gold < k.gold) return;
       o.n -= k.n; save.gold -= k.gold; o.lv++;
       persist();
-      SFX.play('rankUp', 0.7);
+      SFX.play('rankUp', 0.7); SFX.voice('ann:levelup', 1, 3);
       renderDeck();
       const head = info.querySelector('.ci-head .card');
       if (head) head.classList.add('levelup');
@@ -406,7 +406,7 @@
       $('timer').classList.toggle('last', G.clock <= 10);
       $('multTag').textContent = G.mult > 1 ? `에너지 x${G.mult}` : '';
       $('elixir').classList.toggle('x2', G.mult > 1);
-      if (G.phase === 'play' && G.clock <= 10 && G.clock > 0 && t !== tick.lastBeep) { tick.lastBeep = t; SFX.play('click', 0.35); }
+      if (G.phase === 'play' && G.clock <= 10 && G.clock > 0 && t !== tick.lastBeep) { tick.lastBeep = t; if (!SFX.voice('ann:' + t, 0.9, 4)) SFX.play('click', 0.35); } // the announcer counts the last ten seconds
     }
     // champion skill buttons
     // buttons are patched in place in deployment order: a new champion takes a free slot and the others never move (Q / W / E stay put)
@@ -565,6 +565,7 @@
     const G = GAME.G;
     if (G.phase !== 'play' || G.paused) return; // the match ended or paused under the finger: nothing to say
     SFX.play('fail', 0.3);
+    if (u.alive && u.skillCd > 0) SFX.voice('ann:notready', 0.8, 1);
     toast(!u.alive ? '챔피언이 쓰러졌습니다' : u.stunT > 0 || u.freezeT > 0 ? '기절·빙결 중에는 스킬을 쓸 수 없습니다' : u.casting > 0 ? '스킬 시전 중입니다' : u.deployT > 0 ? '배치가 끝나면 쓸 수 있습니다'
       : u.skillCd > 0 ? '스킬 재사용 대기 중' : '에너지가 부족합니다');
   }
@@ -622,6 +623,7 @@
   function loading(f, opts) {
     const el = $('loading');
     if (el.hidden && opts) {
+      SFX.voice('ann:battlestart', 1, 3); // "잠시 후 전투가 시작됩니다"
       const ff = foeFaction(opts);
       foe = opts.foe || DATA.COMMANDERS[ff][0];
       const st = DATA.STYLES[foe.style] || DATA.STYLES.balanced;
@@ -804,6 +806,7 @@
     $('resLog').hidden = !lg.length;
     $('resLog').innerHTML = lg.map(([t, line, sd]) => `<div class="${sd}"><em>${t}</em>${esc(line)}</div>`).join('');
     const mvp = Object.entries(s.by || {}).sort((x, y) => y[1] - x[1])[0];
+    { const mo = win && mvp && CARD[mvp[0]]; if (mo && mo.faction === 'orca') setTimeout(() => SFX.voice('unit:' + mo.id + '_win', 0.95, 4), 1600); } // the battle's MVP has the last word
     $('resMvp').hidden = !mvp;
     if (mvp && CARD[mvp[0]]) $('resMvp').innerHTML = `<span class="pf" style="background-image:url(${art(CARD[mvp[0]])})"></span><div><small>MVP</small><b>${esc(CARD[mvp[0]].name)}</b><em>피해 ${Math.round(mvp[1]).toLocaleString()}</em></div>`;
     // damage by card: who carried the battle (top five, against the MVP's bar)
@@ -817,7 +820,7 @@
     const mDone = practice ? 0 : progressMissions(win, b, s, G.opts);
     const notes = [];
     if (a1 > a0) save.pendingReveal = a1;
-    if (a1 > a0) { notes.push(`<b>새 아레나 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => SFX.play('rankUpSS', 0.6), 900); }
+    if (a1 > a0) { notes.push(`<b>새 아레나 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => { SFX.play('rankUpSS', 0.6); SFX.voice('ann:stageclear', 1, 5); }, 900); }
     if (mDone) notes.push(`<b>임무 완료 ${mDone}개!</b> 메인 화면에서 보상을 받으세요`);
     if (win && !practice && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
     // the day's first win pays a bonus (parts and a handful of cards)

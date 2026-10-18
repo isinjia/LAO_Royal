@@ -455,6 +455,15 @@
       await mutatorChecks();
       await contextLossCheck();
       await corruptSaveCheck(backup);
+      // voice lines: every announcer line the game asks for and each orca card's deploy / skill / win line is on the server
+      {
+        const ann = ['battlestart', 'gamestart', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'timelimit', 'becareful', 'nice', 'great', 'aamazing', 'fail', 'perfect', 'notready'].map((k) => `assets/voice/ann/${k}.wav`)
+          .concat(['danger', 'bossalert', 'clear', 'levelup', 'stageclear'].map((k) => `assets/voice/ann/${k}.mp3`));
+        const units = DATA.CARDS.filter((c) => c.faction === 'orca' && c.type === 'troop').flatMap((c) => ['deploy', 'skill', 'win'].map((k) => `assets/voice/unit/${c.id}_${k}.mp3`));
+        const bad = [];
+        await Promise.all(ann.concat(units).map((u) => fetch(u, { method: 'HEAD' }).then((r) => { if (!r.ok) bad.push(u); }, () => bad.push(u))));
+        if (bad.length) out.errors.push('check: missing voice files: ' + bad.slice(0, 6).join(', ') + (bad.length > 6 ? ` (+${bad.length - 6})` : ''));
+      }
       // a save that cannot be written (quota / private mode): one notice, the game keeps its progress in memory
       {
         const orig = Storage.prototype.setItem, tr0 = UI.save.trophy;
