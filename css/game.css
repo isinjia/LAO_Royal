@@ -616,3 +616,7 @@ button:disabled { cursor: default; }
 .chest.empty.all{grid-column:1/-1;height:34px}
 .rreason{font-size:13px;color:#ff9aa4;letter-spacing:.5px}
 .rtro em:not(.up):not(.down){color:var(--dim)}
+/* arena card: the trophy track to the next arena is visible even at 0, no empty unlock row */
+.abar{height:8px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,216,74,.35);margin:8px 0 5px}
+.abar i{min-width:4px}
+.aun:empty{display:none}
