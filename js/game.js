@@ -736,7 +736,7 @@
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.8), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 4.8, 1.7, 3), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 0.75, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
-    u.glow = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 5.2, 1.9, 3.2), aspect: TILT, color: teamHex(side), alpha: (side === 'red' ? 0.48 : 0.42) * (u.r > 0.6 ? 0.7 : 1), /* big mechs: a capped, fainter pool that never hides the bridge */ tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
+    u.glow = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 5.2, 1.9, 3.2), aspect: TILT, color: teamHex(side), alpha: (side === 'red' ? 0.38 : 0.42) * (u.r > 0.6 ? 0.7 : 1), /* big mechs: a capped, fainter pool that never hides the bridge */ tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
     u.fxk *= 1.4 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
@@ -960,6 +960,7 @@
         for (let i = 0; i < 10; i++) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(-0.3, 0.5), vy: rnd(1.2, 2.6), life: rnd(0.5, 0.9), size: rnd(0.12, 0.22), size1: 0, color: i % 2 ? 0xffffff : teamHex(e.side), tex: FX.tex.dot });
         FX.sparks(e.x, y, 0xffffff, 5, 2.2, 0.1, 0.4);
         FX.particle({ x: e.x, y: e.z * TILT + 1.2, vy: 1.5, life: 0.6, size: 0.5, size1: 0.2, aspect: 6, color: teamHex(e.side), tex: FX.tex.beam, alpha: 0.75 }); // the column of light lifting off
+        FX.particle({ x: e.x, y: e.z * TILT + 1.2, vy: 1.5, life: 0.3, size: 0.25, size1: 0.1, aspect: 6, color: 0xffffff, tex: FX.tex.beam, alpha: 0.9 }); // a white core so it reads at the small unit scale
       }
       if (G.stats && src && src.side && G.stats[src.side]) G.stats[src.side].kills++;
       return;
@@ -1465,7 +1466,9 @@
     if (ch) e.sd.setTint(c[0], c[1], c[2]);
     e.tintK = tk;
   }
-  function sparkle(e, dt, emit) { e.spkT = (e.spkT || 0) - dt; let n = 0; while (e.spkT <= 0 && n++ < 2) { emit(); e.spkT += 0.055; } if (e.spkT < 0) e.spkT = 0; }
+  // how many buff motes to emit this frame (no closure: the caller fills one reused options object)
+  function sparkle(e, dt) { e.spkT = (e.spkT || 0) - dt; let n = 0; while (e.spkT <= 0 && n < 2) { n++; e.spkT += 0.055; } if (e.spkT < 0) e.spkT = 0; return n; }
+  const SPK = { x: 0, y: 0, vy: 1, life: 0.45, size: 0.3, size1: 0, color: 0, tex: null };
   // a champion skill landing: a beat of hit-stop, a camera punch and a colour flash (lighter for the opponent's)
   function impact(u, x, z, color) {
     const k = u.side === 'blue' ? 1 : 0.5;
@@ -1923,7 +1926,9 @@
       const k = S.ai ? S.ai.diff.elixirK : 1;
       const before = S.elixir, gain = dt / BAL.elixirRate * mult * k * (G.mut && G.mut.elixir || 1);
       S.elixir = Math.min(BAL.elixirMax, S.elixir + gain);
-      G.stats[side].wasted += Math.max(0, before + gain - BAL.elixirMax); // only what spilled over the cap
+      const spill = Math.max(0, before + gain - BAL.elixirMax);
+      G.stats[side].wasted += spill; // only what spilled over the cap
+      if (side === 'blue' && spill > 0 && (S.leakAcc = (S.leakAcc || 0) + spill) >= 1) { S.leakAcc -= 1; UI.elixirLeak && UI.elixirLeak(); } // each whole point lost: the bar flashes red
       if (before < BAL.elixirMax && S.elixir >= BAL.elixirMax) S.fullT = 0;
       if (S.elixir >= BAL.elixirMax) S.fullT = (S.fullT || 0) + dt;
       if (S.sup && !S.sup.used) S.sup.charge = Math.min(1, S.sup.charge + dt / SUPPORT_TIME); // the commander's support charges over the match
@@ -2247,12 +2252,12 @@
               if (near) hideBar(e.bar); else deployBars.push(e.bar);
             } else shownBars.push(e.bar);
           } else hideBar(e.bar);
-          if (e.shieldT > 0 || e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: 1, life: 0.45, size: 0.3, size1: 0, color: e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
+          if (e.shieldT > 0 || e.hasteT > 0) for (let n = sparkle(e, dt); n > 0; n--) { SPK.x = e.x + rnd(-0.4, 0.4); SPK.y = y + rnd(0, e.bodyH); SPK.life = 0.45; SPK.size = 0.3; SPK.color = e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff; SPK.tex = FX.tex.dot; FX.particle(SPK); }
           if (e.disc) { const dc = e.hasteT > 0 ? e.hasteColor || 0xd65cff : teamHex(e.side); if (e.disc.color !== dc) e.disc.color = dc; } // a boosted unit's ring takes the boost colour while it lasts
           // your champion's skill is ready: a pulsing ring at its feet points to the button
           if (e.side === 'blue' && e.card.skill && (e.readyT = (e.readyT || 0) - dt) <= 0 && skillReady(e) && G.sides.blue.elixir >= skillCost(e)) {
             e.readyT = 0.7;
-            FX.groundRing(e.x, e.z * TILT, 0.3, 1.0, e.card.skill.color, 0.6, 0.45);
+            FX.groundRing(e.x, e.z * TILT, 0.3, 1.0, e.card.skill.color, 0.6, 0.55);
           }
           if (e.freezeT > 0 && Math.random() < 0.15) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: -0.4, life: 0.5, size: 0.22, size1: 0, color: 0xdff8ff, tex: FX.tex.snow });
         }
@@ -2266,14 +2271,14 @@
             const tk = e.freezeT > 0 ? 1 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.hasteT > 0 ? 5 : 0;
             tintTo(e, tk, dt);
           }
-          if (e.hasteT > 0) sparkle(e, dt, () => FX.particle({ x: e.x + rnd(-0.5, 0.5), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 1.2), vy: 1, life: 0.4, size: 0.2, size1: 0, color: e.hasteColor || 0xd65cff, tex: FX.tex.dot }));
+          if (e.hasteT > 0) for (let n = sparkle(e, dt); n > 0; n--) { SPK.x = e.x + rnd(-0.5, 0.5); SPK.y = e.z * TILT + TOWER_E[e.type] + rnd(0, 1.2); SPK.life = 0.4; SPK.size = 0.2; SPK.color = e.hasteColor || 0xd65cff; SPK.tex = FX.tex.dot; FX.particle(SPK); }
         }
         const hb = e.hitT > 0 ? 1 + 0.25 * clamp(e.hitT / 0.1, 0, 1) : 1; // eases back from the hit flash, then exactly 1
         if (hb === 1 ? e.baseB !== 1 && e.baseB != null : Math.abs((e.baseB || 1) - hb) > 0.01) { e.baseB = hb; e.base.material.color.setScalar(hb); }
         // damage stages swap in a cracked (50%) and a scorched (25%) bunker
         if (e.alive && e.texKey && e.type !== 'bld') {
           const st = e.hp < e.max * 0.35 ? 2 : e.hp < e.max * 0.7 ? 1 : 0; // damage shows early and builds up
-          if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; e.tintMul0 = e.tintMul0 || e.tintMul || 1; e.tintMul = e.tintMul0 * (st === 2 ? 0.68 : st === 1 ? 0.86 : 1); /* the guard on a battered tower is scorched too */ /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); } }
+          if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; e.tintMul0 = e.tintMul0 || e.tintMul || 1; e.tintMul = e.tintMul0 * (st === 2 ? 0.68 : st === 1 ? 0.86 : 1); /* the guard on a battered tower is scorched too */ /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); SFX.play('expM', 0.5); } }
         }
         if (e.pad) { if (!e.alive) { FX.kill(e.pad); e.pad = null; } else e.pad.alpha = 0.24 + 0.1 * Math.sin(amb.t * 1.8 + e.x); }
         if (e.fireGlow) { if (!e.alive) { FX.kill(e.fireGlow); e.fireGlow = null; } else e.fireGlow.alpha = 0.32 + 0.18 * Math.sin(amb.t * 11 + e.x) * Math.sin(amb.t * 7); }
@@ -2672,7 +2677,7 @@
     { const fc = document.createElement('canvas'); fc.width = 256; fc.height = 8; const fg = fc.getContext('2d');
       for (let i = 0; i < 18; i++) { const x = Math.random() * 256, w = 6 + Math.random() * 26, gr = fg.createLinearGradient(x, 0, x + w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); fg.fillStyle = gr; fg.fillRect(x, 2 + Math.random() * 3, w, 2); }
       const ft = new THREE.CanvasTexture(fc); ft.wrapS = THREE.RepeatWrapping; ft.repeat.set(3, 1);
-      amb.foam = [-1, 1].map((sg) => { const t2 = sg < 0 ? ft : ft.clone(); t2.needsUpdate = true; const q = quad(t2, 0xffffff, 0.4, true, -8.8); q.scale.set(18, 0.32, 1); q.position.set(0, sg * (BAL.river * TILT - 0.3), 0); scene.add(q); return q; }); }
+      amb.foam = [-1, 1].map((sg) => { const q = quad(ft, 0xffffff, 0.4, true, -8.8); q.scale.set(18 * sg, 0.32, 1); /* one shared texture: the mirrored quad drifts the other way */ q.position.set(0, sg * (BAL.river * TILT - 0.3), 0); scene.add(q); return q; }); }
     // a soft diagonal light sweep that crosses the floor now and then
     const sc = document.createElement('canvas'); sc.width = 128; sc.height = 4;
     const sg = sc.getContext('2d'), sgr = sg.createLinearGradient(0, 0, 128, 0);
@@ -2692,7 +2697,7 @@
     if (aimMarks.length) aimMarks[0].alpha = 0.65 + 0.3 * Math.sin(amb.t * 9); // the aim reticle pulses
     if (amb.river) { amb.river.material.map.offset.x -= dt * 0.12; amb.river.material.opacity = Math.min(1, 0.58 + Math.sin(amb.t * 2.1) * 0.12 + G.surge * 0.42); }
     if (G.surge > 0) G.surge = Math.max(0, G.surge - dt * 0.7);
-    if (amb.foam) { const on = perf.level < 2; amb.foam[0].visible = amb.foam[1].visible = on; if (on) { amb.foam[0].material.map.offset.x += dt * 0.06; amb.foam[1].material.map.offset.x -= dt * 0.06; } } // (low quality: no foam, fewer full-width layers)
+    if (amb.foam) { const on = perf.level < 2; amb.foam[0].visible = amb.foam[1].visible = on; if (on) amb.foam[0].material.map.offset.x += dt * 0.06; } // (low quality: no foam, fewer full-width layers)
     if (amb.river2) { amb.river2.material.map.offset.x += dt * 0.05; amb.river2.material.opacity = 0.35 + Math.sin(amb.t * 1.3 + 1) * 0.1; }
     amb.lamps.forEach((l, i) => { l.alpha = 0.35 + 0.3 * Math.max(0, Math.sin(amb.t * 1.7 + i * 1.3)); });
     // the backdrop art drifts and breathes very slowly (a living scene behind the floor, no extra pass)

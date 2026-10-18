@@ -667,3 +667,11 @@ button:disabled { cursor: default; }
 @keyframes afford { 50% { transform: scale(1.07); filter: brightness(1.3); } }
 .supbtn.bump { animation: supBump .35s ease-out; }
 @keyframes supBump { 40% { transform: scale(1.12); } }
+/* a skill that waits for energy: a neutral chip (pink stays the colour of a ready skill) */
+.skb[data-why='poor']::after { background: #2a3038; color: #b8c4d0; }
+/* the energy count reads at a glance */
+#elixir .drop { width: 34px; height: 34px; }
+#elixir .drop b { font-size: 20px; }
+/* energy spilling at the cap: the bar flashes red for each point lost */
+#elixir.leak .ebar { animation: leak .4s ease-out; }
+@keyframes leak { 0% { box-shadow: 0 0 0 2px #ff4a5a, 0 0 14px rgba(255,74,90,.8); } 100% { box-shadow: none; } }

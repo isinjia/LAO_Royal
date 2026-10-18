@@ -385,9 +385,10 @@
     b.classList.toggle('ready', sp.ready);
     b.classList.toggle('iron', sp.faction === 'iron');
     b.style.setProperty('--p', Math.round(sp.charge * 100) + '%');
-    b.querySelector('small').textContent = sp.ready ? sp.name : Math.floor(sp.charge * 100) + '%';
+    b.querySelector('small').textContent = sp.ready ? sp.name : ''; // charging: the ring says it (players don't reason in percent)
     b.title = `${sp.name}: ${sp.desc}`;
   }
+  function elixirLeak() { const el = $('elixir'); el.classList.remove('leak'); requestAnimationFrame(() => el.classList.add('leak')); }
   function tick(G) {
     if (!G.sides) return;
     tickCards();
@@ -1041,6 +1042,6 @@
     } else if (!e.target.closest || !e.target.closest('#emotePanel')) { const p = $('emotePanel'); if (p) p.hidden = true; }
   }, true);
 
-  window.UI = { _sync: () => syncCollection(), init, dmgNum, healNum, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
+  window.UI = { _sync: () => syncCollection(), init, dmgNum, healNum, elixirLeak, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
   window.addEventListener('DOMContentLoaded', init);
 })();

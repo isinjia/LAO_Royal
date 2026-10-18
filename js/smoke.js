@@ -156,6 +156,15 @@
         ok(us.every((u) => !G.ents.includes(u) && !u.placeholder), 'failed rig load: the stand-in is cleaned up');
       } finally { SD.ready = orig; }
     }
+    // an error thrown outside the frame (a stray promise) is caught by the game's own handler and named
+    if (G.phase === 'play') {
+      G.errShown = false; G.errStage = null;
+      Promise.reject(new Error('smoke-async-probe'));
+      await wait(60);
+      for (let i = out.errors.length - 1; i >= 0; i--) if (/smoke-async-probe/.test(out.errors[i])) out.errors.splice(i, 1); // (our own listener saw it too)
+      ok(G.errShown && G.errStage === 'async', 'a stray async error is reported by the game');
+      G.errShown = false;
+    }
     // a ground dash aimed straight across the chasm (off the bridges) stops on the bank
     {
       const ex = put('red', 'executioner', 0, 3.4)[0];
@@ -182,6 +191,8 @@
     ok(fr < 16, `crowded field: ${fr.toFixed(1)} ms per frame (budget 16)`);
     const calls = GAME.info ? GAME.info.calls : 0; // draw calls of the last crowded frame (batched effects and shared rig materials keep this low)
     ok(calls > 0 && calls <= 380, `crowded field: ${calls} draw calls (budget 380; ~3 per rig: every unit keeps its own tint/outline material)`);
+    // the low tier (slow phones) on the same field: never more draws than the default tier
+    { const lv0 = GAME.qualityLevel; GAME.setQuality(2, true); for (let s = 0; s < 3; s++) GAME._run(1 / 60); const c2 = GAME.info.calls; GAME.setQuality(lv0, true); ok(c2 > 0 && c2 <= calls, `crowded field at low quality: ${c2} draw calls (default tier ${calls})`); }
     // draws per troop rig (blend runs in draw order): most rigs are a single draw; the figure is logged so a regression shows up
     { let draws = 0, n = 0; for (const e of G.ents) if (e.kind === 'troop' && e.sd && (e.card.id === 'brownie' || e.card.id === 'nightchick')) { n++; /* the placed crowd only: the AI's own picks would make the figure random */ e.sd.root.traverse((o) => { if (o.isMesh) draws += Math.max(1, o.geometry.groups.length); }); }
       if (n) { out.runs.push(['draws per rig', (draws / n).toFixed(2), `${n} troops`]); ok(draws / n <= 3.2, `troop rigs average ${(draws / n).toFixed(2)} draws (budget 3.2)`); } }
