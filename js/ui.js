@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.15'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.16'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -365,9 +365,10 @@
     for (const el of $('hand').children) {
       const c = CARD[S.hand[+el.dataset.i]];
       const lack = c.cost - e;
-      const fill = lack > 0 ? Math.round(Math.max(0, 1 - lack / c.cost) * 20) * 5 : 100; // 5% steps: few style writes
-      if (el._fill === fill) continue;
-      el._fill = fill;
+      const fill = lack > 0 ? Math.min(95, Math.round(Math.max(0, 1 - lack / c.cost) * 20) * 5) : 100; // 5% steps: few style writes (a card still short never shows full)
+      const poor = lack > 0;
+      if (el._fill === fill && el._poor === poor) continue; // (the affordable state is part of the key: it must flip even if the fill step did not change)
+      el._fill = fill; el._poor = poor;
       if (lack <= 0 && el.classList.contains('poor')) { el.classList.remove('afford'); requestAnimationFrame(() => el.classList.add('afford')); SFX.play('click', 0.12); } // just became affordable: a small pop
       el.classList.toggle('poor', lack > 0);
       el.style.setProperty('--fill', fill + '%');

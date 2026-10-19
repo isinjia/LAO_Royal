@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "lastroyal", "runtimeExecutable": "python", "runtimeArgs": ["tools/serve.py", "8766"], "port": 8766 }
+    { "name": "lastroyal", "runtimeExecutable": "python", "runtimeArgs": ["tools/serve.py", "8766"], "port": 8766 },
+    { "name": "lastroyal-8767", "runtimeExecutable": "python", "runtimeArgs": ["tools/serve.py", "8767"], "port": 8767 }
   ]
 }
