@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.17'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.18'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -176,7 +176,8 @@
     $('gold').textContent = save.gold;
     $('record').textContent = `${save.wins}승 ${save.losses}패`;
     $('arenaName').textContent = `ARENA ${a + 1} · ${A.name}`;
-    document.querySelector('.arena-box').style.backgroundImage = `linear-gradient(90deg, rgba(10,14,20,.92) 35%, rgba(10,14,20,.55)), url(${A.bg})`;
+    document.querySelector('.arena-box').style.backgroundImage = `linear-gradient(180deg, rgba(10,14,20,.15) 40%, rgba(10,14,20,.88)), url(${A.bg})`;
+    $('profAv').style.backgroundImage = `url(${IMG[FACTIONS[save.faction].banner]})`;
     const f0 = A.trophy, f1 = nx ? nx.trophy : A.trophy + 1;
     $('arenaBar').style.width = (nx ? Math.min(100, (save.trophy - f0) / (f1 - f0) * 100) : 100) + '%';
     $('arenaNext').textContent = nx ? `다음: ${nx.name} (${nx.trophy})` : '최고 아레나 도달!';
@@ -189,10 +190,13 @@
     const row = $('deckPreview');
     row.innerHTML = '';
     save.decks[save.faction].forEach((id) => row.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
-    $('avgCost').innerHTML = avg(save.decks[save.faction]) + ' ' + synChip(save.decks[save.faction]);
+    $('avgCost').textContent = '평균 ' + avg(save.decks[save.faction]); // the deck button: its lead card and average cost
+    { const lead = CARD[save.decks[save.faction][0]]; $('deckIcon').style.backgroundImage = lead ? `url(${art(lead)})` : ''; }
+    $('modeLabel').innerHTML = `${BAL.modes[save.mode].name}<br>${BAL.diffs[save.diff].name}`;
+    $('deckPreview').insertAdjacentHTML('beforeend', `<div class="syn-row">${synChip(save.decks[save.faction])}</div>`);
     const foe = foeFaction(Object.assign({ faction: save.faction, mode: save.mode }, practiceOpts()));
-    $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>` +
-      (save.mode === 4 ? `<div class="seg pfoe" id="pfoeSel">${Object.entries(PFOE).map(([k, n]) => `<button data-p="${k}" class="${save.practiceFoe === k ? 'on' : ''}">${n}</button>`).join('')}</div>` : '');
+    $('vsLine').innerHTML = `<b class="f-${save.faction}">${FACTIONS[save.faction].name}</b> VS <b class="f-${foe}">${FACTIONS[foe].name}</b>`;
+    $('pfoeBox').innerHTML = (save.mode === 4 ? `<div class="seg pfoe" id="pfoeSel">${Object.entries(PFOE).map(([k, n]) => `<button data-p="${k}" class="${save.practiceFoe === k ? 'on' : ''}">${n}</button>`).join('')}</div>` : '');
     const up = DATA.CARDS.some((c) => canUpgrade(c));
     $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id])));
     renderChests();
@@ -919,7 +923,7 @@
     if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${new URL(IMG.bg_title, location.href).href})`); // absolute: the stylesheet would resolve a relative one under css/
     $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; persist(); SFX.play('click'); renderTitle(); });
     $('diffSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.diff = +b.dataset.d; persist(); SFX.play('click'); renderTitle(); });
-    $('vsLine').addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; save.practiceFoe = b.dataset.p; persist(); SFX.play('click'); renderTitle(); });
+    $('pfoeBox').addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; save.practiceFoe = b.dataset.p; persist(); SFX.play('click'); renderTitle(); });
     $('modeSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.mode = +b.dataset.m; persist(); SFX.play('click'); renderTitle(); toast(save.mode === 3 ? `오늘의 작전: ${DATA.mutatorOf().name} — ${DATA.mutatorOf().desc}` : BAL.modes[save.mode].desc); });
     document.querySelectorAll('#factionSel button').forEach((b) => { b.querySelector('.fp').style.backgroundImage = `url(${IMG[FACTIONS[b.dataset.f].banner]})`; });
     $('btnBattle').onclick = startBattle;
@@ -982,6 +986,16 @@
       renderRoad();
     };
     $('btnMissions').onclick = () => { SFX.play('click'); renderMissions(); $('missionOv').hidden = false; };
+    $('btnMode').onclick = () => { SFX.play('click'); $('modeOv').hidden = false; };
+    $('btnModeClose').onclick = () => { SFX.play('click'); $('modeOv').hidden = true; renderTitle(); };
+    // the bottom tab bar (Clash Royale style): cards, battle (this screen), missions, trophy road
+    document.querySelector('#title .tabbar').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tab]'); if (!b) return;
+      const t = b.dataset.tab;
+      if (t === 'deck') $('btnDeck').click();
+      else if (t === 'road') { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); }
+      // (missions: its own handler above; battle: this screen)
+    });
     $('btnMClose').onclick = () => { $('missionOv').hidden = true; renderTitle(); };
     $('missionList').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b || b.disabled) return;

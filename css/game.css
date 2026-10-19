@@ -716,3 +716,65 @@ button:disabled { cursor: default; }
 .supbtn .ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
 /* app version under the title */
 .logo .appver { display: block; margin-top: 2px; font: 600 11px var(--en-font); font-style: normal; letter-spacing: 1px; color: rgba(220,230,240,.55); }
+
+/* ── home screen, Clash Royale layout: resources / profile / arena / crates / deck·BATTLE·mode / tab bar ── */
+#title.cr { overflow: hidden; }
+#title.cr .tbg { background: radial-gradient(ellipse 90% 60% at 50% 45%, rgba(40,70,110,.35), transparent 70%), repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 22px, rgba(0,0,0,.05) 22px 44px), linear-gradient(180deg, #16263a, #0c141f 60%, #0a0f16); }
+#title.cr .ttop { padding: 10px 12px 6px; }
+#title.cr .profile { position: relative; display: flex; align-items: center; gap: 10px; margin: 0 12px; padding: 8px 10px; border-radius: 12px;
+  background: linear-gradient(90deg, rgba(240,168,0,.28), rgba(20,30,44,.85) 45%); border: 1px solid rgba(255,216,74,.35); box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+#title.cr .pav { flex: none; width: 50px; height: 50px; border-radius: 10px; background: center 15% / cover; box-shadow: 0 0 0 2px #0b0e12, 0 0 0 4px rgba(255,216,74,.7); }
+#title.cr .pname { flex: 1; min-width: 0; }
+#title.cr .pname > b { display: block; font-size: 17px; color: #fff; text-shadow: 0 1px 3px #000; }
+#title.cr .pname .vs { white-space: nowrap; } #title.cr .pname .vs b { margin: 0 3px; font-size: 12px; }
+#title.cr .factions b { position: absolute; left: 0; right: 0; bottom: 0; line-height: 15px !important; font-size: 10px !important; background: rgba(0,0,0,.6); text-align: center; }
+#title.cr .pname .vs { display: block; margin: 2px 0 0; text-align: left; font-size: 12px; }
+#title.cr .factions { display: flex; gap: 6px; }
+#title.cr .factions button { height: 40px; width: 56px; padding: 0; border-radius: 9px; }
+#title.cr .factions .fp { width: 100%; opacity: .55; }
+#title.cr .factions button.on .fp { opacity: 1; }
+#title.cr .factions b { position: relative; font-size: 12px; text-shadow: 0 1px 3px #000; line-height: 40px; }
+#title.cr .factions small { display: none; }
+#title.cr .logo { margin-top: 8px; }
+#title.cr .logo small { font-size: 10px; letter-spacing: 5px; }
+#title.cr .logo h1 { font-size: clamp(28px, 8.5vw, 40px); }
+#title.cr .logo h2 { display: none; }
+/* the arena: a big framed picture in the middle, its track at the bottom */
+#title.cr .arena-box { flex: 1 1 auto; min-height: 170px; display: flex; flex-direction: column; justify-content: flex-end; margin: 8px 16px 0; padding: 12px 14px 10px;
+  border-radius: 18px; border: 2px solid rgba(255,216,74,.5); background-size: cover; background-position: center; box-shadow: 0 10px 26px rgba(0,0,0,.55), inset 0 0 40px rgba(0,0,0,.45); }
+#title.cr .arena-box .an { position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-size: 16px; text-shadow: 0 2px 6px #000; }
+#title.cr .road { position: absolute; right: 10px; top: 40px; margin: 0; flex-direction: column; align-items: flex-end; }
+#title.cr .road small { display: none; }
+#title.cr .road .btn { font-size: 12px; }
+#title.cr .abar { height: 10px; margin: 0 0 4px; }
+#title.cr .anext { font-size: 11px; color: #cdd8e3; text-shadow: 0 1px 2px #000; }
+#title.cr .fwin { margin-top: 6px; }
+#title.cr .chests { margin: 8px 16px 0; }
+#title.cr .chest { height: 52px; }
+/* deck · BATTLE · mode */
+#title.cr .actrow { display: grid; grid-template-columns: 66px 1fr 66px; gap: 8px; align-items: stretch; margin: 10px 14px 8px; }
+#title.cr .actrow .btn.big { font-size: 24px; padding: 10px 6px; animation: glowb 1.8s infinite alternate; }
+#title.cr .actside { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 2px 0; }
+#title.cr .actside small { font-size: 9.5px; color: #cfe3ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#title.cr .dkicon { width: 30px; height: 38px; border-radius: 5px; background: center 15% / cover; box-shadow: 0 0 0 2px #0b0e12, 3px -3px 0 0 #3aa8ff; }
+#title.cr .mdicon { width: 30px; height: 30px; background: #ffd84a; -webkit-mask: var(--s-i_target) center / contain no-repeat; mask: var(--s-i_target) center / contain no-repeat; }
+#btnDeck.dot::after { right: 4px; top: 4px; }
+/* the bottom tab bar */
+#title.cr .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 6px env(safe-area-inset-bottom); background: linear-gradient(#1a2636, #0d141d); border-top: 1px solid rgba(255,255,255,.08); box-shadow: 0 -4px 14px rgba(0,0,0,.4); }
+#title.cr .tabbar button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 56px; color: #8fa2b5; font-size: 11px; font-weight: 700; }
+#title.cr .tabbar button.on { color: #ffd84a; background: linear-gradient(rgba(255,216,74,.16), transparent); box-shadow: inset 0 2px 0 #ffd84a; }
+#title.cr .tabbar i { width: 26px; height: 26px; background: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+#title.cr .t-cards { -webkit-mask-image: var(--s-i_squad) !important; mask-image: var(--s-i_squad) !important; }
+#title.cr .t-battle { -webkit-mask-image: var(--s-i_battle) !important; mask-image: var(--s-i_battle) !important; width: 30px !important; height: 30px !important; }
+#title.cr .t-mission { -webkit-mask-image: var(--s-i_check) !important; mask-image: var(--s-i_check) !important; }
+#title.cr .t-road { -webkit-mask-image: var(--s-i_medal) !important; mask-image: var(--s-i_medal) !important; }
+#title.cr .tabbar em { position: absolute; top: 6px; left: calc(50% + 8px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ff3b4f; color: #fff; font: 700 10px/16px var(--en-font); font-style: normal; }
+/* the battle settings sheet (modes, difficulty, deck in) */
+.modedlg { text-align: left; }
+.modedlg .lbl { margin: 10px 0 6px; }
+.modedlg .seg button.on { background: linear-gradient(rgba(255,214,74,.22), rgba(240,168,0,.12)); color: #ffd84a; box-shadow: inset 0 0 0 1.5px #f0b400; font-weight: 800; }
+.modedlg .pfoe { margin-top: 8px; }
+.modedlg .pfoe button { padding: 6px 0; font: 600 11px var(--kr); }
+.modedlg .syn-row { grid-column: 1 / -1; margin-top: 6px; }
+@media (max-height: 700px) { #title.cr .logo { display: none; } #title.cr .arena-box { min-height: 140px; } }
+#title.cr #modeLabel { line-height: 1.15; text-align: center; white-space: normal; }

@@ -18,15 +18,24 @@
   <div id="boot"><b>LAST ROYAL</b><i></i></div>
 
   <!-- title -->
-  <section id="title" class="screen">
+  <section id="title" class="screen cr">
     <div class="tbg"></div>
+    <!-- top: resources and menus -->
     <div class="ttop">
       <div class="tro-box"><i class="tro"></i><b id="trophy">0</b><small id="record"></small></div>
       <div class="gold-box"><i class="gold-i"></i><b id="gold">0</b></div>
       <span class="sp"></span>
-      <button class="ibtn mbtn" id="btnMissions" aria-label="임무"><span class="ms-i"></span><em id="mBadge" hidden>0</em></button>
       <button class="ibtn" id="btnHelp" aria-label="도움말"><span class="q">?</span></button>
       <button class="ibtn" id="btnSettings" aria-label="설정"><span class="gear"></span></button>
+    </div>
+    <!-- profile banner: the commander, the faction switch -->
+    <div class="profile">
+      <span class="pav" id="profAv"></span>
+      <div class="pname"><b>사령관</b><small id="vsLine" class="vs"></small></div>
+      <div id="factionSel" class="factions">
+        <button data-f="orca"><span class="fp"></span><b>오르카</b><small>바이오로이드</small></button>
+        <button data-f="iron"><span class="fp"></span><b>철충</b><small>기계 군단</small></button>
+      </div>
     </div>
     <div class="logo">
       <small>LAST ORIGIN</small>
@@ -34,34 +43,27 @@
       <h2>라스트로얄</h2>
       <em class="appver" id="appVer"></em>
     </div>
+    <!-- the arena in the middle, its trophy track and the road reward under it -->
     <div class="arena-box">
       <div class="an" id="arenaName" role="status" aria-live="polite"></div>
+      <div class="road"><small id="roadNext" role="status"></small><button class="btn y sm" id="roadBtn" hidden></button></div>
       <div class="abar"><i id="arenaBar"></i></div>
       <div class="anext"><span id="arenaNext"></span><span class="aun" id="arenaUnlock"></span></div>
-      <div class="road"><small id="roadNext" role="status"></small><button class="btn y sm" id="roadBtn" hidden></button></div>
     </div>
-    <div class="chests" id="chestRow"></div>
     <div class="fwin" id="firstWin"></div>
-    <div class="tpanel">
-      <div class="lbl">진영</div>
-      <div id="factionSel" class="factions">
-        <button data-f="orca"><span class="fp"></span><b>오르카</b><small>바이오로이드</small></button>
-        <button data-f="iron"><span class="fp"></span><b>철충</b><small>기계 군단</small></button>
-      </div>
-      <div id="vsLine" class="vs"></div>
-      <div class="two">
-        <div><div class="lbl">모드</div>
-          <div id="modeSel" class="seg s4"><button data-m="0">일반전</button><button data-m="1">에너지 폭주</button><button data-m="2">무작위 덱</button><button data-m="3">오늘의 작전</button><button data-m="4">연습전</button></div></div>
-        <div><div class="lbl">난이도</div>
-          <div id="diffSel" class="seg"><button data-d="0">훈련</button><button data-d="1">실전</button><button data-d="2">정예</button></div></div>
-      </div>
-      <div class="lbl">출전 덱 <span class="avg">평균 에너지 <b id="avgCost"></b></span></div>
-      <div id="deckPreview" class="deckrow"></div>
-      <div class="tbtns">
-        <button class="btn d" id="btnDeck">덱 편성</button>
-        <button class="btn y big" id="btnBattle">전투 개시</button>
-      </div>
+    <div class="chests" id="chestRow"></div>
+    <!-- deck / BATTLE / mode -->
+    <div class="actrow">
+      <button class="btn d actside" id="btnDeck" aria-label="덱 편성"><span class="dkicon" id="deckIcon"></span><small id="avgCost"></small></button>
+      <button class="btn y big" id="btnBattle">전투 개시</button>
+      <button class="btn d actside" id="btnMode" aria-label="모드 선택"><span class="mdicon"></span><small id="modeLabel"></small></button>
     </div>
+    <nav class="tabbar">
+      <button data-tab="deck"><i class="t-cards"></i><span>카드</span></button>
+      <button data-tab="battle" class="on"><i class="t-battle"></i><span>전투</span></button>
+      <button data-tab="missions" id="btnMissions"><i class="t-mission"></i><span>임무</span><em id="mBadge" hidden>0</em></button>
+      <button data-tab="road"><i class="t-road"></i><span>트로피 로드</span></button>
+    </nav>
   </section>
 
   <!-- deck builder -->
@@ -118,6 +120,18 @@
       <div class="tbtns"><button class="btn d" id="btnHome">메인으로</button><button class="btn y" id="btnAgain">다시 전투</button></div>
     </div>
   </section>
+
+  <div id="modeOv" class="ov" hidden>
+    <div class="dlg modedlg"><h4>전투 설정</h4>
+      <div class="lbl">모드</div>
+      <div id="modeSel" class="seg s4"><button data-m="0">일반전</button><button data-m="1">에너지 폭주</button><button data-m="2">무작위 덱</button><button data-m="3">오늘의 작전</button><button data-m="4">연습전</button></div>
+      <div id="pfoeBox"></div>
+      <div class="lbl">난이도</div>
+      <div id="diffSel" class="seg"><button data-d="0">훈련</button><button data-d="1">실전</button><button data-d="2">정예</button></div>
+      <div class="lbl">출전 덱</div>
+      <div id="deckPreview" class="deckrow"></div>
+      <div class="tbtns"><button class="btn y" id="btnModeClose">확인</button></div></div>
+  </div>
 
   <div id="pauseOv" class="ov" hidden>
     <div class="dlg"><h4>일시 정지</h4><p>전투가 멈춰 있습니다.</p>
