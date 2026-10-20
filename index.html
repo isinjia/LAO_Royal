@@ -66,9 +66,8 @@
   <section id="deck" class="screen">
     <header class="dhead"><h3 id="deckTitle">덱 편성</h3><span id="deckAvg"></span><button class="btn d sm" id="btnDeckReset">기본 덱</button><button class="btn y sm" id="btnDeckDone">완료</button></header>
     <div id="deckSlots" class="slots"></div>
-    <!-- under the deck: its average energy (left) and the faction it plays (right; tap -> faction popup) -->
-    <div class="deckfoot"><span class="davg" id="deckAvg2"></span><span class="sp"></span>
-      <button class="facslot" id="btnFaction" aria-label="진영 선택"><span class="fsp" id="facPf"></span><b id="facName"></b><small>진영 변경</small></button></div>
+    <!-- under the deck: its average energy -->
+    <div class="deckfoot"><span class="davg" id="deckAvg2"></span><span class="sp"></span></div>
     <div id="cardInfo" class="cinfo"></div>
     <div class="lbl pad">카드 컬렉션</div>
     <div id="collection" class="coll"></div>
@@ -130,16 +129,6 @@
       <div class="lbl">출전 덱</div>
       <div id="deckPreview" class="deckrow"></div>
       <div class="tbtns"><button class="btn y" id="btnModeClose">확인</button></div></div>
-  </div>
-
-  <div id="factionOv" class="ov" hidden>
-    <div class="dlg facdlg"><h4>진영 선택</h4>
-      <div id="factionSel" class="factions">
-        <button data-f="orca"><span class="fp"></span><b>오르카</b><small>바이오로이드</small></button>
-        <button data-f="iron"><span class="fp"></span><b>철충</b><small>기계 군단</small></button>
-      </div>
-      <p class="facnote">진영마다 카드 덱이 따로 저장됩니다</p>
-      <div class="tbtns"><button class="btn d" id="btnFactionClose">닫기</button></div></div>
   </div>
 
   <div id="pauseOv" class="ov" hidden>
