@@ -127,6 +127,15 @@
 
   ORCA.forEach((c) => { c.faction = 'orca'; });
   IRON.forEach((c) => { c.faction = 'iron'; });
+  // faction pace: the orca bioroids fight at the listed (Clash Royale) pace; the iron machines swing slower and much
+  // harder, for more damage per second overall (their ramping attacks keep their own rhythm)
+  const PACE = { iron: { rate: 1.4, dps: 1.15 } };
+  [...IRON, ...BUILDINGS].forEach((c) => {
+    const p = PACE[c.faction];
+    if (!p || !c.dmg || c.ramp) return;
+    c.rate = Math.round(c.rate * p.rate * 100) / 100;
+    c.dmg = Math.round(c.dmg * p.rate * p.dps);
+  });
   const CARDS = [...ORCA, ...IRON, ...BUILDINGS,
     ...SPELLS.map((s) => Object.assign({}, s, { faction: 'orca' })),
     ...SPELLS.map((s) => Object.assign({}, s, { id: 'i_' + s.id, faction: 'iron' }))];
