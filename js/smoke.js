@@ -121,13 +121,16 @@
     // the towers must outlast this test (fourteen champion skills would otherwise end the match early)
     for (const s of ['blue', 'red']) G.sides[s].towers.forEach((t) => { t.hp = t.max = 1e7; });
     for (const c of champs) await SD.prepare(c.rig);
-    await SD.prepare('nymph');
-    put('blue', 'nymph', 0, -10); put('blue', 'brownie', 0, -11);
-    GAME._run(1.3);
-    const hurt = G.ents.filter((e) => e.card && e.card.id === 'brownie' && e.side === 'blue' && e.alive);
-    hurt.forEach((b) => { b.hp = 40; });
-    GAME._run(3);
-    ok(hurt.some((b) => b.alive && b.hp > 40), 'healer mends nearby troops');
+    const healer = DATA.CARDS.find((c) => c.heal); // (only when a card heals: the original roster has no healer at the moment)
+    if (healer) {
+      await SD.prepare(healer.rig);
+      put('blue', healer.id, 0, -10); put('blue', 'brownie', 0, -11);
+      GAME._run(1.3);
+      const hurt = G.ents.filter((e) => e.card && e.card.id === 'brownie' && e.side === 'blue' && e.alive);
+      hurt.forEach((b) => { b.hp = 40; });
+      GAME._run(3);
+      ok(hurt.some((b) => b.alive && b.hp > 40), 'healer mends nearby troops');
+    }
     for (const c of champs) {
       const side = c.faction === 'orca' ? 'blue' : 'red';
       const u = put(side, c.id, side === 'blue' ? 3 : -3, side === 'blue' ? -4 : 4)[0];
