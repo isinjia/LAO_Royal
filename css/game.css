@@ -826,14 +826,44 @@ button:disabled { cursor: default; }
 .tile .card.r1 .lvband { background: linear-gradient(rgba(40,140,215,.92), rgba(22,88,150,.96)); }
 .tile .card.r2 .lvband { background: linear-gradient(rgba(240,150,30,.94), rgba(190,100,10,.96)); }
 .tile .card.r3 .lvband { background: linear-gradient(rgba(176,96,230,.94), rgba(120,50,180,.96)); }
-.cbar { position: relative; height: 17px; border-radius: 9px; background: linear-gradient(#3b5370, #2a3d55); border: 1.5px solid #7d9bbd; box-shadow: 0 1px 0 rgba(0,0,0,.6), inset 0 1px 2px rgba(0,0,0,.45); overflow: hidden; display: flex; align-items: center; }
+.cbar { position: relative; height: 17px; margin-left: 6px; border-radius: 9px; background: linear-gradient(#3b5370, #2a3d55); border: 1.5px solid #7d9bbd; box-shadow: 0 1px 0 rgba(0,0,0,.6), inset 0 1px 2px rgba(0,0,0,.45); overflow: hidden; display: flex; align-items: center; }
 .cbar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#5fd0ff, #1f8fe0); border-radius: 8px; }
 .cbar.full .fill { background: linear-gradient(#8af06a, #2fb43a); }
 .cbar.full { border-color: #9cf27c; }
-.cbar .arw { position: relative; flex: none; width: 15px; height: 15px; margin-left: 1px; background: #8fe2ff; clip-path: polygon(50% 0, 100% 52%, 70% 52%, 70% 100%, 30% 100%, 30% 52%, 0 52%); filter: drop-shadow(0 1px 0 #000); }
-.cbar.full .arw { background: #fff; }
 .cbar b { position: relative; flex: 1; text-align: center; padding-right: 8px; font: 900 10.5px var(--en-font); color: #fff; text-shadow: 0 1px 0 #000, 0 0 2px #000; letter-spacing: -.2px; }
 .cbar.max { justify-content: center; background: linear-gradient(#8a5a14, #5e3c0a); border-color: #ffd84a; }
 .cbar.max b { padding: 0; color: #ffd84a; font-family: var(--kr); font-size: 10px; }
 .tile .emptyslot { aspect-ratio: 4 / 5; }
 .tile:has(.emptyslot)::after { content: ""; height: 17px; }
+
+/* the copies arrow: bigger than the bar, sticking out on the left, with a dark outline (Clash Royale) */
+.cbar { overflow: visible; }
+.cbar .fill { border-radius: 8px; }
+.cbar .arw { position: absolute; left: -9px; top: 50%; width: 19px; height: 21px; transform: translateY(-50%); overflow: visible; filter: drop-shadow(0 1px 0 rgba(0,0,0,.7)); }
+.cbar .arw path { fill: #6fd6ff; stroke: #06223a; stroke-width: 2.6; stroke-linejoin: round; paint-order: stroke; }
+.cbar.full .arw path { fill: #8dff6a; stroke: #0b3a10; }
+.cbar b { padding: 0 2px 0 10px; }
+
+/* Last Origin palette for the deck screen: dark navy steel panels, cyan accents, amber highlights,
+   rank colours as in the original (B green, A blue, S gold, SS purple); angled shapes instead of round pills */
+.card.r0 { border-color: #5fae6a; } .card.r1 { border-color: #3d9bea; } .card.r2 { border-color: #f2b322; }
+.card.r3 { border-color: #b46cff; box-shadow: 0 0 10px rgba(180,108,255,.5), 0 3px 0 rgba(0,0,0,.5); }
+.tile .card .lvband { background: linear-gradient(rgba(44,104,58,.95), rgba(26,66,36,.97)); }
+.tile .card.r1 .lvband { background: linear-gradient(rgba(34,104,176,.95), rgba(18,62,112,.97)); }
+.tile .card.r2 .lvband { background: linear-gradient(rgba(190,128,16,.95), rgba(130,82,6,.97)); }
+.tile .card.r3 .lvband { background: linear-gradient(rgba(128,70,196,.95), rgba(80,36,136,.97)); }
+.cbar { height: 16px; border-radius: 2px; background: linear-gradient(#22303f, #172230); border: 1px solid #4f6a82; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); box-shadow: none; }
+.cbar .fill { border-radius: 0; background: linear-gradient(90deg, #128fae, #2ee6ff); }
+.cbar.full { border-color: #ffc23a; }
+.cbar.full .fill { background: linear-gradient(90deg, #d98a00, #ffd34d); }
+.cbar.max { background: linear-gradient(90deg, #3a2a0a, #6a4c10); border-color: #ffc23a; }
+.tile { position: relative; }
+.cbar .arw { left: 1px; width: 15px; height: 15px; }
+.cbar .arw path { fill: #2ee6ff; stroke: #04141f; }
+.cbar.full .arw path { fill: #fff3c0; stroke: #3a2600; }
+.cbar b { padding: 0 6px 0 14px; }
+.cbar.full b { color: #2a1a00; text-shadow: 0 0 2px rgba(255,240,190,.9); }
+.dtabs button { border-radius: 0; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); background: linear-gradient(#24323f, #18222d); color: #9fb3c4; border: none; }
+.dtabs button.on { background: linear-gradient(#ffd34d, #e8a412); color: #1b1300; }
+.csort button { border-radius: 0; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); border: none; background: #22303f; }
+.csort button.on { background: #2ee6ff; color: #04141f; }

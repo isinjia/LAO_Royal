@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.32'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.33'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -177,7 +177,7 @@
     if (o && o.lv >= LEVEL.max) t.insertAdjacentHTML('beforeend', '<div class="cbar max"><b>최대 레벨</b></div>');
     else if (o) {
       const k = upCost(c, o.lv).n, full = o.n >= k;
-      t.insertAdjacentHTML('beforeend', `<div class="cbar${full ? ' full' : ''}"><span class="fill" style="width:${Math.min(100, o.n / k * 100)}%"></span><i class="arw"></i><b>${o.n}/${k}</b></div>`);
+      t.insertAdjacentHTML('beforeend', `<div class="cbar${full ? ' full' : ''}"><span class="fill" style="width:${Math.min(100, o.n / k * 100)}%"></span><svg class="arw" viewBox="0 0 20 22"><path d="M10 1.5 L18.5 11 H13.5 V20.5 H6.5 V11 H1.5 Z"/></svg><b>${o.n}/${k}</b></div>`);
     }
     return t;
   }
@@ -240,8 +240,9 @@
   // deck builder
   let deckSel = null, swapMode = false, cardOpen = false; // cardOpen: the card popup is up
   // collection order (saved): the commander's faction first / energy / grade / level / name
-  const CSORT = { faction: '진영', cost: '에너지', rarity: '등급', level: '레벨', name: '이름' };
-  const collOrder = (k, f) => (a, b) => (k === 'cost' ? a.cost - b.cost || b.rarity - a.rarity : k === 'rarity' ? b.rarity - a.rarity || a.cost - b.cost : k === 'level' ? levelOf(b.id) - levelOf(a.id) || b.rarity - a.rarity : k === 'name' ? 0 : ((a.faction !== f) - (b.faction !== f)) || a.arena - b.arena || a.cost - b.cost) || a.name.localeCompare(b.name, 'ko');
+  const CSORT = { faction: '진영', cost: '에너지', rarity: '등급', level: '레벨' };
+  // tapping the active order again flips it (ascending / descending); ties fall back to energy, then the name
+  const collOrder = (k, f, desc) => (a, b) => (desc ? -1 : 1) * (k === 'cost' ? a.cost - b.cost : k === 'rarity' ? a.rarity - b.rarity : k === 'level' ? levelOf(a.id) - levelOf(b.id) : ((a.faction !== f) - (b.faction !== f)) || a.arena - b.arena) || a.cost - b.cost || a.name.localeCompare(b.name, 'ko');
   // faction bond chip: what the deck's faction mix gives (4 / 6 cards of one faction)
   function synChip(deck) {
     const s = DATA.synergyOf(deck);
@@ -270,10 +271,11 @@
       const el = document.createElement('div'); el.className = 'tile'; el.innerHTML = '<div class="card emptyslot"><span>빈 칸</span></div>';
       slots.appendChild(el);
     }
-    $('collSort').innerHTML = Object.entries(CSORT).map(([k, n]) => `<button data-s="${k}" class="${(save.collSort || 'faction') === k ? 'on' : ''}">${n}</button>`).join('');
+    if (!CSORT[save.collSort]) save.collSort = 'faction';
+    $('collSort').innerHTML = Object.entries(CSORT).map(([k, n]) => `<button data-s="${k}" class="${save.collSort === k ? 'on' : ''}">${n}${save.collSort === k ? (save.collDesc ? ' ▼' : ' ▲') : ''}</button>`).join('');
     const col = $('collection');
     col.innerHTML = '';
-    const list = DATA.CARDS.filter((c) => !deck.includes(c.id)).sort(collOrder(save.collSort || 'faction', f)); // (cards in the deck above are not repeated here)
+    const list = DATA.CARDS.filter((c) => !deck.includes(c.id)).sort(collOrder(save.collSort, f, !!save.collDesc)); // (cards in the deck above are not repeated here)
     list.forEach((c) => {
       const o = save.cards[c.id];
       const locked = !unlocked(c) || !o;
@@ -991,7 +993,7 @@
     $('btnDeck').onclick = () => { SFX.play('click'); deckSel = null; swapMode = false; cardOpen = false; renderDeck(); show('deck'); };
     $('btnCardClose').onclick = () => { cardOpen = false; renderDeck(); };
     $('btnShopClose').onclick = () => { SFX.play('click'); $('shopOv').hidden = true; };
-    $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; save.collSort = b.dataset.s; persist(); SFX.play('click'); renderDeck(); });
+    $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; if (save.collSort === b.dataset.s) save.collDesc = !save.collDesc; else { save.collSort = b.dataset.s; save.collDesc = false; } persist(); SFX.play('click'); renderDeck(); });
     $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') { cardOpen = false; renderDeck(); } }); // a tap outside the popup closes it
     $('deckTabs').addEventListener('click', (e) => {
       const b = e.target.closest('[data-i]'); if (!b) return;
