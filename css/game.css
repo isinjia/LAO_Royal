@@ -934,3 +934,19 @@ button:disabled { cursor: default; }
 /* the bigger one by the card's name (popup, battle tip) */
 .kindic.full { position: static; display: inline-flex; vertical-align: 2px; margin-right: 6px; padding: 2px 7px 2px 4px; }
 .kindic.full svg { width: 15px; height: 15px; } .kindic.full b { font-size: 11px; }
+
+/* flying or ground badge on troop cards (lower right) */
+.moveic { position: absolute; z-index: 3; right: 2px; bottom: calc(19% + 3px); display: flex; align-items: center; gap: 1px; padding: 1px 4px 1px 2px; border-radius: 9px; font-style: normal;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.6); }
+.moveic svg { width: 12px; height: 12px; fill: #fff; }
+.moveic b { font: 800 9px var(--kr); color: #fff; letter-spacing: -.3px; text-shadow: 0 1px 1px rgba(0,0,0,.7); }
+.moveic.m-air { background: linear-gradient(#8fe2ff, #2b9fd6); }
+.moveic.m-gnd { background: linear-gradient(#a08a6a, #6a573c); }
+.coll .moveic { padding: 1px 3px 1px 1px; } .coll .moveic svg { width: 10px; height: 10px; } .coll .moveic b { font-size: 8px; }
+.moveic.full { position: static; display: inline-flex; vertical-align: 2px; margin-right: 6px; padding: 2px 7px 2px 4px; }
+.moveic.full svg { width: 14px; height: 14px; } .moveic.full b { font-size: 11px; }
+/* on the card itself the flying / ground badge is a round icon only (the kind badge keeps its word); the popup shows both words */
+.moveic:not(.full) { width: 17px; height: 17px; padding: 0; justify-content: center; border-radius: 50%; }
+.moveic:not(.full) b { display: none; }
+.moveic:not(.full) svg { width: 12px; height: 12px; }
+.coll .moveic:not(.full) { width: 15px; height: 15px; padding: 0; } .coll .moveic:not(.full) svg { width: 10px; height: 10px; }

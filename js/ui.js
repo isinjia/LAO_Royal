@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.45'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.46'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -184,6 +184,10 @@
     tower: { name: '타워', svg: '<path d="M5 2h3v2h2V2h4v2h2V2h3v6l-2 2v10h3v2H3v-2h3V10L4 8V2h1zm5 12v6h4v-6a2 2 0 00-4 0z"/>' },
     spell: { name: '주문', svg: '<path d="M12 1l2.6 6.9L22 9l-5.5 4.8L18.2 21 12 17.3 5.8 21l1.7-7.2L2 9l7.4-1.1z"/>' },
   };
+  // troops also say whether they fly (right side of the card)
+  const AIR_SVG = '<path d="M2 13c4-1 7-4 9-9 .5 4-1 7-3 9 3 0 6-1 8-3-.5 3-3 6-7 7 3 1 6 0 9-2-2 4-7 6-12 5-2 0-3-1-4-3z"/>';
+  const GND_SVG = '<path d="M7 4h5l1 6 5 2c1.5.6 2 1.5 2 3v2H4v-3l2-1zM2 19h20v2H2z"/>';
+  const moveIc = (c, full) => (c.type !== 'troop' ? '' : `<i class="moveic ${c.air ? 'm-air' : 'm-gnd'}${full ? ' full' : ''}" title="${c.air ? '공중' : '지상'}"><svg viewBox="0 0 24 24">${c.air ? AIR_SVG : GND_SVG}</svg><b>${c.air ? '공중' : '지상'}</b></i>`);
   const kindOf = (c) => (c.type === 'spell' ? 'spell' : c.type === 'building' ? 'tower' : c.aim === 'buildings' ? 'siege' : c.range <= 1.4 ? 'melee' : 'ranged');
   const kindIc = (c, full) => { const k = kindOf(c), K = KIND[k]; return `<i class="kindic k-${k}${full ? ' full' : ''}" title="${K.name}"><svg viewBox="0 0 24 24">${K.svg}</svg><b>${K.name}</b></i>`; };
 
@@ -195,7 +199,7 @@
     if (c.count > 1) h += `<span class="cnt">x${c.count}</span>`;
     if (opt.lv) h += `<span class="lv">Lv.${opt.lv}</span>`;
     if (opt.progress != null) h += `<span class="prog${opt.progress >= 1 ? ' full' : ''}"><i style="width:${Math.min(100, opt.progress * 100)}%"></i></span>`;
-    if (opt.rank) h += kindIc(c); // (the card's kind matters more than its grade)
+    if (opt.rank) h += kindIc(c) + moveIc(c); // (the card's kind matters more than its grade; troops: flying or not)
     if (opt.isNew) h += '<span class="newb">NEW</span>';
     if (opt.locked) h += `<span class="lock"><i></i>${esc(ARENAS[c.arena].name)}</span>`;
     el.innerHTML = h;
@@ -391,7 +395,7 @@
       act += inDeck ? ' <button class="btn d sm" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
     }
     const skill = c.skill ? `<div class="skillinfo"><b>챔피언 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
-    info.innerHTML = `<div class="ci-body"><h4>${kindIc(c, true)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
+    info.innerHTML = `<div class="ci-body"><h4>${kindIc(c, true)}${moveIc(c, true)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
       <dl>${st.map(([k2, v]) => `<div><dt>${k2}</dt><dd>${v}</dd></div>`).join('')}</dl></div>`;
     $('cardAct').innerHTML = act;
     const b = $('btnUse');
@@ -443,7 +447,7 @@
     costPrev();
     const tip = $('cardTip'), sc = G.sel >= 0 && CARD[S.hand[G.sel]];
     tip.hidden = !sc;
-    if (sc) tip.innerHTML = `${kindIc(sc, true)}<b>${esc(sc.name)}</b> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
+    if (sc) tip.innerHTML = `${kindIc(sc, true)}${moveIc(sc, true)}<b>${esc(sc.name)}</b> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
   }
   let lastEl = -1;
   // the selected card's cost marked on the energy bar (red when it cannot be paid yet)
