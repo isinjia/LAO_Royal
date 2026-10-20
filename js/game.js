@@ -8,6 +8,15 @@
   const BODY = 9.5;          // nominal bioroid body height in rig units
   const AIR_LIFT = 1.15;     // flying troops hover this high above their shadow
   const TROOP_K = 2.4;       // troops stay small against the arena: a strategy game needs the whole field readable at a glance
+  // Clash Royale-style size classes by weight: swarms and light units small, regular troops as they are, heavy armour
+  // large. Bioroids are human-sized (capped at x1.2); the iron units' drawn heights already make their machines big,
+  // so they only shrink their small ones (the softer square root). A card's own `size` overrides the class.
+  const sizeK = (c) => {
+    const m = c.mass || 4;
+    let k = c.size || (c.count > 1 || m <= 3 ? 0.82 : m <= 7 ? 1 : m <= 12 ? 1.25 : 1.5);
+    if (c.faction === 'orca') k = Math.min(k, 1.2);
+    return c.h ? Math.sqrt(Math.min(k, 1)) : k; // (the iron giants are already drawn tall: only their small units shrink, the field stays readable)
+  };
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /[?&]mobile=1\b/.test(location.search) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || // (?mobile=1: run the phone path on a PC, for tests)
     (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
@@ -759,7 +768,7 @@
     u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.8), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
     u.disc = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 4.8, 1.7, 3), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 0.75, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 5.2, 1.9, 3.2), aspect: TILT, color: teamHex(side), alpha: (side === 'red' ? 0.38 : 0.42) * (u.r > 0.6 ? 0.7 : 1), /* big mechs: a capped, fainter pool that never hides the bridge */ tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
-    attachRig(u, card.rig, card.k * TROOP_K, card.h && card.h * TROOP_K, true);
+    attachRig(u, card.rig, card.k * TROOP_K * sizeK(card), card.h && card.h * TROOP_K * sizeK(card), true);
     u.fxk *= 1.4 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
     if (isIron(card.rig)) u.tintMul = 1.4;
     if (u.sd) { if (side === 'blue') u.sd.setRim(0.04, 0.1, 0.2, 0.9); else u.sd.setRim(0.62, 0.08, 0.1, 0.7); } // team outlines: cyan-white reads on the blue deck, a moderate red on the far half
@@ -2585,7 +2594,7 @@
       for (let k = 0; k < c.count; k++) {
         const o = { holder: new THREE.Group(), face: 1 };
         gh.grp.add(o.holder);
-        attachRig(o, c.rig, c.k * TROOP_K, c.h && c.h * TROOP_K, true);
+        attachRig(o, c.rig, c.k * TROOP_K * sizeK(c), c.h && c.h * TROOP_K * sizeK(c), true); // (the drop preview at the unit's size)
         if (o.sd) { o.sd.setOpacity(0.55); o.sd.setOrder(6400); o.holder.scale.x = o.natural; }
         gh.chars.push(o);
       }
@@ -3061,6 +3070,7 @@
     return images;
   }
 
+  let booted = false;
   async function boot() {
     stageEl = document.getElementById('stage');
     labelsEl = document.getElementById('labels');
@@ -3131,6 +3141,7 @@
     renderer.domElement.addEventListener('webglcontextrestored', () => { G.lost = false; clearTimeout(G.lostT); resize(true); UI.toast('그래픽 장치가 복구되었습니다'); });
     bindInput();
     SFX.preload();
+    booted = true; // (a match can start from here on)
     requestAnimationFrame(frame);
   }
 
@@ -3157,6 +3168,7 @@
   function leave() { mpClose(); G.opts = null; clearBattle(); G.phase = 'title'; G.paused = false; SFX.music('title'); }
 
   window.GAME = {
+    get ready() { return booted; },
     G, boot, start, select, deselect, cardDown, pause, surrender, leave, resize, useSkill, champions, setQuality, buildDeck,
     get cameraZoom() { return camera ? camera.zoom : 1; },
     get cameraPos() { return camera ? [camera.position.x, camera.position.y] : [0, 0]; },
