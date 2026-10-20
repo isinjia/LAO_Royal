@@ -531,6 +531,12 @@
   function attackTick(e, dt) {
     const c = e.sd, a = e.anim;
     const haste = e.hasteT > 0 ? e.hasteK || 1 : 1;
+    if (e.dagger) { // a dagger tower: fast throws while it has daggers, slow ones when empty
+      if (c) { const k = e.atkClip || 'atk'; if (c.clipName !== k) setClip(e, k); c.speed = e.ammo > 0 ? 1.8 : 1; c.update(dt); if (k === 'atk' && a && c.time >= a.w1) c.time = a.w0; }
+      e.cd -= dt * haste * e.slowK;
+      if (e.cd <= 0) { fire(e, true, (a && a.fire[0]) || 1); if (e.ammo > 0) { e.ammo--; e.cd = e.dagger.fast; } else e.cd = e.dagger.slow; }
+      return;
+    }
     if (!c) { e.cd -= dt * haste; if (e.cd <= 0) { e.cd = e.atk.rate; fire(e, true, 1); } return; }
     if (c.clipName !== 'atk') setClip(e, 'atk');
     c.speed = e.speedK * e.slowK * haste;
@@ -787,13 +793,14 @@
   }
 
   function makeTower(side, type, x, z) {
-    const S = G.sides[side], sp = BAL.tower[type], fac = FACTIONS[S.faction], guard = fac[type];
+    const S = G.sides[side], sp = BAL.tower[type], fac = FACTIONS[S.faction], guard = type === 'princess' && x > 0 && fac.princessR ? fac.princessR : fac[type]; // (a faction can put a different guard on the right tower)
+    const DG = guard.dagger ? BAL.tower.dagger : null;
     // towers grow with the side's card levels (the deck's average for the player, the opponent's level for the AI)
     const tl = S.levels ? Math.round(S.deck.reduce((s, id) => s + (S.levels[id] || LEVEL.min), 0) / S.deck.length) : S.lvl || LEVEL.min;
-    const m = LEVEL.mult(tl), hp = Math.round(sp.hp * m * (G.mut && G.mut.hp || 1)); // (the titans rule toughens towers as well)
+    const m = LEVEL.mult(tl), hp = Math.round(sp.hp * m * (G.mut && G.mut.hp || 1) * (DG ? DG.hp : 1)); // (the titans rule toughens towers as well)
     const t = {
       id: G.nextId++, kind: 'tower', type, side, x, z, r: sp.r, hp, max: hp, air: false, alive: true, active: type !== 'king', lv: tl,
-      atk: { dmg: sp.dmg * m, rate: sp.rate, range: sp.range, hits: 'all', splash: 0, fx: guard.fx, color: guard.color, sfx: guard.sfx },
+      atk: { dmg: sp.dmg * m * (DG ? DG.dmg : 1), rate: DG ? DG.fast : sp.rate, range: sp.range, hits: 'all', splash: 0, fx: guard.fx, color: guard.color, sfx: guard.sfx },
       target: null, face: side === 'blue' ? 1 : -1, slowK: 1, slowT: 0, stunT: 0, freezeT: 0, hitT: 0, cd: 0, elev: TOWER_E[type],
     };
     const tkey = side + type + S.faction;
@@ -811,11 +818,14 @@
     const gk = type === 'princess' ? (isIron(guard.rig) ? 1.2 : 1.95) : (isIron(guard.rig) ? 1.1 : 1.6); // the orca bioroids are drawn up to stand as tall as the iron emplacements opposite // the orca gunners stand as large as the iron emplacements
     attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
+    if (guard.tint) t.tintMul = guard.tint;
+    if (DG) { t.dagger = DG; t.ammo = DG.ammo; t.reloadT = 0; t.dmgK = 1; t.atkClip = guard.clip || 'atk'; } // throws on its own clock (attackTick), not on its clip
 
     t.label = document.createElement('div');
     t.label.className = 'tlabel ' + side + ' ' + type;
     t.label.style.transform = 'translate(-999px,-999px)'; // placed by render()
-    t.label.innerHTML = `<i class="bar"><i></i></i><b>${hp}</b>${type === 'king' ? '<em class="crown"></em>' : ''}`;
+    t.label.innerHTML = `<i class="bar"><i></i></i><b>${hp}</b>${type === 'king' ? '<em class="crown"></em>' : ''}${DG ? '<i class="ammo"></i>' : ''}`;
+    if (DG) t.ammoEl = t.label.querySelector('.ammo');
     labelsEl.appendChild(t.label);
     if (!t.active && t.sd) t.sd.setTint(0.6, 0.6, 0.65);
     G.ents.push(t);
@@ -900,6 +910,7 @@
   const SUPPORT_TIME = 75; // seconds of play to charge it without taking damage
   const SUPPORT = {
     orca: { name: '긴급 수리', desc: '모든 아군 타워 체력 15% 회복 · 에너지 +2' },
+    lemonade: { name: '긴급 수리', desc: '모든 아군 타워 체력 15% 회복 · 에너지 +2' },
     iron: { name: '군단 호출', desc: '킹 타워 앞에 드론 편대 투입' },
   };
   const supOut = {}, skOut = {};
@@ -938,7 +949,7 @@
   }
   // the opponent calls its support when it matters: repairs once a tower is hurt, reinforcements a moment after they are ready
   function aiSupport(S) {
-    if (S.faction === 'orca') { if (S.towers.some((t) => t.alive && t.hp < t.max * 0.7)) useSupport(S.side); }
+    if (S.faction !== 'iron') { if (S.towers.some((t) => t.alive && t.hp < t.max * 0.7)) useSupport(S.side); }
     else if ((S.sup.readyT = (S.sup.readyT || G.time)) && G.time - S.sup.readyT > 2.5) useSupport(S.side);
   }
 
@@ -2019,6 +2030,7 @@
       let bd = Infinity;
       for (const e of (G.troops ? G.troops[other(t.side)] : G.ents)) if (inRange(e) && e.deployT <= 0) { const d = dist(t, e); if (d < bd) { bd = d; t.target = e; } }
     }
+    if (t.dagger && !t.target && t.ammo < t.dagger.ammo && (t.reloadT += dt) >= t.dagger.reload) { t.reloadT = 0; t.ammo++; } // daggers come back one by one while it rests
     if (t.target) attackTick(t, dt);
     else if (t.sd) {
       if (t.sd.clipName === 'skill') t.sd.update(dt);
@@ -2594,7 +2606,7 @@
         // the player's plates sit on the front wall of each tower (as in Clash Royale); the opponent's float above
         const p = toScreen(e.x, (e.z - e.r * 0.85) * TILT + TOWER_E[e.type] * (e.side === 'blue' ? 0.42 : 0.72)); // both sides' plates sit on the tower's front wall (the opponent's no longer run under the top HUD, nor hang into its lane)
         const lt = `translate(${Math.round(p[0])}px,${Math.round(p[1])}px)`;
-        if (e.labelT !== lt) { e.labelT = lt; e.label.style.transform = lt; } // written only when it moves (shake)
+        if (e.labelT !== lt) { e.labelT = lt; e.label.style.transform = lt; } if (e.ammoEl) { const v = e.ammo / e.dagger.ammo; if (e.ammoV !== v) { e.ammoV = v; e.ammoEl.style.setProperty('--ammo', v); } } // the daggers left // written only when it moves (shake)
         if (e.alive) {
           const w = (e.hp / e.max * 100).toFixed(1) + '%';
           if (e.labelW !== w) { e.labelW = w; e.label.firstChild.firstChild.style.width = w; }
@@ -2687,6 +2699,7 @@
     perf.level = clamp(lv, 0, QUALITY.length - 1);
     const q = QUALITY[perf.level];
     renderer.setPixelRatio(Math.min(q.dpr, window.devicePixelRatio || 1));
+    if (composer) composer.setPixelRatio(renderer.getPixelRatio()); // the bloom chain renders at the screen's own density too (it kept the 1x it was made with: everything came out blurred on sharp screens)
     FX.setBudget(q.parts);
     if (bloom) bloom.strength = q.bloom || 0;
     resize(true);
@@ -3065,7 +3078,7 @@
     const rigs = new Set(), fxs = new Set();
     for (const s of ['blue', 'red']) {
       const f = FACTIONS[G.sides[s].faction];
-      rigs.add(f.king.rig); rigs.add(f.princess.rig);
+      rigs.add(f.king.rig); rigs.add(f.princess.rig); if (f.princessR) rigs.add(f.princessR.rig);
       if (G.sides[s].faction === 'iron') rigs.add(CARD.drone.rig); // the commander's support call drops drones
       G.sides[s].deck.forEach((id) => {
         const c = CARD[id];
@@ -3080,7 +3093,7 @@
     ['simple_explosion', 'skill_hit_simple'].forEach((n) => fxs.add(n));
     const list = [...rigs], fxl = [...fxs].filter(fxOk);
     // free what the previous matches loaded but this one does not use (GPU memory on phones)
-    const towerRigs = new Set(Object.values(FACTIONS).flatMap((f) => [f.king.rig, f.princess.rig]));
+    const towerRigs = new Set(Object.values(FACTIONS).flatMap((f) => [f.king.rig, f.princess.rig].concat(f.princessR ? [f.princessR.rig] : [])));
     const rigCap = MOBILE ? 14 : 40;
     if (SD.loaded().length + list.length > rigCap) SD.loaded().forEach((id) => { if (!rigs.has(id) && !towerRigs.has(id)) SD.evict(id); });
     if (MOBILE || FXB.loaded().length > 60) FXB.loaded().forEach((n) => { if (!fxs.has(n)) FXB.evict(n); });

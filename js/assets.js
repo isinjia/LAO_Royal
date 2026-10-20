@@ -2,6 +2,8 @@
 // The fx_* textures and the two faction banners stay inline: they are drawn into WebGL textures, which must also work from file://.
 window.IMG = {
 "c_BR_Brownie_N": "assets/img/c_BR_Brownie_N.webp",
+"c_PECS_LemonadeAlpha_N": "assets/img/c_PECS_LemonadeAlpha_N.webp",
+"c_PECS_LemonadeBeta_N": "assets/img/c_PECS_LemonadeBeta_N.webp",
 "c_BR_Gnome_N": "assets/img/c_BR_Gnome_N.webp",
 "c_BR_Leprechaun_N": "assets/img/c_BR_Leprechaun_N.webp",
 "c_BR_Impet_N": "assets/img/c_BR_Impet_N.webp",

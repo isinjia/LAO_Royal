@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.53'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.54'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -50,7 +50,7 @@
     const valid = (dk) => Array.isArray(dk) && dk.length <= 8 && new Set(dk).size === dk.length && dk.every((id) => CARD[id] && save.cards[id]); // (fewer than 8 while it is being built) // orca and iron cards may be mixed in one deck
     if (typeof save.deckSlots !== 'object' || !save.deckSlots) save.deckSlots = {};
     if (typeof save.deckSlot !== 'object' || !save.deckSlot) save.deckSlot = {};
-    for (const f of ['orca', 'iron']) {
+    for (const f of Object.keys(FACTIONS)) {
       if (!valid(save.decks[f])) save.decks[f] = FACTIONS[f].deck.slice();
       // five saved decks: the active slot is the very array in save.decks (edits land in both)
       const old = Array.isArray(save.deckSlots[f]) ? save.deckSlots[f] : [];
@@ -62,8 +62,8 @@
     }
     // one set of decks for the commander, whichever faction it plays: both factions point at the same decks
     // (the first time, the faction in use keeps its decks for both)
-    const f0 = save.deckShared ? 'orca' : save.faction, f1 = f0 === 'orca' ? 'iron' : 'orca';
-    save.deckSlots[f1] = save.deckSlots[f0]; save.deckSlot[f1] = save.deckSlot[f0]; save.decks[f1] = save.decks[f0];
+    const f0 = save.deckShared ? 'orca' : save.faction;
+    for (const f1 of Object.keys(FACTIONS)) if (f1 !== f0) { save.deckSlots[f1] = save.deckSlots[f0]; save.deckSlot[f1] = save.deckSlot[f0]; save.decks[f1] = save.decks[f0]; }
     save.deckShared = true;
     persist();
   }

@@ -155,6 +155,15 @@
       deck: ['nightchick', 'drone', 'legion', 'centurion', 'intruder', 'predator', 'gigantes', 'i_strike'],
       emotes: [['e_NightChick_N', '삐빅!'], ['e_IronPrince_N', '하찮군'], ['e_Drone_N', '오류 발생'], ['e_BlackKnight_N', '섬멸한다']],
     },
+    // Lemonade: Alpha on the king tower; Delta (left) and Beta (right) are dagger towers (Clash Royale's Dagger Duchess)
+    lemonade: {
+      name: '레모네이드', color: '#ffd34d', hex: 0xffd34d, banner: 'c_PECS_LemonadeAlpha_N',
+      king: { rig: 'lemonadealpha', k: 1.35, fx: 'bullet', color: 0xffe066, sfx: 'rifle' },
+      princess: { rig: 'e_LemonadeDelta_N', h: 2.4, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true },
+      princessR: { rig: 'lemonadebeta', k: 1.25, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true, tint: 1.3, clip: 'idle' }, // (her attack clip is a long snake lunge off the tower: she throws from her idle pose) // (all in black: lifted a little to read at unit size)
+      deck: ['brownie', 'leprechaun', 'impet', 'raven', 'harpy', 'zero', 'empress', 'strike'],
+      emotes: [['c_PECS_LemonadeAlpha_N', '좋아요!'], ['c_PECS_LemonadeBeta_N', '잘했어요'], ['e_LemonadeOmega_N', '이런…'], ['c_PECS_LemonadeAlpha_N', '덤벼라!']],
+    },
   };
 
   // trophy road: each arena re-skins the floor, raises the opponent's card level and unlocks cards
@@ -184,6 +193,8 @@
     tower: {
       king: { hp: 4800, dmg: 110, rate: 1.0, range: 7, r: 1.6, z: 13.3 },
       princess: { hp: 3050, dmg: 105, rate: 0.8, range: 7.5, r: 1.2, x: 5.5, z: 10 },
+      // dagger tower (Dagger Duchess): 8 daggers thrown fast, then slow throws while empty; reloads while it has no target
+      dagger: { hp: 0.9, dmg: 0.9, ammo: 8, fast: 0.4, slow: 1.6, reload: 0.55 },
       bld: { r: 0.9 }, // player-built structures (size of their bunker art)
     },
     elixirMax: 10, elixirStart: 5, elixirRate: 2.8, // seconds per 1 energy
@@ -219,6 +230,11 @@
       { img: 'e_AzazelAlter_N', name: '아자젤 얼터', style: 'aggro' },
       { img: 'e_Raider_B04', name: '레이더 B04', style: 'balanced' },
       { img: 'e_IronPrince_N', name: '철의 왕자', style: 'siege' },
+    ],
+    lemonade: [
+      { img: 'c_PECS_LemonadeAlpha_N', name: '레모네이드 알파', style: 'balanced' },
+      { img: 'c_PECS_LemonadeBeta_N', name: '레모네이드 베타', style: 'aggro' },
+      { img: 'e_LemonadeOmega_N', name: '레모네이드 오메가', style: 'control' },
     ],
     orca: [
       { img: 'c_3P_Labiata_N', name: '라비아타 프로토타입', style: 'balanced' },

@@ -1199,3 +1199,13 @@ button:disabled { cursor: default; }
 
 /* no crate row on the battle tab */
 #chestRow[hidden] { display: none !important; }
+
+/* Lemonade faction (amber) and the dagger tower's ammo strip under its plate */
+.facdlg .factions { grid-template-columns: repeat(3, 1fr); }
+.facdlg .factions button { height: 120px; }
+.facrow.f-lemonade { background: linear-gradient(90deg, rgba(255,211,77,.18), #121b26 60%); border-color: #ffd34d; }
+.facrow.f-lemonade em { color: #ffd34d; }
+.f-lemonade { color: #ffd34d; }
+.tlabel .ammo { position: absolute; left: 0; top: 20px; width: 64px; height: 5px; z-index: 2; border-radius: 2px; background: rgba(0,0,0,.6);
+  background-image: linear-gradient(90deg, #ffd34d calc(var(--ammo, 1) * 100%), transparent 0); box-shadow: 0 0 0 1px rgba(0,0,0,.7); }
+.tlabel .ammo::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(12.5% - 1px), rgba(0,0,0,.75) calc(12.5% - 1px) 12.5%); }
