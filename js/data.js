@@ -272,7 +272,7 @@
   }
 
   window.DATA = {
-    RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf,
+    RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
     card: Object.fromEntries(CARDS.map((c) => [c.id, c])),
     byFaction: (f) => CARDS.filter((c) => c.faction === f),
   };

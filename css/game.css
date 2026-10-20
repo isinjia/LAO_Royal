@@ -901,3 +901,20 @@ button:disabled { cursor: default; }
 .dhead #deckAvg { order: 0; flex: none; flex-basis: auto; font-size: 12px; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
 .deckfoot { padding-top: 6px; }
 .slots .emptyslot.sel { outline: 3px solid #fff; outline-offset: 1px; border-color: #2ee6ff; }
+
+/* faction bond popup (Last Origin colours) */
+.dhead #deckAvg .syn { cursor: pointer; }
+.syndlg { width: min(92%, 380px); text-align: left; }
+.syndlg h4 { text-align: center; }
+.synnote { font-size: 12px; color: var(--dim); margin: 0 0 10px; }
+.synlist { display: grid; gap: 10px; }
+.syngrp h5 { margin: 0 0 6px; font-size: 14px; color: #fff; }
+.syngrp h5 small { font-size: 11px; color: #9fb3c4; margin-left: 6px; }
+.syngrp.f-orca h5 { color: #2ee6ff; } .syngrp.f-iron h5 { color: #ff8a94; }
+.synrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 7px 10px; margin-bottom: 5px; background: #172230; border: 1px solid #2c3a4a;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.synrow b { font-size: 13px; color: #e8eef4; }
+.synrow em { font-style: normal; font-size: 11px; color: #9fb3c4; align-self: center; }
+.synrow span { grid-column: 1 / -1; font-size: 12px; color: #b9c7d4; }
+.synrow.on { border-color: #ffd34d; background: linear-gradient(90deg, rgba(255,211,77,.18), #172230); }
+.synrow.on b::after { content: ' · 적용 중'; color: #ffd34d; font-size: 11px; }

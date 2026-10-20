@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.40'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.41'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -281,6 +281,14 @@
     const s = DATA.synergyOf(deck);
     if (!s.tier) return `<span class="syn off" title="한 진영 카드 4장 이상이면 결속 보너스">결속 없음 (${s.count}/4)</span>`;
     return `<span class="syn ${s.faction}" title="${esc(s.desc)}">${esc(s.name)}</span>`;
+  }
+  // every faction bond, the one this deck has lit (and how many cards each side has)
+  function renderSyn() {
+    const deck = save.decks[save.faction], cur = DATA.synergyOf(deck), n = { orca: 0, iron: 0 };
+    deck.forEach((id) => { if (CARD[id] && n[CARD[id].faction] != null) n[CARD[id].faction]++; });
+    const need = [0, 4, 6];
+    $('synList').innerHTML = ['orca', 'iron'].map((f) => `<div class="syngrp f-${f}"><h5>${FACTIONS[f].name} <small>덱에 ${n[f]}장</small></h5>`
+      + DATA.SYNERGY[f].map((s, t) => (s ? `<div class="synrow${cur.tier === t && cur.faction === f ? ' on' : ''}"><b>${esc(s.name)}</b><em>${need[t]}장 이상</em><span>${esc(s.desc)}</span></div>` : '')).join('') + '</div>').join('');
   }
   function renderDeck() {
     const f = save.faction, deck = save.decks[f];
@@ -1042,6 +1050,10 @@
     // closing a deck card's details also drops the pick (the codex closes); a codex card's keeps it
     const closeCard = () => { if (deckSel && save.decks[save.faction].includes(deckSel)) slotSel = null; cardOpen = false; renderDeck(); };
     $('btnCardClose').onclick = closeCard;
+    // the bond chip in the deck header opens the list of faction bonds
+    $('deckAvg').addEventListener('click', (e) => { if (!e.target.closest('.syn')) return; SFX.play('click'); renderSyn(); $('synOv').hidden = false; });
+    $('btnSynClose').onclick = () => { $('synOv').hidden = true; };
+    $('synOv').addEventListener('click', (e) => { if (e.target.id === 'synOv') $('synOv').hidden = true; });
     // a tap on the empty part of the deck screen drops the pick
     $('deck').addEventListener('click', (e) => { if (slotSel == null || e.target.closest('.tile, .card, button, .csort, .lbl')) return; slotSel = null; renderDeck(); });
     // the faction card under the deck opens the faction picker
