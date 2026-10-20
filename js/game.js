@@ -31,6 +31,13 @@
   function logEvent(text, side, kind) { if (!G.log) return; const t = Math.max(0, Math.ceil(G.clock)); G.log.push([(G.overtime ? '연장 ' : '') + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'), text, side || '', kind || '']); if (G.log.length > 400) G.log.splice(0, G.log.length - 400); } // bounded (long overtime / soak runs)
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const rnd = (a, b) => a + Math.random() * (b - a);
+  // the few random draws that change a match (not its effects) come from a seeded generator: an online match runs the
+  // same draws on both devices. The guest sees the field mirrored, so a drawn position offset is mirrored there too.
+  let mp = null; // online match state (see "online match" below); null offline
+  const mulberry = (seed) => () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  let srng = Math.random;
+  const srnd = (a, b) => a + srng() * (b - a);
+  const MIR = () => (mp && mp.guest ? -1 : 1);
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const sy = (e) => e.z * TILT + (e.air ? AIR_LIFT : 0) + (e.elev || 0);
   const other = (s) => (s === 'blue' ? 'red' : 'blue');
@@ -1368,7 +1375,16 @@
   }
   const skillCost = (u) => Math.max(1, u.card.skill.cost + (G.mut && G.mut.skillCost || 0));
   const AIMABLE = { barrage: 1, laser: 1, dash: 1 };
+  // the player's skill button: online it is an input like a card (checked here, run on both devices shortly)
   function useSkill(u, spot) {
+    if (mp && u && u.side === 'blue') {
+      if (!skillReady(u) || G.sides.blue.elixir < skillCost(u) - 1e-6 || G.phase !== 'play') return false;
+      if (mp.mine.some((c) => c.k === 's' && c.u === u.id)) return true; // (already on its way)
+      return mpLocal({ k: 's', u: u.id, sp: spot ? [spot.x, spot.z] : null });
+    }
+    return useSkillNow(u, spot);
+  }
+  function useSkillNow(u, spot) {
     const S = G.sides[u.side], sk = u.card.skill;
     if (!skillReady(u) || S.elixir < skillCost(u) - 1e-6 || G.phase !== 'play' || G.paused) return false;
     S.elixir -= skillCost(u);
@@ -1535,7 +1551,7 @@
       case 'barrage': {
         const [cx, cz] = u.skillSpot || bestSpot(u, sk.reach, sk.radius * 1.5);
         for (let i = 0; i < sk.n; i++) {
-          const x = cx + (i ? rnd(-1, 1) * sk.radius : 0), z = cz + (i ? rnd(-0.75, 0.75) * sk.radius : 0); // inside the telegraph ring
+          const x = cx + (i ? srnd(-1, 1) * sk.radius * MIR() : 0), z = cz + (i ? srnd(-0.75, 0.75) * sk.radius * MIR() : 0); // inside the telegraph ring
           FX.later(0.15 + i * 0.16, () => {
             if (G.phase !== 'play') return;
             const y = z * TILT;
@@ -1550,7 +1566,7 @@
         const list = shuffle(enemiesNear(side, u.x, u.z, sk.reach, true)); // troops only: not a tower-melter
         for (let i = 0; i < sk.n; i++) {
           const o = list[i % Math.max(1, list.length)];
-          const x = o ? o.x : u.x + rnd(-3, 3), z = o ? o.z : u.z - SGN[side] * rnd(1, 4);
+          const x = o ? o.x : u.x + srnd(-3, 3) * MIR(), z = o ? o.z : u.z - SGN[side] * srnd(1, 4);
           FX.later(i * 0.12 + rnd(0, 0.06), () => { if (G.phase !== 'play') return; FX.thunderBolt(x, z * TILT + 0.3, sk.color); spawnStatic(SKILL_FX.storm, x, z * TILT + 0.4, 0.3); hitArea(x, z, 1, sk.dmg, { stun: sk.stun }); if (!i) impact(u, x, z, sk.color); SFX.play('elec', 0.4); });
         }
         break;
@@ -1713,7 +1729,7 @@
       if (b.spawnT <= 0) {
         b.spawnT = b.card.spawn.every;
         const tc = CARD[b.card.spawn.card], s = SGN[b.side];
-        const tr = spawnTroop(b.side, tc, clamp(b.x + rnd(-0.4, 0.4), -8.6, 8.6), b.z - s * (b.r + 0.4), 0, b.lv);
+        const tr = spawnTroop(b.side, tc, clamp(b.x + srnd(-0.4, 0.4) * MIR(), -8.6, 8.6), b.z - s * (b.r + 0.4), 0, b.lv);
         tr.deployT = tr.deploy0 = 0.3; tr.elev = 0; tr.dropT = 0;
         FX.groundRing(tr.x, tr.z * TILT, 0.2, 0.9, teamHex(b.side), 0.35);
         if (b.sd) b.sd.play('atk', () => {}, false); // onEnd: back to idle after one cycle
@@ -1986,8 +2002,99 @@
     }
   }
 
+
+  // ── online match (lockstep) ───────────────────────────
+  // Both devices run the same match; only inputs travel (cards, skills, support). Each player sees itself as blue at the
+  // bottom, so the opponent's inputs arrive mirrored. An input runs MP_DELAY ticks after it was made, on both devices, and
+  // a device only steps a tick once the other side has said it has nothing more for it. The host (the side that invited)
+  // sends a correction of every unit's health and position twice a second and decides how the match ends.
+  const MP_DELAY = 6, MP_DIGEST = 30, MP_STALL = 10000;
+  function mpSetup(opts) {
+    srng = Math.random; mp = null;
+    if (!opts.online) return;
+    const o = opts.online;
+    mp = { guest: !!o.guest, send: o.send, close: o.close, tick: 0, upTo: -1, mine: [], out: [], theirs: new Map(), digests: new Map(), lastRecv: performance.now(), heard: false, endOK: false, done: false };
+    srng = mulberry(o.seed >>> 0);
+    G.nextId = 1; // ids are how the two devices name the same unit: both count from 1
+  }
+  const mpOther = (w) => (w === 'blue' ? 'red' : w === 'red' ? 'blue' : w);
+  // a local input: scheduled, sent, run later on both devices
+  function mpLocal(cmd) {
+    if (!mp || G.phase !== 'play') return false;
+    cmd.t = mp.tick + MP_DELAY;
+    mp.mine.push(cmd); mp.out.push(cmd);
+    return true;
+  }
+  function mpFlush() {
+    if (!mp || mp.done) return;
+    mp.send({ u: mp.tick + MP_DELAY - 1, c: mp.out });
+    mp.out = [];
+  }
+  function mpMessage(m) {
+    if (!mp) return;
+    mp.lastRecv = performance.now(); mp.heard = true;
+    if (m.c) for (const c of m.c) { if (!mp.theirs.has(c.t)) mp.theirs.set(c.t, []); mp.theirs.get(c.t).push(c); }
+    if (m.u != null) mp.upTo = Math.max(mp.upTo, m.u);
+    if (m.d != null && mp.guest) mp.digests.set(m.d, m);
+    if (m.em != null && G.phase === 'play') UI.emote('red', m.em);
+    if (m.end && mp.guest) { // the host's verdict (from its side: mirror it)
+      mp.endOK = true;
+      if (m.cr) { G.sides.blue.crowns = m.cr[1]; G.sides.red.crowns = m.cr[0]; UI.crowns(); }
+      endMatch(mpOther(m.end), m.why || 'king');
+    }
+    if (m.bye) mpAbandon(); // the opponent surrendered or left
+  }
+  function mpAbandon() {
+    if (!mp || G.phase !== 'play') return;
+    mp.endOK = true;
+    G.sides.blue.crowns = Math.max(G.sides.blue.crowns, 3); UI.crowns();
+    endMatch('blue', 'surrender');
+  }
+  // run this tick's inputs, the host's first on both devices
+  function mpRun(t) {
+    const mine = mp.mine.filter((c) => c.t === t), theirs = mp.theirs.get(t) || [];
+    if (mine.length) mp.mine = mp.mine.filter((c) => c.t !== t);
+    mp.theirs.delete(t);
+    const order = mp.guest ? [[theirs, 'red', -1], [mine, 'blue', 1]] : [[mine, 'blue', 1], [theirs, 'red', -1]];
+    for (const [list, side, m] of order) for (const c of list) mpExec(c, side, m);
+  }
+  function mpExec(c, side, m) {
+    const S = G.sides[side];
+    if (c.k === 'c') { if (S.hand[c.i] === c.id) playCard(side, c.i, c.x * m, c.z * m); }
+    else if (c.k === 's') { const u = G.ents.find((e) => e.id === c.u && e.side === side && e.alive); if (u) useSkillNow(u, c.sp ? { x: c.sp[0] * m, z: c.sp[1] * m } : undefined); }
+    else if (c.k === 'p') useSupport(side);
+  }
+  // after a tick: the host sends its correction; the guest applies the one for this tick
+  function mpAfter(t) {
+    if (!mp.guest) {
+      if (t % MP_DIGEST === 0) {
+        const e = [];
+        for (const x of G.ents) if (x.alive) e.push([x.id, Math.round(x.hp), Math.round(x.x * 100) / 100, Math.round(x.z * 100) / 100]);
+        mp.send({ d: t, n: G.nextId, e, el: [G.sides.blue.elixir, G.sides.red.elixir] });
+      }
+      return;
+    }
+    for (const [dt, dg] of mp.digests) if (dt <= t) { mp.digests.delete(dt); mpCorrect(dg); }
+  }
+  function mpCorrect(dg) {
+    const seen = new Set();
+    for (const [id, hp, x, z] of dg.e) {
+      seen.add(id);
+      const e = G.ents.find((q) => q.id === id);
+      if (!e || !e.alive) continue;
+      if (e.kind === 'troop') { e.x = -x; e.z = -z; } // (the host's field, mirrored)
+      if (hp < e.hp - 0.5) damage(e, e.hp - hp, null); else if (hp > e.hp + 0.5) e.hp = Math.min(e.max, hp);
+    }
+    for (const e of G.ents) if (e.alive && e.id < dg.n && !seen.has(e.id)) damage(e, e.hp + 1, null); // gone on the host: gone here
+    G.sides.red.elixir = dg.el[0]; G.sides.blue.elixir = dg.el[1];
+  }
+  function mpClose() { if (!mp) return; mp.done = true; try { mp.close && mp.close(); } catch (e) { /* gone */ } mp = null; srng = Math.random; }
+
   function endMatch(winner, reason) {
     if (G.phase !== 'play') return;
+    if (mp && mp.guest && !mp.endOK) return; // online: the host decides how the match ends
+    if (mp && !mp.guest && !mp.endOK) mp.send({ end: winner, why: reason, cr: [G.sides.blue.crowns, G.sides.red.crowns] });
+    if (mp) { mp.done = true; const m0 = mp; setTimeout(() => { if (mp === m0) mpClose(); else try { m0.close && m0.close(); } catch (e) { /* gone */ } }, 3000); } // (wall clock: the game's timers stop under the result screen)
     G.phase = 'ended';
     G.result = winner;
     if (winner !== 'draw') FX.later(0.3, () => say(winner === 'blue' ? (G.sides.blue.crowns >= 3 ? 'ann:perfect' : 'ann:clear') : 'ann:fail', 1, 5));
@@ -2522,7 +2629,8 @@
     const S = G.sides.blue, c = CARD[S.hand[G.sel]];
     if (S.elixir < c.cost) { UI.toast('에너지가 부족합니다'); SFX.play('fail', 0.4); UI.elixirShake(); return false; }
     if ((c.type === 'troop' && !canDeploy('blue', G.ghost.x, G.ghost.z)) || (c.type === 'building' && !canBuild('blue', G.ghost.x, G.ghost.z, c))) { UI.toast(c.type === 'building' ? '건물은 아군 진영의 빈 곳에만 지을 수 있습니다' : '여기에는 배치할 수 없습니다'); SFX.play('fail', 0.4); return false; }
-    playCard('blue', G.sel, G.ghost.x, G.ghost.z);
+    if (mp) { const S = G.sides.blue, id = S.hand[G.sel]; if (CARD[id] && S.elixir >= CARD[id].cost - 1e-6) mpLocal({ k: 'c', i: G.sel, id, x: G.ghost.x, z: G.ghost.z }); } // online: runs on both devices shortly
+    else playCard('blue', G.sel, G.ghost.x, G.ghost.z);
     deselect();
     return true;
   }
@@ -2588,7 +2696,7 @@
   }
 
   // ── match setup ───────────────────────────────────────
-  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(srng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function makeSide(side, faction, deck, ai, levels, lvl) {
     const d = shuffle(deck.slice());
     return { side, faction, deck: d, hand: d.slice(0, 4), queue: d.slice(4), elixir: BAL.elixirStart, crowns: 0, towers: [], blds: [], ai, levels, lvl, syn: DATA.synergyOf(deck), sup: { charge: 0, used: false } };
@@ -2768,7 +2876,7 @@
     G.opDay = DATA.dayIndex(); // credited to the day the rule was drawn (a match may end past midnight)
     // practice: the opponent's faction comes with the deck the player picked for it; mirror: the same faction too
     const practice = opts.mode === 4 && Array.isArray(opts.foeDeck) && opts.foeDeck.length === 8 && opts.foeDeck.every((id) => CARD[id]);
-    const foeF = practice && FACTIONS[opts.foeFaction] ? opts.foeFaction : G.mut && G.mut.mirror ? opts.faction : opts.faction === 'orca' ? 'iron' : 'orca';
+    const foeF = (practice || opts.online) && FACTIONS[opts.foeFaction] ? opts.foeFaction : G.mut && G.mut.mirror ? opts.faction : opts.faction === 'orca' ? 'iron' : 'orca';
     G.ironHalves = { home: opts.faction === 'iron', far: foeF === 'iron' }; // the floor shows which half the iron side holds
     setArena(G.arena);
     const diff = BAL.diffs[opts.diff] || BAL.diffs[1];
@@ -2781,10 +2889,12 @@
     const myLvl = myDeck.reduce((s, id) => s + ((opts.levels || {})[id] || 1), 0) / myDeck.length;
     // mostly the player's own deck level (a small arena floor): out-levelling must not become a wall either way
     const aiLvl = clamp(Math.round(myLvl * 0.8 + ARENAS[G.arena].lvl * 0.2 + diff.lvl), 1, LEVEL.max);
-    G.sides = {
-      blue: makeSide('blue', opts.faction, myDeck, null, opts.levels || {}, 1),
-      red: makeSide('red', foeF, aiDeck, { diff, style, t: 3 + Math.random() * 2, push: null, lane: Math.random() < 0.5 ? -1 : 1 }, null, aiLvl),
-    };
+    mpSetup(opts);
+    // online: the opponent's own deck and levels, no AI; both devices shuffle the host's deck first (same draws)
+    const redDeck = mp ? opts.foeDeck.slice() : aiDeck, redAi = mp ? null : { diff, style, t: 3 + Math.random() * 2, push: null, lane: Math.random() < 0.5 ? -1 : 1 };
+    const mk = { blue: () => makeSide('blue', opts.faction, myDeck, null, opts.levels || {}, 1), red: () => makeSide('red', mp ? opts.foeFaction : foeF, redDeck, redAi, mp ? opts.foeLevels || {} : null, aiLvl) };
+    const first = mp && mp.guest ? 'red' : 'blue', second = first === 'blue' ? 'red' : 'blue';
+    G.sides = {}; G.sides[first] = mk[first](); G.sides[second] = mk[second]();
     const st0 = () => ({ dmg: 0, kills: 0, spent: 0, wasted: 0, skills: 0, cards: 0, by: {} });
     G.stats = { blue: st0(), red: st0() };
     if (window.SFX && SFX.warm) SFX.warm(G.sides.red.deck.filter((id) => voiced(CARD[id]) && CARD[id].skill).map((id) => 'unit:' + id + '_skill')); // an orca opponent's champions call their skills too
@@ -2834,7 +2944,7 @@
     }));
     if (G.opts === opts) await Promise.race([fxP, new Promise((r) => setTimeout(r, 6000))]);
     if (G.opts !== opts) return; // left during loading
-    for (const side of ['blue', 'red']) {
+    for (const side of mp && mp.guest ? ['red', 'blue'] : ['blue', 'red']) { // (host's towers first on both devices: the same ids)
       const s = SGN[side], P = BAL.tower.princess, K = BAL.tower.king;
       makeTower(side, 'princess', -P.x, s * P.z);
       makeTower(side, 'princess', P.x, s * P.z);
@@ -2896,6 +3006,7 @@
     let bad = false; // each stage is guarded on its own: a failing simulation must not also freeze the effects and the drawing
     try {
       if (G.phase === 'countdown') {
+        if (mp && !mp.done) mpFlush(); // (a heartbeat while counting down: the other device knows this one is ready)
         G.cdT -= dt;
         const n = Math.ceil(G.cdT - 0.2);
         if (n !== G.cdN) { G.cdN = n; if (n > 0) { UI.countdown(n); SFX.play('click', 0.5); if (n <= 3) say('ann:' + n, 1, 4); FX.groundRing(0, 0, 0.5, 6 + (3 - n) * 1.5, 0xffffff, 0.5, 0.3); } else { UI.countdown(0); SFX.play('start', 0.6); say('ann:gamestart', 1, 4); G.phase = 'play'; } }
@@ -2904,7 +3015,16 @@
       if (G.phase === 'play') {
         acc += dt;
         let n = 0;
-        while (acc >= DT && n < 6) { step(DT); acc -= DT; n++; }
+        while (acc >= DT && n < 6) {
+          if (mp && !mp.done) {
+            if (mp.upTo < mp.tick) { acc = Math.min(acc, DT); if (performance.now() - mp.lastRecv > (mp.heard ? MP_STALL : 30000)) mpAbandon(); break; } // waiting for the other device (longer before its first word: it may still be loading)
+            mpRun(mp.tick);
+          }
+          step(DT);
+          if (mp && !mp.done) { mpAfter(mp.tick); mp.tick++; }
+          acc -= DT; n++;
+        }
+        if (mp && !mp.done) mpFlush();
         if (n === 6) acc = 0; // a long stall: drop the backlog instead of spiralling
       } else if (G.phase === 'ended') {
         G.endT += dt;
@@ -3016,11 +3136,13 @@
 
   function pause(on) {
     if (G.phase !== 'play' && G.phase !== 'countdown') return;
+    if (mp) return; // an online match never stops (the menu still opens)
     G.paused = on;
     last = 0;
   }
   function surrender() {
     G.paused = false;
+    if (mp) { mp.send({ bye: 1 }); mp.endOK = true; }
     if (G.phase === 'play' || G.phase === 'countdown') {
       G.phase = 'play';
       G.sides.red.crowns = 3;
@@ -3032,14 +3154,18 @@
       endMatch('red', 'surrender');
     }
   }
-  function leave() { G.opts = null; clearBattle(); G.phase = 'title'; G.paused = false; SFX.music('title'); }
+  function leave() { mpClose(); G.opts = null; clearBattle(); G.phase = 'title'; G.paused = false; SFX.music('title'); }
 
   window.GAME = {
     G, boot, start, select, deselect, cardDown, pause, surrender, leave, resize, useSkill, champions, setQuality, buildDeck,
     get cameraZoom() { return camera ? camera.zoom : 1; },
     get cameraPos() { return camera ? [camera.position.x, camera.position.y] : [0, 0]; },
     get perf() { return perf; }, QUALITY, autoLevel: MOBILE ? 1 : 0,
-    useSupport: () => useSupport('blue'),
+    useSupport: () => (mp ? (supportReady(G.sides.blue) && !mp.mine.some((c) => c.k === 'p') ? mpLocal({ k: 'p' }) : false) : useSupport('blue')),
+    // online match: messages from the other device, and the local emote going out
+    mpMessage: (m) => mpMessage(m),
+    mpEmote: (i) => { if (mp && !mp.done) mp.send({ em: i }); },
+    get online() { return !!mp; },
     // per-frame readers fill one reused object per side / per call (no garbage at 60 fps); read the fields right away
     supportOf: (side) => { const S = G.sides && G.sides[side]; if (!S || !S.sup) return null; const o = supOut[side] || (supOut[side] = {}); o.ready = supportReady(S); o.faction = S.faction; o.charge = S.sup.charge; o.used = S.sup.used; o.name = SUPPORT[S.faction].name; o.desc = SUPPORT[S.faction].desc; return o; },
     _useSupport: (side) => useSupport(side), // (smoke test)

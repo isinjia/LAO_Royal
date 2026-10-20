@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.18'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.19'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -621,7 +621,7 @@
   // VS loading screen (the commander is picked when the battle starts: opts.foe)
   let foe = null;
   // mirror operation: the opponent fights with the player's own faction (and one of its commanders)
-  const foeFaction = (o) => (o.mode === 4 && o.foeFaction ? o.foeFaction : o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca');
+  const foeFaction = (o) => ((o.mode === 4 || o.online) && o.foeFaction ? o.foeFaction : o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca');
   // practice: the opponent plays one of the player's own decks (its faction is the deck's majority) or an AI deck
   const PFOE = { ai: 'AI 덱', orca: '내 오르카 덱', iron: '내 철충 덱' };
   function practiceOpts() {
@@ -898,16 +898,47 @@
   }
 
   // ── wiring ────────────────────────────────────────────
-  function startBattle() {
-    if (save.decks[save.faction].length !== 8) { toast('덱은 8장이어야 합니다'); return; }
-    if (!save.tutorial) { showTut(0); return; }
-    SFX.play('click');
+  function beginBattleScreen() {
     $('result').className = 'screen';
     show('battle');
     handKey = ''; lastEl = -1; lastClock = ''; prevHand = [];
     $('skillBar').innerHTML = '';
     $('emotePanel').hidden = true;
     document.querySelectorAll('.bubble,.skcut,.flycrown').forEach((x) => x.remove());
+  }
+  // a found opponent: the same match on both devices (the host's arena and seed), each side seeing itself at the bottom
+  function startOnline(m) {
+    beginBattleScreen();
+    const levels = {}; save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
+    const f = m.foe, cs = DATA.COMMANDERS[f.faction] || DATA.COMMANDERS.iron;
+    const foeC = Object.assign({}, cs[0], { name: '온라인 사령관', style: 'balanced' });
+    m.listen((msg) => GAME.mpMessage(msg));
+    GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: 1, mode: 0, mut: null, levels, arena: m.guest ? (f.arena | 0) : arena(),
+      foe: foeC, foeDeck: f.deck, foeFaction: f.faction, foeLevels: f.levels || {},
+      online: { guest: m.guest, seed: m.seed, send: m.send, close: m.close } });
+  }
+  // 일반전: look for a human opponent first (online, no server of ours); nobody within 15 s -> the AI as before
+  let searching = false;
+  async function startBattle(noOnline) {
+    if (save.decks[save.faction].length !== 8) { toast('덱은 8장이어야 합니다'); return; }
+    if (!save.tutorial) { showTut(0); return; }
+    if (searching) return;
+    SFX.play('click');
+    if (save.mode === 0 && noOnline !== true && window.NET && navigator.onLine !== false && !/[?&](smoke|offline)=1/.test(location.search)) {
+      searching = true;
+      const levels = {}; save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
+      const profile = { faction: save.faction, deck: save.decks[save.faction].slice(), levels, trophy: save.trophy, arena: arena() };
+      $('searchOv').hidden = false; $('searchMsg').textContent = '온라인 대전 상대를 찾고 있습니다';
+      const t0 = Date.now(), WAIT = 15000;
+      const sec = setInterval(() => { $('searchSec').textContent = Math.max(0, Math.ceil((WAIT - (Date.now() - t0)) / 1000)) + '초 후 AI 대전'; }, 250);
+      const m = await NET.find(profile, WAIT);
+      clearInterval(sec); searching = false;
+      const how = $('searchOv').dataset.how || ''; $('searchOv').dataset.how = ''; $('searchOv').hidden = true;
+      if (m) { startOnline(m); return; }
+      if (how === 'cancel') return;
+      toast(how === 'ai' ? 'AI와 대전합니다' : '상대를 찾지 못해 AI와 대전합니다');
+    }
+    beginBattleScreen();
     const levels = {};
     save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
     DATA.CARDS.forEach((c) => { if (!(c.id in levels) && save.cards[c.id]) levels[c.id] = save.cards[c.id].lv; });
@@ -986,6 +1017,8 @@
       renderRoad();
     };
     $('btnMissions').onclick = () => { SFX.play('click'); renderMissions(); $('missionOv').hidden = false; };
+    $('btnSearchCancel').onclick = () => { $('searchOv').dataset.how = 'cancel'; NET.cancel(); };
+    $('btnSearchAi').onclick = () => { $('searchOv').dataset.how = 'ai'; NET.cancel(); };
     $('btnMode').onclick = () => { SFX.play('click'); $('modeOv').hidden = false; };
     $('btnModeClose').onclick = () => { SFX.play('click'); $('modeOv').hidden = true; renderTitle(); };
     // the bottom tab bar (Clash Royale style): cards, battle (this screen), missions, trophy road
@@ -1051,7 +1084,7 @@
     const ep = $('emotePanel');
     ep.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
-      emote('blue', +b.dataset.i); ep.hidden = true;
+      emote('blue', +b.dataset.i); ep.hidden = true; GAME.mpEmote(+b.dataset.i);
       GAME.aiEmote(Math.floor(Math.random() * 4), 0.35); // the opponent answers on the game clock and its own chatter cooldown
     });
     document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });

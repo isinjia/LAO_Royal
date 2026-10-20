@@ -182,6 +182,11 @@
     <button class="btn d sm lcancel" id="btnLoadCancel">취소</button>
   </div>
 
+  <div id="searchOv" class="ov" hidden>
+    <div class="dlg searchdlg"><h4>상대를 찾는 중</h4><span class="spin"></span><p id="searchMsg">온라인 대전 상대를 찾고 있습니다</p><b id="searchSec"></b>
+      <div class="tbtns"><button class="btn d" id="btnSearchAi">AI와 대전</button><button class="btn d" id="btnSearchCancel">취소</button></div></div>
+  </div>
+
   <div id="fatal" class="ov" hidden><div class="dlg"><h4>실행할 수 없습니다</h4><p></p></div></div>
   <div id="toast"></div>
   <div id="dragCard" hidden></div>
@@ -203,6 +208,7 @@
 <script defer src="js/data.js"></script>
 <script defer src="js/fx.js"></script>
 <script defer src="js/game.js"></script>
+<script defer src="js/net.js"></script>
 <script defer src="js/ui.js"></script>
 <script defer src="js/smoke.js"></script>
 </body>
