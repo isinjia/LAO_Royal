@@ -384,7 +384,7 @@
     // battle damage: under half health the bunker darkens and cracks, under a quarter it is scorched and broken
     if (stage && !dead) {
       g.save(); g.globalCompositeOperation = 'source-atop';
-      g.fillStyle = stage === 2 ? 'rgba(20,10,5,0.55)' : 'rgba(10,10,12,0.38)'; g.fillRect(0, 0, cv.width, cv.height);
+      // (no darkening: the cracks and the fire show the damage, the tower keeps its colours)
       for (let i = 0; i < (stage === 2 ? 8 : 6); i++) {
         let x = X(rnd(-r * 0.7, r * 0.7)), y = Y(E + rnd(-r * TILT * 0.5, r * TILT * 0.5));
         const pts = [[x, y]];
@@ -2532,7 +2532,7 @@
         // damage stages swap in a cracked (50%) and a scorched (25%) bunker
         if (e.alive && e.texKey && e.type !== 'bld') {
           const st = e.hp < e.max * 0.35 ? 2 : e.hp < e.max * 0.7 ? 1 : 0; // damage shows early and builds up
-          if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; e.tintMul0 = e.tintMul0 || e.tintMul || 1; e.tintMul = e.tintMul0 * (st === 2 ? 0.68 : st === 1 ? 0.86 : 1); /* the guard on a battered tower is scorched too */ /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); SFX.play('expM', 0.5); } }
+          if (e.stage !== st) { if (st === 2 && !e.fireGlow) e.fireGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.2, size: e.r * 3.4, aspect: TILT, color: 0xff6a20, alpha: 0.45, tex: FX.tex.glow, order: L.GROUND + 4 }); e.stage = st; e.tintMul0 = e.tintMul0 || e.tintMul || 1; e.tintMul = e.tintMul0; /* (the guard is not darkened either) */ /* the guard on a battered tower is scorched too */ /* a burning tower casts an orange glow on the deck */ const S = G.sides[e.side], k = e.texKey + ':' + st; const tc = towerTex[k] || (towerTex[k] = towerCanvas(e.type, e.side, false, emblems[S.faction], S.faction, st)); e.base.material.map = tc.tex; e.base.material.needsUpdate = true; if (st) { FX.sparks(e.x, e.z * TILT + TOWER_E[e.type], 0xffb060, 14, 4, 0.16, 0.6); FX.shake(0.12); SFX.play('expM', 0.5); } }
         }
         if (e.pad) { if (!e.alive) { FX.kill(e.pad); e.pad = null; } else e.pad.alpha = (0.24 + 0.1 * Math.sin(amb.t * 1.8 + e.x)) * (e.side === 'red' ? 0.55 : 1); } // (the red pool kept fainter: red reads stronger)
         if (e.fireGlow) { if (!e.alive) { FX.kill(e.fireGlow); e.fireGlow = null; } else e.fireGlow.alpha = 0.32 + 0.18 * Math.sin(amb.t * 11 + e.x) * Math.sin(amb.t * 7); }
@@ -3327,7 +3327,7 @@
     SD.pinRange = 0.35 / SD_K;
     SD.pinSkip = {};
     SD.mipmaps = renderer.capabilities.isWebGL2;
-    SD.texScale = 0.5; // phones too: the 35% atlases looked blurry on high-density screens (the governor still steps quality down when frames run long)
+    SD.texScale = MOBILE ? 0.75 : 1; // sharper rigs (tools/build_hires.py): phones get the 75% atlases, desktops the full ones
     FXB.texScale = MOBILE ? 0.5 : 1;
     FXB.renderer = renderer;
     stageEl.prepend(renderer.domElement);

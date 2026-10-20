@@ -199,9 +199,11 @@
   // over http(s) atlases come as plain WebP files (no base64 in a script: ~25% less to download and nothing to parse);
   // file:// keeps the data scripts (WebGL refuses images read from file:// as cross-origin)
   const HTTP = /^https?:$/.test(location.protocol);
-  function atlasTag() { return SD.texScale <= 0.36 ? 'a35' : 'a50'; }
+  // atlas files per display scale (of the packed layout): a100 / a75 (tools/build_hires.py), a50 / a35 (the originals)
+  const TAG_S = { a100: 1, a75: 0.75, a35: 0.35 };
+  function atlasTag() { return SD.texScale >= 0.99 ? 'a100' : SD.texScale >= 0.7 ? 'a75' : SD.texScale <= 0.36 ? 'a35' : 'a50'; }
   function loadAtlasScript(id) {
-    const key = id + '.' + atlasTag();
+    const key = id + '.' + (TAG_S[atlasTag()] > 0.5 ? 'a50' : atlasTag()); // (file://: only the original atlas scripts exist)
     if (window.SD_ATLAS && SD_ATLAS[key]) return Promise.resolve();
     return new Promise((res) => {
       const s = document.createElement('script');
@@ -213,21 +215,24 @@
 
   async function loadAtlas(a, id) {
     let s0 = a.s || 1;
+    let tag = atlasTag();
     if (!a.u) { // split variant (tools/build_sd.py): pick the file for this scale
-      const key = id + '.' + atlasTag();
+      if (!HTTP && TAG_S[tag] > 0.5) tag = 'a50';
+      const key = id + '.' + tag;
       if (HTTP) a.u = 'js/sd/' + key + '.webp';
       else {
         a.u = window.SD_ATLAS && SD_ATLAS[key];
         if (!a.u) return null; // atlas script failed to load
         delete SD_ATLAS[key];
       }
-      s0 = atlasTag() === 'a35' ? 0.35 : s0;
+      s0 = TAG_S[tag] || s0;
     }
     const im = new Image();
     const loaded = new Promise((r) => { im.onload = im.onerror = r; });
     im.src = a.u;
     // decode() decodes off the main thread, but may wait indefinitely in a hidden tab: whichever settles first
     await Promise.race([im.decode().catch(() => loaded), loaded.then(() => new Promise((r) => setTimeout(r, 250)))]);
+    if (!im.naturalWidth && TAG_S[tag] > 0.5 && HTTP && !a.fallback) { a.u = 'js/sd/' + id + '.a50.webp'; a.fallback = true; return loadAtlas(Object.assign({}, a), id); } // no sharper file for this rig: the original one
     if (!im.naturalWidth) { if (a.v) a.u = undefined; return null; } // undecodable: refetch on retry
     let src = im;
     const k = SD.texScale / s0;
