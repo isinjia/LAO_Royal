@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.51'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.52'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -317,25 +317,20 @@
     const f = save.faction, deck = save.decks[f];
     $('deckTitle').textContent = `덱 편성 · ${FACTIONS[f].name}`;
     $('deckAvg').innerHTML = `<i class="gold-i"></i>${save.gold} · ${synChip(deck)}`;
-    $('facPf').style.backgroundImage = `url(${IMG[FACTIONS[f].banner]})`; $('facName').textContent = FACTIONS[f].name; $('btnFaction').className = 'facslot f-' + f;
+    $('facPf').style.backgroundImage = `url(${IMG[FACTIONS[f].banner]})`; $('facName').textContent = FACTIONS[f].name; $('btnFaction').className = 'facrow f-' + f;
     if (slotSel != null && slotSel > deck.length) slotSel = null;
-    const picking = slotSel != null;
-    $('deckHint').textContent = !picking && deck.length < 8 ? `${8 - deck.length}장을 더 넣으세요` : ''; // (only an unfinished deck says anything)
-    $('codex').hidden = !picking; $('btnFaction').hidden = picking;
+    const picking = true; // (the codex is always shown under the deck)
+    $('deckHint').textContent = deck.length < 8 ? `${8 - deck.length}장을 더 넣으세요` : ''; // (only an unfinished deck says anything)
     // what the deck is made of (kinds and flyers), shown while the codex is closed
     const comp = {}; deck.forEach((id) => { const k = kindOf(CARD[id]); comp[k] = (comp[k] || 0) + 1; });
     const airN = deck.filter((id) => CARD[id].air).length, anti = deck.filter((id) => CARD[id].type !== 'spell' && CARD[id].hits !== 'ground' && (CARD[id].dmg || 0) > 0).length;
-    $('deckComp').hidden = picking;
-    $('btnCodex').hidden = picking; $('codexN').textContent = DATA.CARDS.filter((x) => !deck.includes(x.id)).length + '장';
-    $('codexPeek').hidden = picking; if (!picking) { const pk = $('codexPeek'); pk.innerHTML = ''; DATA.CARDS.filter((x) => !deck.includes(x.id)).slice(0, 10).forEach((x) => pk.appendChild(cardEl(x, '', { lv: levelOf(x.id), rank: true, tile: true }))); } // (the real tiles, fading out)
-    $('deckComp').innerHTML = '<b>덱 구성</b><div>' + Object.keys(KIND).filter((k) => comp[k]).map((k) => `<span class="k-${k}">${KIND[k].name} ${comp[k]}</span>`).join('') + `</div><div><span class="m-air">공중 유닛 ${airN}</span><span class="aa">공중 공격 가능 ${anti}</span></div>`; // (the faction card steps aside while the codex is open)
     $('deckTabs').innerHTML = save.deckSlots[f].map((d, i) => `<button data-i="${i}" class="${i === save.deckSlot[f] ? 'on' : ''}">덱 ${i + 1}</button>`).join('');
     const slots = $('deckSlots');
     slots.innerHTML = '';
     deck.forEach((id, i) => {
       const el = cardEl(CARD[id], slotSel === i ? 'sel' : '', { lv: levelOf(id), rank: true, tile: true });
-      el.onclick = () => { // first tap: pick it (the codex opens); again: its details
-        if (slotSel === i) { deckSel = id; cardOpen = true; } else { slotSel = i; cardOpen = false; }
+      el.onclick = () => { // a tap opens its details at once (and keeps it picked: a codex card then goes into its place)
+        slotSel = i; deckSel = id; cardOpen = true;
         SFX.play('click'); renderDeck();
       };
       slots.appendChild(el);
@@ -862,7 +857,7 @@
     const row = $('chestRow');
     // the slots are rebuilt only when their set changes; the timers update text and classes in place
     const key = save.chests.map((c) => c.k).join() + '|' + save.chests.length;
-    const slots = save.chests.length ? 4 : 1; // no crates at all: one slim full-width hint instead of four empty boxes
+    const slots = 4;
     if (key !== chestKey || row.childElementCount !== slots) {
       chestKey = key;
       row.innerHTML = (slots === 1 ? [0] : [0, 1, 2, 3]).map((i) => {
@@ -1100,10 +1095,9 @@
     $('btnBattle').onclick = startBattle;
     $('btnDeck').onclick = () => { SFX.play('click'); deckSel = null; slotSel = null; cardOpen = false; renderDeck(); show('deck'); };
     // closing a deck card's details also drops the pick (the codex closes); a codex card's keeps it
-    const closeCard = () => { if (deckSel && save.decks[save.faction].includes(deckSel)) slotSel = null; cardOpen = false; renderDeck(); };
+    const closeCard = () => { cardOpen = false; renderDeck(); };
     $('btnCardClose').onclick = closeCard;
     $('btnCardX').onclick = closeCard;
-    $('btnCodex').onclick = (e) => { e.stopPropagation(); slotSel = -1; cardOpen = false; SFX.play('click'); renderDeck(); }; // (open the codex just to look through it) // (the corner X: always in reach, however tall the popup)
     $('btnResLog').onclick = () => { const l = $('resLog'); l.hidden = !l.hidden; $('btnResLog').textContent = l.hidden ? '전투 기록 보기' : '전투 기록 닫기'; SFX.play('click'); };
     // the bond chip in the deck header opens the list of faction bonds
     $('deckAvg').addEventListener('click', (e) => { if (!e.target.closest('.syn')) return; SFX.play('click'); renderSyn(); $('synOv').hidden = false; });

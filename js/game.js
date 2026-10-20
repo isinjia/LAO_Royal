@@ -2527,7 +2527,7 @@
           const show = (e.deployT > 0 || e.hp < e.max) && !(G.opts && G.opts.preview); // (the card preview shows the fight, not health bars)
           if (show) {
             let by = y + e.bodyH * (e.air ? 0.9 : 1.05) + 0.15;
-            { const ppu = view.w * camera.zoom / (camera.right - camera.left || 1); for (const t of G.ents) { if (t.kind !== 'tower' || !t.alive) continue; const py = (t.z - t.r * 0.85) * TILT + TOWER_E[t.type] * (t.side === 'blue' ? 0.42 : 0.72); if (Math.abs(e.x - t.x) * ppu < 52 && Math.abs(by - py) * ppu < 14) by = py + 15 / ppu; } } // a unit's bar never sits on a tower's plate: it steps up above it
+            { const ppu = view.w * camera.zoom / (camera.right - camera.left || 1); for (const t of G.sides.red.towers.concat(G.sides.blue.towers)) { if (!t.alive) continue; const py = (t.z - t.r * 0.85) * TILT + TOWER_E[t.type] * (t.side === 'blue' ? 0.42 : 0.72); if (Math.abs(e.x - t.x) * ppu < 52 && Math.abs(by - py) * ppu < 14) by = py + 15 / ppu; } } // a unit's bar never sits on a tower's plate: it steps up above it
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
             e.bar.bg.alpha = e.deployT > 0 ? 0.45 : 0.95; // a deploy timer's backing is faint: no dark block over a fresh unit
@@ -2782,13 +2782,13 @@
     G.ghost.z = clamp(Math.round(f.z * 2) / 2, -15.5, 15.5);
     G.ghost.on = true;
   }
-  function dropAt(px, py) {
+  function dropAt(px, py) { // a drop that cannot be played (no energy, a closed spot) cancels the card at once
     if (G.sel < 0 || !G.ghost) return false;
     ghostAt(px, py);
-    if (G.phase !== 'play') { UI.toast('전투 시작을 기다리세요'); return false; }
+    if (G.phase !== 'play') { UI.toast('전투 시작을 기다리세요'); deselect(); return false; }
     const S = G.sides.blue, c = CARD[S.hand[G.sel]];
-    if (S.elixir < c.cost) { UI.toast('에너지가 부족합니다'); SFX.play('fail', 0.4); UI.elixirShake(); return false; }
-    if ((c.type === 'troop' && !canDeploy('blue', G.ghost.x, G.ghost.z)) || (c.type === 'building' && !canBuild('blue', G.ghost.x, G.ghost.z, c))) { UI.toast(c.type === 'building' ? '건물은 아군 진영의 빈 곳에만 지을 수 있습니다' : '여기에는 배치할 수 없습니다'); SFX.play('fail', 0.4); return false; }
+    if (S.elixir < c.cost) { UI.toast('에너지가 부족합니다'); SFX.play('fail', 0.4); UI.elixirShake(); deselect(); return false; }
+    if ((c.type === 'troop' && !canDeploy('blue', G.ghost.x, G.ghost.z)) || (c.type === 'building' && !canBuild('blue', G.ghost.x, G.ghost.z, c))) { UI.toast(c.type === 'building' ? '건물은 아군 진영의 빈 곳에만 지을 수 있습니다' : '여기에는 배치할 수 없습니다'); SFX.play('fail', 0.4); deselect(); return false; }
     if (mp) { const S = G.sides.blue, id = S.hand[G.sel]; if (CARD[id] && S.elixir >= CARD[id].cost - 1e-6) mpLocal({ k: 'c', i: G.sel, id, x: G.ghost.x, z: G.ghost.z }); } // online: runs on both devices shortly
     else playCard('blue', G.sel, G.ghost.x, G.ghost.z);
     deselect();
