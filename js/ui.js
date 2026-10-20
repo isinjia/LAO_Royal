@@ -26,13 +26,18 @@
     s.chests = Array.isArray(s.chests) ? s.chests.filter((c) => c && DATA.CHESTS.some((d) => d.key === c.k)).slice(0, 4) : [];
     s.chests.forEach((c) => { if (!Number.isFinite(c.t0) || c.t0 > Date.now() + 60000) c.t0 = c.t0 == null ? null : Date.now(); });
     if (typeof s.cards !== 'object' || !s.cards) s.cards = {};
+    // the iron copies of the spells (i_<id>) were merged into one set: their copies join the spell, decks use the spell
+    for (const k of Object.keys(s.cards)) { const m = /^i_(.+)$/.exec(k); if (!m || CARD[k] || !CARD[m[1]]) continue; const o = s.cards[k]; if (o) { const t = s.cards[m[1]] || (s.cards[m[1]] = { lv: o.lv, n: 0 }); t.n = (t.n | 0) + (o.n | 0); t.lv = Math.max(t.lv | 0, o.lv | 0); } delete s.cards[k]; }
+    const fixDeck = (d) => { if (!Array.isArray(d)) return d; const out = []; d.forEach((id) => { const m = /^i_(.+)$/.exec(id), j = m && !CARD[id] && CARD[m[1]] ? m[1] : id; if (!out.includes(j)) out.push(j); }); return out; };
+    if (s.decks && typeof s.decks === 'object') for (const f of Object.keys(s.decks)) s.decks[f] = fixDeck(s.decks[f]);
+    if (s.deckSlots && typeof s.deckSlots === 'object') for (const f of Object.keys(s.deckSlots)) if (Array.isArray(s.deckSlots[f])) s.deckSlots[f] = s.deckSlots[f].map(fixDeck);
     s.road = Number.isFinite(+s.road) ? Math.max(0, +s.road) : 0;
     if (typeof s.newCards !== 'object' || !s.newCards) s.newCards = {};
     Object.keys(s.newCards).forEach((id) => { if (!CARD[id]) delete s.newCards[id]; });
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.55'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.56'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -256,7 +261,8 @@
     save.decks[save.faction].forEach((id) => row.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
     $('avgCost').innerHTML = '<b>덱 편성</b>'; // the deck button: its name and lead card (no average energy: the owner's call)
     { const lead = CARD[save.decks[save.faction][0]]; $('deckIcon').style.backgroundImage = lead ? `url(${art(lead)})` : ''; }
-    $('modeLabel').innerHTML = `${BAL.modes[save.mode].name}<br>${BAL.diffs[save.diff].name}`;
+    $('modeLabel').innerHTML = save.mode === 4 ? `${BAL.modes[save.mode].name}<br>${BAL.diffs[save.diff].name}` : BAL.modes[save.mode].name; // (일반전 has no difficulty)
+    $('diffSel').hidden = $('diffLbl').hidden = save.mode !== 4;
     $('pfoeBox').innerHTML = (save.mode === 4 ? `<div class="seg pfoe" id="pfoeSel">${Object.entries(PFOE).map(([k, n]) => `<button data-p="${k}" class="${save.practiceFoe === k ? 'on' : ''}">${n}</button>`).join('')}</div>` : '');
     const up = DATA.CARDS.some((c) => canUpgrade(c));
     $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id])));
@@ -1111,9 +1117,11 @@
     const po = practiceOpts();
     if (!po.foeFaction) po.foeFaction = randomFoe();
     const ff = foeFaction(Object.assign({ faction: save.faction, mode: save.mode, mut }, po)), cs = DATA.COMMANDERS[ff] || DATA.COMMANDERS.orca;
-    GAME.start(Object.assign({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] }, po));
+    GAME.start(Object.assign({ faction: save.faction, deck: save.decks[save.faction], diff: save.mode === 4 ? save.diff : 1, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] }, po));
   }
   // nickname: asked once on the very first start (then the tutorial), changed from the chip on the battle tab
+  // names kept for the team (개발자 / DEV / 운영자 / GM ...): nobody can newly pick one; whoever already has one keeps it
+  const RESERVED_NICK = /개발자|개발|운영자|운영|관리자|dev|gm|admin|staff|moderator/i;
   function renderNick() { $('nickName').textContent = save.nick || '닉네임 설정'; $('btnNick').classList.toggle('unset', !save.nick); }
   function askNick(first) {
     $('nickInput').value = save.nick || ''; $('nickOv').hidden = false; $('nickOv').dataset.first = first ? '1' : '';
@@ -1122,6 +1130,7 @@
   function nickOk() {
     const v = $('nickInput').value.trim().replace(/\s+/g, ' ');
     if (v.length < 2) { toast('닉네임은 2~10자로 정하세요'); SFX.play('fail', 0.4); return; }
+    if (v !== save.nick && RESERVED_NICK.test(v.replace(/\s+/g, ''))) { toast('사용할 수 없는 닉네임입니다'); SFX.play('fail', 0.4); return; } // (a name already set this way is kept)
     save.nick = v.slice(0, 10); persist(); renderNick(); $('nickOv').hidden = true; SFX.play('click');
     if ($('nickOv').dataset.first && !save.tutorial) showTut(0); // first start: the tutorial right after
   }

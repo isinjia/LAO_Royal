@@ -143,8 +143,7 @@
       skill: { name: '헤븐 앤 헬', cost: 2, cd: 12, kind: 'dash', heavenhell: true, castT: 1.9, dist: 8, dmg: 1150, radius: 1.6, color: 0xffc27a, desc: '전자기 회오리로 적을 묶고 불사자를 내달린 뒤, 빛이 되어 일직선으로 돌진합니다.' } }),
   ];
   const CARDS = [...ORCA, ...IRON, ...BUILDINGS,
-    ...SPELLS.map((s) => Object.assign({}, s, { faction: 'orca' })),
-    ...SPELLS.map((s) => Object.assign({}, s, { id: 'i_' + s.id, faction: 'iron' }))];
+    ...SPELLS.map((s) => Object.assign({}, s, { faction: 'orca', anyFaction: true }))]; // (one set of spells for everyone: the iron copies 'i_<id>' are gone, old saves are moved over)
 
   const FACTIONS = {
     orca: {
@@ -158,7 +157,7 @@
       name: '철충', color: '#ff4a5a', hex: 0xff4a5a, banner: 'e_IronPrince_N',
       king: { rig: 'e_IronPrince_N', h: 2.5, fx: 'holy', color: 0xff5050, sfx: 'energy' },
       princess: { rig: 'e_Fortress_N', h: 2.0, fx: 'bullet', color: 0xffa070, sfx: 'cannon' }, // an artillery walker reads as a gun emplacement (the dark scythe guard read as debris)
-      deck: ['nightchick', 'drone', 'legion', 'centurion', 'intruder', 'predator', 'gigantes', 'i_strike'],
+      deck: ['nightchick', 'drone', 'legion', 'centurion', 'intruder', 'predator', 'gigantes', 'strike'],
       emotes: [['e_NightChick_N', '삐빅!'], ['e_IronPrince_N', '하찮군'], ['e_Drone_N', '오류 발생'], ['e_BlackKnight_N', '섬멸한다']],
     },
     // the commander (사령관): an opponent that turns up now and then; Brownies on both side towers, the commander on the king tower
@@ -316,6 +315,6 @@
   window.DATA = {
     RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
     card: Object.fromEntries(CARDS.concat(TOKENS).map((c) => [c.id, c])),
-    byFaction: (f) => CARDS.filter((c) => c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (Lemonade and the commander play from the orca cards)
+    byFaction: (f) => CARDS.filter((c) => c.anyFaction || c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (spells belong to every faction) // (Lemonade and the commander play from the orca cards)
   };
 })();
