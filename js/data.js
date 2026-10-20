@@ -173,7 +173,7 @@
       name: '레모네이드', color: '#ffd34d', hex: 0xffd34d, banner: 'c_PECS_LemonadeAlpha_N', pool: 'orca',
       king: { rig: 'lemonadealpha', k: 1.35, fx: 'bullet', color: 0xffe066, sfx: 'rifle' },
       princess: { rig: 'e_LemonadeDelta_N', h: 3.6, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true },
-      princessR: { rig: 'lemonadebeta', k: 1.25, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true, tint: 1.3, clip: 'idle' }, // (her attack clip is a long snake lunge off the tower: she throws from her idle pose) // (all in black: lifted a little to read at unit size)
+      princessR: { rig: 'lemonadebeta', k: 1.25, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true, tint: 1.3, clip: 'idle', dy: -0.6 }, // (her attack clip is a long snake lunge off the tower: she throws from her idle pose) // (all in black: lifted a little to read at unit size)
       deck: ['brownie', 'leprechaun', 'impet', 'raven', 'harpy', 'zero', 'empress', 'strike'],
       emotes: [['c_PECS_LemonadeAlpha_N', '좋아요!'], ['c_PECS_LemonadeBeta_N', '잘했어요'], ['e_LemonadeOmega_N', '이런…'], ['c_PECS_LemonadeAlpha_N', '덤벼라!']],
     },
@@ -312,8 +312,10 @@
     return { faction: f, tier: 0, count: n[f], hp: 1, dmg: 1, name: '', desc: '' }; // (faction bonds were taken out: no deck gets a bonus)
   }
 
+  // emotes: the original emotion icons (EmojiSprite), the same eight for every faction (0-3 are the AI's: cheer, praise, oops, taunt)
+  const EMOTES = [['heart', '좋아요!'], ['shiny', '잘했어요'], ['sweat', '이런…'], ['aggro', '덤벼라!'], ['note', '신난다~'], ['electric', '좋은 생각!'], ['big_surprise', '뭐라고!?'], ['question', '응?']];
   window.DATA = {
-    RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
+    EMOTES, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
     card: Object.fromEntries(CARDS.concat(TOKENS).map((c) => [c.id, c])),
     byFaction: (f) => CARDS.filter((c) => c.anyFaction || c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (spells belong to every faction) // (Lemonade and the commander play from the orca cards)
   };

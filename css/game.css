@@ -1237,3 +1237,15 @@ button:disabled { cursor: default; }
 .nickdlg input:focus { border-color: #ffd34d; }
 #modeSel.s2 { grid-template-columns: 1fr 1fr; }
 #resReward .rw.fresh b { color: #ffd34d; }
+
+/* emotes: the original emotion icons; the button sits just above NEXT, the panel opens beside it */
+#nextBox { position: relative; }
+#nextBox #btnEmote, #hud #btnEmote { position: absolute; left: 50%; top: -44px; right: auto; transform: translateX(-50%); width: 38px; height: 38px; z-index: 7; margin: 0; }
+#emotePanel, #emotePanel[hidden] { }
+#emotePanel { left: 8px; right: auto; top: auto; bottom: 8px; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 6px; }
+#emotePanel button { flex-direction: column; gap: 2px; padding: 5px 4px; font-size: 10.5px; min-width: 72px; }
+#emotePanel .pf.emo, .bubble .pf.emo { background-size: contain; background-position: center; background-repeat: no-repeat; border-radius: 0; background-color: transparent; }
+#emotePanel .pf.emo { width: 34px; height: 34px; }
+.bubble .pf.emo { width: 36px; height: 36px; }
+
+#btnPause[hidden] { display: none !important; }

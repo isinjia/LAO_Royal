@@ -827,6 +827,7 @@
     } else attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
     if (guard.tint) t.tintMul = guard.tint;
+    if (guard.dy) t.dy = guard.dy; // (a guard drawn standing high is set down onto its tower)
     if (DG) { t.dagger = DG; t.ammo = DG.ammo; t.reloadT = 0; t.dmgK = 1; t.atkClip = guard.clip || 'atk'; } // throws on its own clock (attackTick), not on its clip
 
     t.label = document.createElement('div');
@@ -2644,7 +2645,7 @@
         }
       } else {
         e.wobT = Math.max(0, (e.wobT || 0) - dt);
-        e.holder.position.set(e.x + (e.wobT > 0 ? Math.sin(e.wobT * 110) * 0.06 * e.wobT / 0.14 : 0), e.z * TILT + TOWER_E[e.type] * 0.92, 0);
+        e.holder.position.set(e.x + (e.wobT > 0 ? Math.sin(e.wobT * 110) * 0.06 * e.wobT / 0.14 : 0), e.z * TILT + TOWER_E[e.type] * 0.92 + (e.dy || 0), 0);
         e.holder.scale.x = e.face * e.natural;
         e.base.renderOrder = L.UNIT - (e.z - e.r * 0.2) * TILT * 10;
         if (e.sd) {

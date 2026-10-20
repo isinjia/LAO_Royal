@@ -37,7 +37,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.56'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.57'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -274,7 +274,7 @@
     const nextR = DATA.ROAD.find((r) => r.trophy > save.trophy);
     $('roadNext').textContent = nextR ? `다음 보상 ${nextR.trophy}: ${nextR.chest ? CH[nextR.chest].name : '부품 ' + nextR.gold}` : '';
     if (save.pendingReveal != null) setTimeout(() => { if ($('title').classList.contains('on')) revealArena(); }, 300);
-    $('firstWin').textContent = save.firstWin === 'd' + DATA.dayIndex() ? '' : '★ 오늘의 첫 승리 보너스가 기다리고 있습니다';
+    $('firstWin').textContent = ''; // (the first-win line was taken off the battle tab; the bonus itself still pays)
     ensureMissions();
     const cl = claimable();
     $('mBadge').textContent = cl;
@@ -670,18 +670,18 @@
   function emote(side, i, atEnd) {
     const G = GAME.G;
     if (!G.sides || G.paused || (G.phase !== 'play' && !(atEnd && G.phase === 'ended'))) return; // only in play (the victory taunt excepted), never over the pause menu
-    const f = FACTIONS[G.sides[side].faction], em = f.emotes[i];
+    const em = DATA.EMOTES[i];
     if (!em) return;
     const old = document.querySelector('.bubble.' + side);
     if (old) old.remove();
     const el = document.createElement('div');
     el.className = 'bubble ' + side + (side === 'red' && document.querySelector('.skcut.red') ? ' low' : '');
-    el.innerHTML = `<span class="pf" style="background-image:url(${IMG[em[0]]})"></span><b>${esc(em[1])}</b>`;
+    el.innerHTML = `<span class="pf emo" style="background-image:url(assets/emoji/${em[0]}.webp)"></span><b>${esc(em[1])}</b>`;
     $('stage').appendChild(el);
     // the bubble comes out of that side's king tower (above ours, below theirs)
     const king = G.sides[side].towers.find((t) => t.type === 'king' && t.label);
     if (king) {
-      const st = $('stage').getBoundingClientRect(), r = king.label.getBoundingClientRect();
+      const st = $('stage').getBoundingClientRect(), r = (king.label.querySelector('.bar') || king.label).getBoundingClientRect(); // (the label itself is a 0-size anchor: measure its plate)
       if (r.width) {
         el.classList.add('at');
         const cx = r.left + r.width / 2 - st.left, w = el.offsetWidth;
@@ -795,6 +795,7 @@
   }
   function loading(f, opts) {
     const el = $('loading');
+    if (opts) $('btnPause').hidden = !!opts.online; // the pause button is for AI matches only
     if (el.hidden && opts) {
       SFX.voice('ann:battlestart', 1, 3); // "잠시 후 전투가 시작됩니다"
       const ff = foeFaction(opts);
@@ -830,6 +831,7 @@
     if (on && aim) { clearInterval(aim.timer); GAME.aimHide(); aim = null; $('skillBar').classList.remove('cancel'); } // pausing drops a skill aim
     if (on && GAME.G.phase !== 'play' && GAME.G.phase !== 'countdown') return;
     if (on && GAME.G.opts && GAME.G.opts.preview) return; // (the deck popup's card preview is not a battle: nothing to pause)
+    if (on && GAME.G.opts && GAME.G.opts.online) return; // (a match against a person never pauses)
     GAME.pause(on);
     $('stage').classList.toggle('paused', !!on && GAME.G.paused);
     SFX.pauseMusic(on);
@@ -1297,7 +1299,7 @@
     ep.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       emote('blue', +b.dataset.i); ep.hidden = true; GAME.mpEmote(+b.dataset.i);
-      GAME.aiEmote(Math.floor(Math.random() * 4), 0.35); // the opponent answers on the game clock and its own chatter cooldown
+      GAME.aiEmote(Math.floor(Math.random() * DATA.EMOTES.length), 0.35); // the opponent answers on the game clock and its own chatter cooldown
     });
     document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
     window.addEventListener('pointerdown', function unlock() { SFX.music(GAME.G.phase === 'title' ? 'title' : null); window.removeEventListener('pointerdown', unlock); }, { once: true });
@@ -1312,7 +1314,7 @@
   document.addEventListener('pointerdown', (e) => {
     if (e.target.id === 'btnEmote' || e.target.closest && e.target.closest('#btnEmote')) {
       const G = GAME.G; if (!G.sides) return;
-      $('emotePanel').innerHTML = FACTIONS[G.sides.blue.faction].emotes.map(([img, t], i) => `<button data-i="${i}"><span class="pf" style="background-image:url(${IMG[img]})"></span>${esc(t)}</button>`).join('');
+      $('emotePanel').innerHTML = DATA.EMOTES.map(([img, t], i) => `<button data-i="${i}"><span class="pf emo" style="background-image:url(assets/emoji/${img}.webp)"></span>${esc(t)}</button>`).join('');
     } else if (!e.target.closest || !e.target.closest('#emotePanel')) { const p = $('emotePanel'); if (p) p.hidden = true; }
   }, true);
 
