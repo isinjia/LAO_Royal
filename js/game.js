@@ -750,7 +750,7 @@
 
   function lvlOf(side, card) {
     const S = G.sides[side];
-    return S.levels ? (S.levels[card.id] || 1) : S.lvl || 1;
+    return S.levels ? (S.levels[card.id] || LEVEL.min) : S.lvl || LEVEL.min;
   }
 
   function spawnTroop(side, card, x, z, delay, lvl) {
@@ -781,7 +781,7 @@
   function makeTower(side, type, x, z) {
     const S = G.sides[side], sp = BAL.tower[type], fac = FACTIONS[S.faction], guard = fac[type];
     // towers grow with the side's card levels (the deck's average for the player, the opponent's level for the AI)
-    const tl = S.levels ? Math.round(S.deck.reduce((s, id) => s + (S.levels[id] || 1), 0) / S.deck.length) : S.lvl || 1;
+    const tl = S.levels ? Math.round(S.deck.reduce((s, id) => s + (S.levels[id] || LEVEL.min), 0) / S.deck.length) : S.lvl || LEVEL.min;
     const m = LEVEL.mult(tl), hp = Math.round(sp.hp * m * (G.mut && G.mut.hp || 1)); // (the titans rule toughens towers as well)
     const t = {
       id: G.nextId++, kind: 'tower', type, side, x, z, r: sp.r, hp, max: hp, air: false, alive: true, active: type !== 'king', lv: tl,
@@ -2897,13 +2897,13 @@
     const aiDeck = G.mut && G.mut.mirror ? myDeck.slice() : aiDeck0; // mirror operation: the same eight cards
     G.hints = G.mut && G.mut.mirror ? ['당신과 똑같은 덱으로 맞섭니다'] : hints.slice();
     // the opponent is matched to the arena and to the player's deck level (difficulty shifts it by one)
-    const myLvl = myDeck.reduce((s, id) => s + ((opts.levels || {})[id] || 1), 0) / myDeck.length;
+    const myLvl = myDeck.reduce((s, id) => s + ((opts.levels || {})[id] || LEVEL.min), 0) / myDeck.length;
     // mostly the player's own deck level (a small arena floor): out-levelling must not become a wall either way
-    const aiLvl = clamp(Math.round(myLvl * 0.8 + ARENAS[G.arena].lvl * 0.2 + diff.lvl), 1, LEVEL.max);
+    const aiLvl = clamp(Math.round(myLvl * 0.8 + ARENAS[G.arena].lvl * 0.2 + diff.lvl), LEVEL.min, LEVEL.max);
     mpSetup(opts);
     // online: the opponent's own deck and levels, no AI; both devices shuffle the host's deck first (same draws)
     const redDeck = mp ? opts.foeDeck.slice() : aiDeck, redAi = mp ? null : { diff, style, t: 3 + Math.random() * 2, push: null, lane: Math.random() < 0.5 ? -1 : 1 };
-    const mk = { blue: () => makeSide('blue', opts.faction, myDeck, null, opts.levels || {}, 1), red: () => makeSide('red', mp ? opts.foeFaction : foeF, redDeck, redAi, mp ? opts.foeLevels || {} : null, aiLvl) };
+    const mk = { blue: () => makeSide('blue', opts.faction, myDeck, null, opts.levels || {}, LEVEL.min), red: () => makeSide('red', mp ? opts.foeFaction : foeF, redDeck, redAi, mp ? opts.foeLevels || {} : null, aiLvl) };
     const first = mp && mp.guest ? 'red' : 'blue', second = first === 'blue' ? 'red' : 'blue';
     G.sides = {}; G.sides[first] = mk[first](); G.sides[second] = mk[second]();
     const st0 = () => ({ dmg: 0, kills: 0, spent: 0, wasted: 0, skills: 0, cards: 0, by: {} });
@@ -3017,17 +3017,17 @@
     G.nextId = 1; G.time = 0; G.clock = 999; G.mult = 1; G.overtime = false; G.result = null; G.log = null;
     const st0 = () => ({ dmg: 0, kills: 0, spent: 0, wasted: 0, skills: 0, cards: 0, by: {} });
     G.stats = { blue: st0(), red: st0() };
-    G.sides = { blue: makeSide('blue', p.fac, [p.c.id], null, null, 1), red: makeSide('red', p.foe, [p.slots[0].id], null, null, 1) };
+    G.sides = { blue: makeSide('blue', p.fac, [p.c.id], null, null, LEVEL.min), red: makeSide('red', p.foe, [p.slots[0].id], null, null, LEVEL.min) };
     p.t = 0; p.skilled = false; p.nextCast = 0.9;
     if (p.tower) { const t = makeTower('red', 'princess', 0, -1.4); t.atk.dmg = 0; t.label.hidden = true; }
     p.slots.forEach((s) => { s.u = previewFoe(s); s.wait = 0; });
-    if (p.ally) [-0.8, 0.8].forEach((x) => spawnTroop('blue', CARD[p.ally], x, -5.0, 0, 1));
+    if (p.ally) [-0.8, 0.8].forEach((x) => spawnTroop('blue', CARD[p.ally], x, -5.0, 0, LEVEL.min));
     if (p.c.type !== 'spell') { pvHand(); playCard('blue', 0, 0, p.c.type === 'building' ? -5.0 : -5.2); }
   }
   // a full hand of the one card (the battle HUD's hand stays valid), energy to play it
   function pvHand() { const S = G.sides.blue, id = pv.c.id; S.elixir = BAL.elixirMax; S.hand = [id, id, id, id]; S.queue = [id]; }
   function previewFoe(s) {
-    const u = spawnTroop('red', CARD[s.id], s.x, s.z, 0, 1);
+    const u = spawnTroop('red', CARD[s.id], s.x, s.z, 0, LEVEL.min);
     u.hold = true; u.atk = Object.assign({}, u.atk, { dmg: 0 }); u.face = -1;
     return u;
   }

@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.38'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.39'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -38,10 +38,12 @@
   function syncCollection() {
     // a save that already owns cards (older versions had no 'seen' flag) gets NEW badges for what this sync adds
     const news = save.seen || Object.keys(save.cards).length > 0;
+    // levels moved to 10–12 (V0.39): every card of an older save starts again at level 10, its copies kept
+    if (save.lvBase !== LEVEL.min) { Object.values(save.cards).forEach((o) => { if (o) o.lv = LEVEL.min; }); save.lvBase = LEVEL.min; }
     DATA.CARDS.forEach((c) => {
       const o = save.cards[c.id];
-      if (unlocked(c) && !o) { save.cards[c.id] = { lv: 1, n: 0 }; if (news) (save.newCards || (save.newCards = {}))[c.id] = 1; }
-      if (o) { o.lv = Math.min(LEVEL.max, Math.max(1, o.lv | 0)); o.n = Math.max(0, o.n | 0); }
+      if (unlocked(c) && !o) { save.cards[c.id] = { lv: LEVEL.min, n: 0 }; if (news) (save.newCards || (save.newCards = {}))[c.id] = 1; }
+      if (o) { o.lv = Math.min(LEVEL.max, Math.max(LEVEL.min, o.lv | 0)); o.n = Math.max(0, o.n | 0); }
     });
     save.seen = true; // after the first sync, every unlock is news
     const valid = (dk) => Array.isArray(dk) && dk.length <= 8 && new Set(dk).size === dk.length && dk.every((id) => CARD[id] && save.cards[id]); // (fewer than 8 while it is being built) // orca and iron cards may be mixed in one deck
@@ -58,7 +60,7 @@
     }
     persist();
   }
-  const levelOf = (id) => (save.cards[id] ? save.cards[id].lv : 1);
+  const levelOf = (id) => (save.cards[id] ? save.cards[id].lv : LEVEL.min);
 
   // ── missions ──────────────────────────────────────────
   const MDEF = Object.fromEntries(DATA.MISSIONS.map((m) => [m.k, m]));
@@ -170,7 +172,7 @@
     if (!opt.tile) return el;
     // deck / collection tile (Clash Royale card list): the level band on the card, the copies bar under it
     el.title = c.name;
-    el.insertAdjacentHTML('beforeend', `<span class="lvband">레벨 ${opt.lv || 1}</span>`);
+    el.insertAdjacentHTML('beforeend', `<span class="lvband">레벨 ${opt.lv || LEVEL.min}</span>`);
     const o = save.cards[c.id], t = document.createElement('div');
     t.className = 'tile';
     t.appendChild(el);
@@ -305,7 +307,7 @@
     $('cardOv').hidden = !c;
     cardPreview(c || null);
     if (!c) return; // (the details live in a popup: only while a card is tapped)
-    const o = save.cards[c.id], lv = o ? o.lv : 1, m = LEVEL.mult(lv);
+    const o = save.cards[c.id], lv = o ? o.lv : LEVEL.min, m = LEVEL.mult(lv);
     const st = [];
     if (c.type === 'troop') {
       st.push(['체력', Math.round(c.hp * m) + (c.count > 1 ? ` ×${c.count}` : '')], ['공격력', Math.round(c.dmg * m)], ['공격 속도', c.rate + '초'], ['사거리', c.range <= 1.2 ? '근접' : c.range],
