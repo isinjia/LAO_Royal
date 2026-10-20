@@ -15,7 +15,8 @@
     if (!FACTIONS[s.faction]) s.faction = 'orca';
     if (!(s.diff >= 0 && s.diff <= 2)) s.diff = 1;
     if (!(s.mode >= 0 && s.mode < BAL.modes.length)) s.mode = 0;
-    if (!['ai', 'orca', 'iron'].includes(s.practiceFoe)) s.practiceFoe = 'ai';
+    if (s.practiceFoe === 'iron') s.practiceFoe = 'orca'; // (decks are shared now)
+    if (!['ai', 'orca'].includes(s.practiceFoe)) s.practiceFoe = 'ai';
     const unit = (v, d) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : d);
     s.music = unit(s.music, 1); s.sfx = unit(s.sfx, 1); s.voice = unit(s.voice, 1);
     s.quality = s.quality === null || s.quality === undefined || !(+s.quality >= 0 && +s.quality <= 2) ? null : Math.round(+s.quality);
@@ -30,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.42'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.43'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -58,6 +59,11 @@
       sl[i] = save.decks[f];
       save.deckSlots[f] = sl; save.deckSlot[f] = i;
     }
+    // one set of decks for the commander, whichever faction it plays: both factions point at the same decks
+    // (the first time, the faction in use keeps its decks for both)
+    const f0 = save.deckShared ? 'orca' : save.faction, f1 = f0 === 'orca' ? 'iron' : 'orca';
+    save.deckSlots[f1] = save.deckSlots[f0]; save.deckSlot[f1] = save.deckSlot[f0]; save.decks[f1] = save.decks[f0];
+    save.deckShared = true;
     persist();
   }
   const levelOf = (id) => LEVEL.fixed || (save.cards[id] ? save.cards[id].lv : LEVEL.min);
@@ -712,7 +718,7 @@
   // mirror operation: the opponent fights with the player's own faction (and one of its commanders)
   const foeFaction = (o) => ((o.mode === 4 || o.online) && o.foeFaction ? o.foeFaction : o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca');
   // practice: the opponent plays one of the player's own decks (its faction is the deck's majority) or an AI deck
-  const PFOE = { ai: 'AI 덱', orca: '내 오르카 덱', iron: '내 철충 덱' };
+  const PFOE = { ai: 'AI 덱', orca: '내 덱' }; // (one set of decks: 'orca' is the key of the shared deck)
   function practiceOpts() {
     if (save.mode !== 4) return {};
     const k = save.practiceFoe, d = k !== 'ai' && save.decks[k];
@@ -1067,7 +1073,7 @@
     $('deckTabs').addEventListener('click', (e) => {
       const b = e.target.closest('[data-i]'); if (!b) return;
       const f = save.faction, i = +b.dataset.i;
-      save.deckSlot[f] = i; save.decks[f] = save.deckSlots[f][i]; persist();
+      for (const k of ['orca', 'iron']) { save.deckSlot[k] = i; save.decks[k] = save.deckSlots[k][i]; } persist(); // (the decks are shared by both factions)
       deckSel = null; slotSel = null; cardOpen = false; SFX.play('click'); renderDeck();
     });
     $('btnSettings').onclick = () => { SFX.play('click'); openSettings(); };

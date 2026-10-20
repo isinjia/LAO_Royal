@@ -49,8 +49,8 @@
   async function match(faction, mode, trophy, diff) {
     const G = GAME.G;
     Object.assign(UI.save, { faction, mode, trophy, diff, tutorial: true });
-    // practice: the opponent plays the player's other saved deck; nothing on the record may move
-    const prac = BAL.modes[mode].key === 'practice', pf = faction === 'orca' ? 'iron' : 'orca';
+    // practice: the opponent plays the player's own (shared) deck; nothing on the record may move
+    const prac = BAL.modes[mode].key === 'practice', pf = 'orca';
     if (prac) UI.save.practiceFoe = pf;
     const RK = ['trophy', 'best', 'gold', 'wins', 'losses', 'draws', 'streak', 'chests', 'cards', 'missions'];
     const rec0 = prac && RK.map((k) => JSON.stringify(UI.save[k]));
