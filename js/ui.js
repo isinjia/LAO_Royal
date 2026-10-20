@@ -30,7 +30,8 @@
     if (typeof s.cards !== 'object' || !s.cards) s.cards = {};
     // the iron copies of the spells (i_<id>) were merged into one set: their copies join the spell, decks use the spell
     for (const k of Object.keys(s.cards)) { const m = /^i_(.+)$/.exec(k); if (!m || CARD[k] || !CARD[m[1]]) continue; const o = s.cards[k]; if (o) { const t = s.cards[m[1]] || (s.cards[m[1]] = { lv: o.lv, n: 0 }); t.n = (t.n | 0) + (o.n | 0); t.lv = Math.max(t.lv | 0, o.lv | 0); } delete s.cards[k]; }
-    const fixDeck = (d) => { if (!Array.isArray(d)) return d; const out = []; d.forEach((id) => { const m = /^i_(.+)$/.exec(id), j = m && !CARD[id] && CARD[m[1]] ? m[1] : id; if (!out.includes(j)) out.push(j); }); return out; };
+    for (const k of Object.keys(s.cards)) if (!CARD[k]) delete s.cards[k]; // (a card taken out of the game)
+    const fixDeck = (d) => { if (!Array.isArray(d)) return d; const out = []; d.forEach((id) => { const m = /^i_(.+)$/.exec(id), j = m && !CARD[id] && CARD[m[1]] ? m[1] : id; if (CARD[j] && !out.includes(j)) out.push(j); }); /* a card taken out of the game leaves the deck: an owned card fills its place */ if (d.length === 8) for (const k of Object.keys(s.cards)) { if (out.length >= 8) break; if (CARD[k] && !CARD[k].skill && !out.includes(k)) out.push(k); } return out; };
     if (s.decks && typeof s.decks === 'object') for (const f of Object.keys(s.decks)) s.decks[f] = fixDeck(s.decks[f]);
     if (s.deckSlots && typeof s.deckSlots === 'object') for (const f of Object.keys(s.deckSlots)) if (Array.isArray(s.deckSlots[f])) s.deckSlots[f] = s.deckSlots[f].map(fixDeck);
     s.road = Number.isFinite(+s.road) ? Math.max(0, +s.road) : 0;
@@ -39,7 +40,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.63'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.64'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
