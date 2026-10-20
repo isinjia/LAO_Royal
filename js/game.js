@@ -1013,7 +1013,7 @@
     if (e.type === 'bld') { removeBuilding(e); e.label.classList.add('dead'); if (e.sd) e.sd.play('die', () => { if (e.sd) e.sd.root.visible = false; }, false); return; }
     // tower falls
     const S = G.sides[e.side], foe = G.sides[other(e.side)];
-    towerRubble(e, 0);
+    towerRubble(e, 0.12); // (the tower stands a beat inside the blast before the ruin shows: no empty frame)
     G.slowmo = 0.75; G.punch = 1; G.punchK = 1; G.punchAt = [e.x, e.z * TILT + 1]; // a beat of slow motion and a camera punch as the tower goes down
     FX.flash(0xffd0a0, 0.35);
     SFX.play('expB'); FX.later(0.25, () => SFX.play('quake', 0.6));
@@ -1069,7 +1069,7 @@
         FX.particle({ x: e.x, y: e.z * TILT, vx: Math.cos(a) * 3.2, vy: Math.sin(a) * 3.2 * TILT, drag: 2.2, life: 1.2, size: 0.8, size1: 2, color: 0x8a8f96, alpha: 0.45, normal: true, frames: FX.sheets.smoke, order: L.LOW });
       }
       FX.shake(0.5);
-      if (delay) SFX.play('expM', 0.6);
+      if (delay > 0.2) SFX.play('expM', 0.6);
     };
     if (delay) FX.later(delay, go); else go();
   }
@@ -2526,7 +2526,8 @@
         if (e.alive) {
           const show = (e.deployT > 0 || e.hp < e.max) && !(G.opts && G.opts.preview); // (the card preview shows the fight, not health bars)
           if (show) {
-            const by = y + e.bodyH * (e.air ? 0.9 : 1.05) + 0.15;
+            let by = y + e.bodyH * (e.air ? 0.9 : 1.05) + 0.15;
+            { const ppu = view.w * camera.zoom / (camera.right - camera.left || 1); for (const t of G.ents) { if (t.kind !== 'tower' || !t.alive) continue; const py = (t.z - t.r * 0.85) * TILT + TOWER_E[t.type] * (t.side === 'blue' ? 0.42 : 0.72); if (Math.abs(e.x - t.x) * ppu < 52 && Math.abs(by - py) * ppu < 14) by = py + 15 / ppu; } } // a unit's bar never sits on a tower's plate: it steps up above it
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
             else setBar(e.bar, e.hp / e.max, e.x, by, e.shieldT > 0 ? 0xffd040 : teamHex(e.side));
             e.bar.bg.alpha = e.deployT > 0 ? 0.45 : 0.95; // a deploy timer's backing is faint: no dark block over a fresh unit

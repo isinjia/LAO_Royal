@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.50'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.51'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -591,7 +591,11 @@
     }
   }
   function crownFly(tower, toSide) {
-    const r = $('stage').getBoundingClientRect(), lab = tower.label.getBoundingClientRect();
+    const r = $('stage').getBoundingClientRect(), dead = tower.label.classList.contains('dead');
+    if (dead) tower.label.classList.remove('dead'); // (a hidden plate has no box: the crown would start in the screen's corner)
+    const lab = tower.label.getBoundingClientRect();
+    if (dead) tower.label.classList.add('dead');
+    if (!lab.width) return;
     const target = $(toSide === 'blue' ? 'crBlue' : 'crRed').getBoundingClientRect();
     const el = document.createElement('i');
     el.className = 'flycrown ' + toSide;
