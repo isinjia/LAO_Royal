@@ -918,3 +918,19 @@ button:disabled { cursor: default; }
 .synrow span { grid-column: 1 / -1; font-size: 12px; color: #b9c7d4; }
 .synrow.on { border-color: #ffd34d; background: linear-gradient(90deg, rgba(255,211,77,.18), #172230); }
 .synrow.on b::after { content: ' · 적용 중'; color: #ffd34d; font-size: 11px; }
+
+/* card kind badge (melee / ranged / siege / tower / spell) in the card's lower left */
+.kindic { position: absolute; z-index: 3; left: 2px; bottom: calc(19% + 3px); display: flex; align-items: center; gap: 2px; padding: 1px 5px 1px 2px; border-radius: 9px; font-style: normal;
+  background: #3a4656; box-shadow: 0 0 0 1.5px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.6); }
+.kindic svg { width: 13px; height: 13px; fill: #fff; filter: drop-shadow(0 1px 0 rgba(0,0,0,.6)); }
+.kindic b { font: 800 9px var(--kr); color: #fff; letter-spacing: -.3px; text-shadow: 0 1px 1px rgba(0,0,0,.7); }
+.kindic.k-melee { background: linear-gradient(#ff7a4a, #c4401e); }
+.kindic.k-ranged { background: linear-gradient(#36c9ef, #1680b0); }
+.kindic.k-siege { background: linear-gradient(#ffc23a, #c07c00); }
+.kindic.k-siege b, .kindic.k-siege svg { color: #2a1a00; fill: #2a1a00; text-shadow: none; filter: none; }
+.kindic.k-tower { background: linear-gradient(#9aa8b8, #5c6878); }
+.kindic.k-spell { background: linear-gradient(#c58cff, #7a3cc8); }
+.coll .kindic { padding: 1px 4px 1px 1px; } .coll .kindic svg { width: 11px; height: 11px; } .coll .kindic b { font-size: 8px; }
+/* the bigger one by the card's name (popup, battle tip) */
+.kindic.full { position: static; display: inline-flex; vertical-align: 2px; margin-right: 6px; padding: 2px 7px 2px 4px; }
+.kindic.full svg { width: 15px; height: 15px; } .kindic.full b { font-size: 11px; }

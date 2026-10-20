@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.44'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.45'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -176,10 +176,17 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
   // opts: { lv, cls, locked, progress }
-  // the original game's rank badge (B / A / S / SS) in the card's role shape: attacker, defender or support
-  const roleOf = (c) => (c.type !== 'troop' ? 'sup' : c.aim === 'buildings' || (c.hp * (c.count || 1) >= 1500 && c.range <= 2.5) ? 'def' : 'atk');
-  const rankIc = (c) => `<i class="rkic${c.rarity === 3 ? ' ss' : ''}" title="${RARITY[c.rarity].name}" style="background-image:url(assets/icon/rank/${RARITY[c.rarity].name}_${roleOf(c)}.webp)"></i>`;
-  const ROLE_NAME = { atk: '공격형', def: '방어형', sup: '지원형' };
+  // what the card does in the fight, on every card: melee, ranged, siege (goes for buildings), tower (a building) or spell
+  const KIND = {
+    melee: { name: '근접', svg: '<path d="M20 3h-5L6.5 11.5 5 10l-1.5 1.5 3 3L3 18l3 3 3.5-3.5 3 3L14 19l-1.5-1.5L21 9V3z"/>' },
+    ranged: { name: '원거리', svg: '<path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 17.9V17h-2v2.9A8 8 0 014.1 13H7v-2H4.1A8 8 0 0111 4.1V7h2V4.1a8 8 0 016.9 6.9H17v2h2.9a8 8 0 01-6.9 6.9zM12 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>' },
+    siege: { name: '공성', svg: '<path d="M4 4h7v4h3V4h6v8h-3v8H7v-8H4V4zm6 10v6h4v-6h-4z"/><path d="M1 14l5-2v4z"/>' },
+    tower: { name: '타워', svg: '<path d="M5 2h3v2h2V2h4v2h2V2h3v6l-2 2v10h3v2H3v-2h3V10L4 8V2h1zm5 12v6h4v-6a2 2 0 00-4 0z"/>' },
+    spell: { name: '주문', svg: '<path d="M12 1l2.6 6.9L22 9l-5.5 4.8L18.2 21 12 17.3 5.8 21l1.7-7.2L2 9l7.4-1.1z"/>' },
+  };
+  const kindOf = (c) => (c.type === 'spell' ? 'spell' : c.type === 'building' ? 'tower' : c.aim === 'buildings' ? 'siege' : c.range <= 1.4 ? 'melee' : 'ranged');
+  const kindIc = (c, full) => { const k = kindOf(c), K = KIND[k]; return `<i class="kindic k-${k}${full ? ' full' : ''}" title="${K.name}"><svg viewBox="0 0 24 24">${K.svg}</svg><b>${K.name}</b></i>`; };
+
   function cardEl(c, cls, opt) {
     opt = opt || {};
     const el = document.createElement('div');
@@ -188,7 +195,7 @@
     if (c.count > 1) h += `<span class="cnt">x${c.count}</span>`;
     if (opt.lv) h += `<span class="lv">Lv.${opt.lv}</span>`;
     if (opt.progress != null) h += `<span class="prog${opt.progress >= 1 ? ' full' : ''}"><i style="width:${Math.min(100, opt.progress * 100)}%"></i></span>`;
-    if (opt.rank) h += rankIc(c);
+    if (opt.rank) h += kindIc(c); // (the card's kind matters more than its grade)
     if (opt.isNew) h += '<span class="newb">NEW</span>';
     if (opt.locked) h += `<span class="lock"><i></i>${esc(ARENAS[c.arena].name)}</span>`;
     el.innerHTML = h;
@@ -384,7 +391,7 @@
       act += inDeck ? ' <button class="btn d sm" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
     }
     const skill = c.skill ? `<div class="skillinfo"><b>챔피언 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
-    info.innerHTML = `<div class="ci-body"><h4>${rankIc(c)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
+    info.innerHTML = `<div class="ci-body"><h4>${kindIc(c, true)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
       <dl>${st.map(([k2, v]) => `<div><dt>${k2}</dt><dd>${v}</dd></div>`).join('')}</dl></div>`;
     $('cardAct').innerHTML = act;
     const b = $('btnUse');
@@ -436,7 +443,7 @@
     costPrev();
     const tip = $('cardTip'), sc = G.sel >= 0 && CARD[S.hand[G.sel]];
     tip.hidden = !sc;
-    if (sc) tip.innerHTML = `${rankIc(sc)}<b>${esc(sc.name)}</b><span class="role">${ROLE_NAME[roleOf(sc)]}</span> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
+    if (sc) tip.innerHTML = `${kindIc(sc, true)}<b>${esc(sc.name)}</b> ${esc(sc.desc)}${sc.skill ? `<br><em>스킬 · ${esc(sc.skill.name)}: ${esc(sc.skill.desc)}</em>` : ''}`;
   }
   let lastEl = -1;
   // the selected card's cost marked on the energy bar (red when it cannot be paid yet)
