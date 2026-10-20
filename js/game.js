@@ -47,7 +47,7 @@
   // ── quality (auto-lowered when frames run long) ──────────
   const QUALITY = [
     { name: '높음', dpr: 2, bloom: 0.5, parts: 900 },
-    { name: '보통', dpr: 1.5, bloom: 0.35, parts: 650 },
+    { name: '보통', dpr: 2, bloom: 0.35, parts: 650 }, // (phones start here: 2x keeps the small units crisp)
     { name: '낮음', dpr: 1, bloom: 0, parts: 420 },
   ];
   const perf = { level: MOBILE ? 1 : 0, acc: 0, n: 0, slow: 0, fps: 60, work: 0 };
@@ -3078,7 +3078,7 @@
     SD.pinRange = 0.35 / SD_K;
     SD.pinSkip = {};
     SD.mipmaps = renderer.capabilities.isWebGL2;
-    SD.texScale = MOBILE ? 0.35 : 0.5;
+    SD.texScale = 0.5; // phones too: the 35% atlases looked blurry on high-density screens (the governor still steps quality down when frames run long)
     FXB.texScale = MOBILE ? 0.5 : 1;
     FXB.renderer = renderer;
     stageEl.prepend(renderer.domElement);

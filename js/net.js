@@ -4,7 +4,10 @@
 (function () {
   const LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
   const APP = 'lastroyal-isinjia';
-  const PROTO = 1; // bump when the match protocol changes: old and new builds never meet
+  const PROTO = 2; // bump when the match protocol changes: old and new builds never meet
+  // a fixed list of relays known to answer: the library's default list includes relays that are down or have broken
+  // certificates, and in-app browsers such as KakaoTalk's warn about every one of them
+  const RELAYS = ['wss://nos.lol', 'wss://relay.mostro.network', 'wss://nostr-01.yakihonne.com', 'wss://relay.sigit.io', 'wss://schnorr.me', 'wss://yabu.me/v2', 'wss://nostr.data.haus', 'wss://strfry.shock.network']; // (from the library's own list: the ones that answer)
   let lib = null;
   async function load() { if (!lib) lib = await import(LIB); return lib; }
 
@@ -21,7 +24,7 @@
         if (done) return;
         const me = Object.assign({ v: PROTO }, profile);
         leaveActive();
-        room = active = L.joinRoom({ appId: APP }, 'lobby-v' + PROTO);
+        room = active = L.joinRoom({ appId: APP, relayConfig: { urls: RELAYS, warnOnRelayFailure: false } }, 'lobby-v' + PROTO);
         const hello = room.makeAction('hello'), invite = room.makeAction('invite'), accept = room.makeAction('accept'), game = room.makeAction('game');
         const say = () => hello.send(me);
         say();
