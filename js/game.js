@@ -457,7 +457,7 @@
   // ── rigs ──────────────────────────────────────────────
   const isIron = (rig) => !!rig && rig.startsWith('e_');
   const placeholderTex = {};
-  const TINTS = [[0.95, 0.95, 0.95], [0.55, 0.85, 1.3], [1.55, 1.5, 1.5], [1.1, 1.1, 0.6], [1.2, 0.8, 0.8], [1.2, 1.05, 0.8]];
+  const TINTS = [[0.95, 0.95, 0.95], [0.55, 0.85, 1.3], [1.55, 1.5, 1.5], [1.1, 1.1, 0.6], [1.2, 0.8, 0.8], [1.2, 1.05, 0.8], [0.5, 0.85, 1.45], [1.05, 0.8, 1.45], [1.35, 0.9, 0.6]]; // (6: slowed - a cold blue cast; 7: shocked - violet; 8: cooking - orange)
   const animCache = {};
   function animInfo(rig, c, clipName = 'atk') {
     const key = rig + ':' + clipName;
@@ -531,6 +531,7 @@
   // attack loop: the clip's firing window repeats; every shot event crossed fires (the first one carries the damage)
   function attackTick(e, dt) {
     const c = e.sd, a = e.anim;
+    if (e.atk.charge && c && a && Math.random() < dt * 14) { const f = clamp((c.time - a.w0) / Math.max(0.1, (a.shots[0] || a.w1) - a.w0), 0, 1), [mx, my] = muzzle(e, 1); const g = rnd(0, 6.28), r0 = 0.9 - f * 0.5; if (Math.random() < 0.3) FX.particle({ x: mx + rnd(-0.3, 0.3), y: my + rnd(-0.3, 0.3), life: 0.1, size: 0.3, size1: 0.1, color: 0xbfe8ff, tex: FX.tex.elec || FX.tex.glow, rot: rnd(0, 6), alpha: 0.9 }); /* electric crackle */ FX.particle({ x: mx + Math.cos(g) * r0, y: my + Math.sin(g) * r0, vx: -Math.cos(g) * 2.2, vy: -Math.sin(g) * 2.2, life: 0.3, size: 0.16, size1: 0.05, color: f > 0.7 ? 0xffffff : 0xffa040, tex: FX.tex.glow, alpha: 0.9 }); FX.particle({ x: mx, y: my, life: 0.08, size: 0.2 + Math.floor(f * 4) / 4 * 0.5, size1: 0.25 + Math.floor(f * 4) / 4 * 0.5, color: f > 0.7 ? 0xfff0c0 : 0xff8a30, tex: FX.tex.glow, alpha: 0.5 + f * 0.4 }); } // the charge gathers before the big shot
     const haste = e.hasteT > 0 ? e.hasteK || 1 : 1;
     if (e.dagger) { // a dagger tower: fast throws while it has daggers, slow ones when empty
       if (c) { const k = e.atkClip || 'atk'; if (c.clipName !== k) setClip(e, k); c.speed = e.ammo > 0 ? 1.8 : 1; c.update(dt); if (k === 'atk' && a && c.time >= a.w1) c.time = a.w0; }
@@ -623,6 +624,7 @@
       const o = origFor(c.rig, c.fx);
       if (o) [o.bullet, o.hit, ...o.statics].forEach((n) => n && out.add(n));
       if (GENERIC_HIT[c.fx]) out.add(GENERIC_HIT[c.fx]); // contact / beam / chain hits always use it
+      if (c.hitFx) out.add(c.hitFx); // (a card's own original hit effect for its role)
       if (c.skill && SKILL_FX[c.skill.kind]) out.add(SKILL_FX[c.skill.kind]);
       if (c.skill && c.skill.freeze) out.add('Titania_skill1_Ground_ice');
       if (c.skill && skillFxFor(c.rig)) out.add(skillFxFor(c.rig));
@@ -781,7 +783,7 @@
     u.holder = new THREE.Group();
     scene.add(u.holder);
     u.shadow = FX.sprite({ x, y: z * TILT, size: Math.max(1.3, u.r * 3.8), aspect: TILT * 0.75, color: 0x000000, alpha: 0.85, tex: FX.tex.dot, normal: true, order: L.GROUND }); // a firmer contact shadow anchors units in a crowd
-    u.disc = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 4.8, 1.7, 3), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.95 : 0.75, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
+    u.disc = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 4.8, 1.7, 3), aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.75 : 0.75, tex: FX.tex.ring, order: L.GROUND + 2 }); // a bold team ring under every troop
     u.glow = FX.sprite({ x, y: z * TILT, size: clamp(u.r * 5.2, 1.9, 3.2), aspect: TILT, color: teamHex(side), alpha: (side === 'red' ? 0.38 : 0.42) * (u.r > 0.6 ? 0.7 : 1), /* big mechs: a capped, fainter pool that never hides the bridge */ tex: FX.tex.glow, order: L.GROUND + 1 }); // a team-coloured pool under every unit (fainter red: enemy crowds no longer smear into one red mass)
     attachRig(u, card.rig, card.k * TROOP_K * sizeK(card), card.h && card.h * TROOP_K * sizeK(card), true);
     u.fxk *= 1.4 / TROOP_K; // the original effects keep their tuned size when the troops are drawn larger (no screen-filling blooms)
@@ -1200,6 +1202,7 @@
       inst.root.scale.set(e.fxk, e.fxk, 1);
       inst.setOrder(L.PROJ);
       scene.add(inst.root);
+      if (real && a.splash >= 1.2 && !a.selfSplash) { FX.groundRing(t.x, t.z * TILT, a.splash * 0.9, a.splash, 0xffa020, 0.35, 0.8); FX.groundGlow(t.x, t.z * TILT, a.splash * 0.5, 0xffa020, 0.3, 0.3); } // a landing marker for a lobbed blast
       G.bfx.push({ inst, src: e, atk: a, target: t, t: 0, T: Math.max(0.1, meta.T) * (a.fx === 'bomb' ? 2 : 1), type: meta.type, sx: mx, sy: my, ex: tx, ey: ty, tz: t.z, tx: t.x, dmg, hit: o.hit, hs: meta.hitScale || 1, k: e.fxk, h: rnd(0.1, 0.4) });
       return;
     }
@@ -1207,7 +1210,7 @@
     switch (a.fx) {
       case 'bullet': P({ speed: 24, kind: 'bullet' }); FX.beam(mx, my, tx, ty, 0.1, teamHex(e.side), 0.14); break; // a team-coloured tracer shows who is shooting whom
       case 'snipe': FX.beam(mx, my, tx, ty, 0.1, a.color, 0.2); if (real) { hit(e, a, t, t.x, t.z, dmg); hitFx(e, a, tx, ty); splashFx(t.x, t.z, a); } break;
-      case 'grenade': P({ speed: 8.5, kind: 'grenade', arc: 1.8, point: true }); break;
+      case 'grenade': P({ speed: 7, kind: 'grenade', arc: 2.0, point: true }); if (real && a.splash >= 1.2) FX.groundRing(t.x, t.z * TILT, a.splash * 0.9, a.splash, 0xffa020, 0.35, 0.8); break; /* (a lob long enough to see, its landing marked) */
       case 'missile': P({ speed: 10, kind: 'missile', arc: 1.2, point: true }); break;
       case 'fireball': P({ speed: 9, kind: 'fireball', arc: 0.6, point: true }); break;
       case 'holy': P({ speed: 10, kind: 'holy', point: true }); break;
@@ -1225,17 +1228,39 @@
             list.push(nb); cur = nb;
           }
         }
-        const pts = [{ x: mx, y: my }, ...list.map((q) => ({ x: q.x, y: aimY(q) }))];
-        FX.lightning(pts, a.color, real ? 0.2 : 0.12, 0.2);
-        if (real) list.forEach((q) => { hit(e, a, q, q.x, q.z, dmg); FX.hit(q.x, aimY(q), a.color, 0.7); }); // every link of the chain flashes on its target
+        const pts = [{ x: mx, y: my }];
+        list.forEach((q, i) => { const p0 = pts[pts.length - 1], p1 = { x: q.x + (i ? rnd(-0.15, 0.15) : 0), y: aimY(q) + (q.bodyH || 1) * 0.2 }; const dx = p1.x - p0.x, dy = p1.y - p0.y, L = Math.hypot(dx, dy) || 1; const bow = L < 0.6 ? 0.4 : 0.3; pts.push({ x: (p0.x + p1.x) / 2 - dy / L * bow, y: (p0.y + p1.y) / 2 + Math.abs(dx / L) * bow + (L < 0.6 ? 0.25 : 0) }, p1); }); // (a bow on each jump: even a short chain reads as links)
+        FX.lightning(pts, a.color, real ? 0.3 : 0.12, 0.3); // (a violet glow and a white core)
+        if (real) for (let i = 1; i < list.length; i++) { const q0 = list[i - 1], q1 = list[i]; FX.later(i * 0.07, () => { FX.lightning([{ x: q0.x, y: aimY(q0) + 0.2 }, { x: (q0.x + q1.x) / 2, y: (aimY(q0) + aimY(q1)) / 2 + 0.6 }, { x: q1.x, y: aimY(q1) + 0.2 }], 0xd8b8ff, 0.2, 0.22); FX.particle({ x: q1.x, y: aimY(q1) + 0.2, life: 0.22, size: 0.6, size1: 0.3, color: 0xffffff, tex: FX.tex.cross, rot: rnd(0, 3), alpha: 1, order: L.FX + 1 }); }); } // each link on its own beat
+        if (real) for (let i = 1; i < pts.length; i++) { const p0 = pts[i - 1], p1 = pts[i]; for (let f = 0.25; f < 1; f += 0.25) FX.particle({ x: p0.x + (p1.x - p0.x) * f, y: p0.y + (p1.y - p0.y) * f, life: 0.2, size: 0.32, size1: 0.1, color: 0xd8c4ff, tex: FX.tex.glow, alpha: 0.85 }); } // beads of light along each link
+
+        if (real) list.forEach((q, i) => { hit(e, a, q, q.x, q.z, dmg); q.hitT = 0; FX.later(i * 0.07, () => { q.chainT = G.time; FX.hit(q.x, aimY(q), 0xc9a8ff, 0.3); FX.sparks(q.x, aimY(q), 0xdcc8ff, i ? 9 : 5, i ? 4 : 3, 0.14, 0.3); FX.groundRing(q.x, q.z * TILT, 0.25, 0.85, 0xb98bff, 0.35, 0.95); FX.ring(q.x, aimY(q), 0.1, 0.6, 0xe0d0ff, 0.2, 0.9); if (a.hitFx) spawnStatic(a.hitFx, q.x, aimY(q), 0.085); }); }); // each link sparks in turn // every link of the chain flashes on its target (the original lightning hit on each)
         break;
       }
       case 'laser': {
         const dx = t.x - e.x, dz = t.z - e.z, Ld = Math.hypot(dx, dz) || 1;
         const reach = Math.max(Ld, (a.range || 5) + 0.6);
         const ex = e.x + dx / Ld * reach, ez = e.z + dz / Ld * reach;
-        FX.beam(mx, my, ex, ez * TILT + aimH(t), (real ? 0.28 : 0.14) * rk, rk > 2 ? 0xfff0c0 : a.color, 0.3);
+        if (a.ramp) { // inferno: three stages, thin yellow -> orange -> a red-white blaze, a fire orb growing on the target
+          const st = e.rampSt || 0, W = [0.16, 0.3, 0.52][st], C = [0xffc040, 0xff7a20, 0xff3a1a][st], ty = aimY(t);
+          FX.beam(mx, my, t.x, ty, W * (real ? 1.6 : 1.1), C, 0.12); FX.beam(mx, my, t.x, ty, W * 0.45, st === 2 ? 0xffffff : 0xffe0a0, 0.1);
+          FX.particle({ x: t.x, y: ty, life: 0.16, size: 0.6 + st * 0.45, size1: 0.9 + st * 0.6, color: C, tex: FX.tex.glow, alpha: 0.9 }); FX.particle({ x: t.x + rnd(-0.1, 0.1), y: ty, life: 0.2, size: 0.6 + st * 0.4, size1: 0.2, color: 0xffd060, frames: FX.sheets.fire, alpha: 0.9 });
+          if (Math.random() < 0.5) FX.particle({ x: t.x + rnd(-0.3, 0.3), y: ty, vy: rnd(0.8, 1.6), life: 0.5, size: 0.14, size1: 0.02, color: 0xffa040, tex: FX.tex.glow, alpha: 0.9 }); // embers rising off the target
+          if (st === 2) { t.cookT = G.time; t.hitT = 0; } // (at full heat the target cooks orange)
+          if (st >= 1 && Math.random() < 0.6) { const f = Math.random(); FX.particle({ x: mx + (t.x - mx) * f, y: my + (ty - my) * f, vy: rnd(0.3, 1), life: 0.4, size: 0.16, size1: 0.02, color: 0xffb040, tex: FX.tex.glow, alpha: 0.9 }); }
+          if (real && e.rampShown !== st) { e.rampShown = st; spawnStatic(a.hitFx, t.x, ty, 0.12 + st * 0.06); FX.ring(t.x, ty, 0.2, 0.8 + st * 0.4, C, 0.25); }
+        } else { FX.beam(mx, my, ex, ez * TILT + aimH(t), (real ? 0.28 : 0.14) * rk * (a.charge ? 3 : 1), rk > 2 ? 0xfff0c0 : a.color, a.charge ? 0.14 : 0.3); if (a.charge && real) FX.beam(mx, my, ex, ez * TILT + aimH(t), 0.3, 0xffffff, 0.12); } // (a charged shot is a thick beam with a white core)
         if (a.pierce && real) FX.groundRing(t.x, t.z * TILT, 0.1, 0.6, a.color, 0.25, 0.6); // a piercing shot marks its line on the deck
+        if (a.splash && real) { // a charged blast (Sparky): the shot lands as one big explosion
+          const by = aimY(t);
+          FX.particle({ x: mx, y: my, life: 0.25, size: 0.6, size1: 1.6, color: 0xfff0c0, tex: FX.tex.glow, alpha: 0.9 });
+          FX.particle({ x: t.x, y: t.z * TILT + 0.5, life: 0.2, size: 1.4, size1: a.splash * 4.5, color: 0xffffff, tex: FX.tex.glow, alpha: 0.7 }); // white-hot core
+          FX.particle({ x: t.x, y: t.z * TILT + 0.25, life: 0.3, size: a.splash * 2.6, size1: a.splash * 3.4, aspect: TILT, color: 0x0e0a0a, tex: FX.tex.ring, normal: true, alpha: 0.85, order: L.FX + 1 }); // a dark shock band just outside the burst
+          for (let k = 0; k < 8; k++) { const g = rnd(0.2, Math.PI - 0.2), v = rnd(3, 6); FX.particle({ x: t.x + rnd(-0.3, 0.3), y: t.z * TILT + 0.4, vx: Math.cos(g) * v * 0.7, vy: Math.sin(g) * v, grav: 14, life: rnd(0.5, 0.8), size: rnd(0.24, 0.36), size1: 0.18, color: 0x2a2a30, tex: FX.tex.white, normal: true, spin: rnd(-8, 8), order: L.FX + 1 }); FX.particle({ x: t.x, y: t.z * TILT + 0.4, vx: Math.cos(g) * v * 0.7, vy: Math.sin(g) * v, grav: 14, life: rnd(0.4, 0.6), size: 0.36, size1: 0.1, color: 0xff8a30, tex: FX.tex.glow, alpha: 0.8 }); } // debris: dark chunks with glowing edges
+          (() => FX.particle({ x: t.x, y: t.z * TILT + 0.2, life: 0.6, size: a.splash * 1.2, size1: a.splash * 3, aspect: TILT, color: 0x3a3a44, tex: FX.tex.ring, normal: true, alpha: 0.65, order: L.FX + 1 }))(); // a dark smoke ring rolling out after it
+          FX.explosion(t.x, t.z * TILT + 0.3, a.splash * 2.2, 0xff8a30, false); FX.particle({ x: t.x, y: t.z * TILT + 0.5, life: 0.45, size: a.splash * 3.5, size1: a.splash * 5, color: 0xffb050, tex: FX.tex.glow, alpha: 0.75 }); FX.ring(t.x, t.z * TILT + 0.2, 0.2, a.splash * 1.1, 0xffd08a, 0.3, 0.9, TILT); // a solid orange burst and a shock ring (the original arc art read as an artifact)
+          FX.explosion(t.x, by, a.splash * 0.45, 0xfff0c0, false); FX.groundRing(t.x, t.z * TILT, 0.2, a.splash * 1.3, a.color, 0.4, 0.8); scorch(t.x, t.z * TILT, a.splash * 0.5); FX.shake(0.18);
+        }
         if (!real) break;
         hitFx(e, a, tx, ty);
         if (a.pierce) {
@@ -1253,7 +1278,7 @@
         if (real) { hit(e, a, t, t.x, t.z, dmg); splashFx(t.x, t.z, a); }
         break;
       default: // slash / claw / cannon: contact hits
-        if (a.fx === 'slash') FX.slash(tx, ty, a.color, (1.1 + (a.splash || 0) * 0.7) * rk); else FX.hit(tx, ty, a.color, (a.fx === 'cannon' ? 1.6 : 1) + (a.splash || 0) * 0.5); // a sweeping blow cuts a wider arc
+        if (a.fx === 'slash' && !a.selfSplash) FX.slash(tx, ty, a.color, (1.1 + (a.splash || 0) * 0.7) * rk); // (a spin draws its own ring, not a one-sided cut) else FX.hit(tx, ty, a.color, (a.fx === 'cannon' ? 1.6 : 1) + (a.splash || 0) * 0.5); // a sweeping blow cuts a wider arc
         if (real) {
           if (a.fx === 'cannon' || a.splash) FX.shake(0.08);
           hitFx(e, a, tx, ty);
@@ -1268,11 +1293,14 @@
   // an area attack shows the area it hit (projectiles draw theirs where they land)
   function splashFx(x, z, a) {
     if (!a.splash) return;
+    if (a.slow) { FX.groundGlow(x, z * TILT, a.splash, 0x0a8cff, a.slowDur || 1.6, 0.5); FX.groundGlow(x, z * TILT, a.splash * 1.3, 0x2ab0ff, a.slowDur || 1.6, 0.28); FX.groundRing(x, z * TILT, a.splash * 1.5, a.splash * 1.6, 0xbff4ff, a.slowDur || 1.6, 1); FX.ring(x, z * TILT + 0.05, a.splash * 2.2, a.splash * 2.3, 0x7fe0ff, 0.5, 0.5, TILT, L.FX); /* a solid pale ring wider than the group */ FX.groundRing(x, z * TILT, 0.2, a.splash, 0x5ae0ff, 0.55, 1); spawnStatic(a.hitFx, x, z * TILT + 0.4, 0.07); } // a cold pool of the real splash, the original Empress ice hit
+    if (a.slow) { const y = z * TILT + 0.5; for (let k = 0; k < 7; k++) { const g = (k / 7) * Math.PI * 2; FX.particle({ x, y, vx: Math.cos(g) * 4, vy: Math.sin(g) * 3, drag: 5, life: 0.3, size: 0.32, size1: 0.06, aspect: 0.35, rot: g, color: 0xbff4ff, tex: FX.tex.glow, alpha: 0.9 }); } } // an ice shard star
+    else if (a.fx === 'grenade' && a.splash >= 1.2) { for (let k = 0; k < 4; k++) FX.later(k * 0.06, () => FX.particle({ x: x + rnd(-a.splash, a.splash) * 0.5, y: z * TILT + 0.1, vy: rnd(1.2, 2.2), life: 0.45, size: 0.7, size1: 0.2, color: k % 2 ? 0xffd040 : 0xff7a1a, frames: FX.sheets.fire, alpha: 0.95 })); } // flame licks (tall enough to show over the units)
     FX.groundRing(x, z * TILT, 0.2, a.splash, a.color, 0.35, 0.85);
     FX.groundGlow(x, z * TILT, a.splash * 0.5, a.color, 0.3, 0.4);
   }
   function hitFx(e, a, x, y) {
-    const n = GENERIC_HIT[a.fx];
+    const n = a.charge || a.selfSplash ? GENERIC_HIT[a.fx] : a.hitFx || GENERIC_HIT[a.fx]; // (a charged blast / a spin draw their own) // (a charged blast draws its own original hit, at its own size)
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
     const heavy = G.time - (e.hfxT || -1) > 0.16; // a fast shooter gets the full burst a few times a second, otherwise just the core (no permanent confetti cloud)
     if (!heavy) { FX.particle({ x, y, life: 0.1, size: 0.25, size1: 0.55, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.75 }); FX.sparks(x, y, a.color, 2, 3, 0.14, 0.22); return; } // between full bursts, sustained fire still flickers and sprays
@@ -1287,19 +1315,28 @@
     { const ang = Math.atan2(y - (sy(e) + (e.bodyH || 1.5) * 0.5), x - e.x); for (let s = 0; s < 3 + Math.round(big * 2); s++) { const aa = ang + rnd(-0.45, 0.45), v = rnd(4, 7.5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 6, life: rnd(0.14, 0.24), size: 0.3, size1: 0.08, aspect: 5, rot: aa - Math.PI / 2, color: s % 2 ? 0xffffff : 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } }
     for (let k = 0; k < 2 + Math.round(big * 2); k++) { const aa = rnd(0.25, Math.PI - 0.25), v = rnd(2.2, 4.2); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 12, drag: 1, life: rnd(0.35, 0.55), size: rnd(0.07, 0.11), size1: 0.05, color: k % 2 ? 0xdfe5ea : 0x5d646c, tex: FX.tex.dot, normal: true }); } // armour chips knocked off the target tumble to the deck
     if (EXPLOSIVE[a.fx]) { for (let k = 0; k < 6; k++) { const aa = rnd(0.3, Math.PI - 0.3), v = rnd(2.5, 5); FX.particle({ x, y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, grav: 10, life: rnd(0.4, 0.65), size: 0.16, size1: 0.12, color: 0x4a3a2c, tex: FX.tex.dot, normal: true }); } scorch(x, y - 0.3, 0.5 * big); } // shells and grenades throw chunks and scar the deck; guns spark; blades cut
-    if ((a.range || 0) <= 1.3 && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
+    if ((a.range || 0) <= 1.3 && !a.selfSplash && Math.random() < 0.6) FX.slash(x + rnd(-0.15, 0.15), y + rnd(-0.1, 0.2), a.color, 0.7 + 0.4 * big); // close-quarters blows leave a cut streak
     if (n && spawnStatic(n, x, y, (e.fxk || 0.2) * 0.4 * big)) return; // the original hit effect, kept small so it does not smear over the target
     FX.hit(x, y, a.color, 0.6);
   }
 
   function hit(src, a, t, px, pz, dmg) {
     if (!dmg) return;
-    if (a.selfSplash && src) { px = src.x; pz = src.z; FX.groundRing(px, pz * TILT, 0.3, a.splash, a.color || 0xffffff, 0.22, 0.75); } // a Valkyrie spin: the blow sweeps all around the attacker
+    if (a.selfSplash && src) { // a Valkyrie spin: the blow sweeps all around the attacker
+      px = src.x; pz = src.z;
+      const y0 = pz * TILT + 0.45, R0 = a.splash;
+      const RK = 1.65; FX.ring(px, y0, R0 * 0.8 * RK, R0 * RK, 0xf2f6ff, 0.24, 0.65, TILT, L.FX); FX.ring(px, y0, R0 * RK, R0 * 1.07 * RK, 0x2a1408, 0.24, 0.55, TILT, L.FX); // a bright ring over the units, a dark edge
+      for (let k = 0; k < 12; k++) { const ang = (k / 12) * Math.PI * 2; FX.later(k * 0.018, () => FX.particle({ x: px + Math.cos(ang) * R0 * 0.9, y: y0 + Math.sin(ang) * R0 * 0.9 * TILT, life: 0.16, size: 0.42, size1: 0.12, color: k % 3 ? 0xf2f6ff : a.color, tex: FX.tex.glow, alpha: 1 - k / 14, order: L.FX + 1 })); } // the leading edge running once round (0.22 s)
+      for (let k = 0; k < 4; k++) for (let j = 0; j < 5; j++) { const ang = (k / 4) * Math.PI * 2 + G.time * 4 + j * 0.14; FX.later(j * 0.012, () => FX.particle({ x: px + Math.cos(ang) * R0 * 0.95, y: y0 + Math.sin(ang) * R0 * 0.95 * TILT, life: 0.22, size: 0.6 - j * 0.07, size1: 0.12, color: j ? a.color : 0xffffff, tex: FX.tex.glow, alpha: 1 - j * 0.14, order: L.FX + 1 })); } // 4 curved arc streaks (about 40 degrees each) on the ring
+      { const a0 = G.time * 4; for (let j = 0; j < 6; j++) FX.later(j * 0.03, () => { const g = a0 + j * 0.9; FX.particle({ x: px + Math.cos(g) * R0 * 0.95, y: y0 + Math.sin(g) * R0 * 0.95 * TILT, life: 0.1, size: 0.9, size1: 0.4, color: 0xffffff, tex: FX.tex.glow, alpha: 1, order: L.FX + 1 }); }); } // a white flare riding the leading edge (the spin's direction in any frame)
+      FX.groundRing(px, pz * TILT, R0 * 0.6, R0, 0x9a8a78, 0.35, 0.45); // dust rolling out to the full radius
+      FX.later(0.06, () => FX.ring(px, y0, R0 * 0.85 * 1.65, R0 * 1.65, 0xf2f6ff, 0.18, 0.38, TILT, L.FX)); // a faint second ring trailing (the rotation in a still)
+    }
     if (a.splash) {
       if (G.time - (src.scT || -1) > 0.7) { src.scT = G.time; scorch(px, pz * TILT, a.splash * 0.45); } // blasts leave scorch marks that fade over a few seconds
       for (const o of enemiesNear(src.side, px, pz, a.splash)) { // only the other side's units and structures near the blast
         if (!canHit(a, o)) continue;
-        if (Math.hypot(o.x - px, o.z - pz) <= a.splash + o.r * 0.5) applyHit(o, dmg, a, src);
+        if (Math.hypot(o.x - px, o.z - pz) <= a.splash + o.r * 0.5) { applyHit(o, dmg, a, src); if (a.selfSplash) { FX.sparks(o.x, aimY(o), 0xff6a3a, 8, 4.5, 0.2, 0.35); FX.particle({ x: o.x, y: aimY(o), life: 0.26, size: 0.7, size1: 1.1, color: 0xff7a40, tex: FX.tex.glow, alpha: 0.95, order: L.FX + 1 }); FX.particle({ x: o.x, y: aimY(o), life: 0.24, size: 0.9, size1: 0.6, color: 0xffffff, tex: FX.tex.cross, rot: rnd(0, 3), alpha: 1, order: L.FX + 1 }); FX.particle({ x: o.x, y: aimY(o), life: 0.18, size: 0.45, size1: 0.3, color: 0xffffff, tex: FX.tex.glow, alpha: 1, order: L.FX + 1 }); } } // (a spin sparks on every one it catches)
       }
     } else applyHit(t, dmg, a, src);
   }
@@ -1307,7 +1344,7 @@
     damage(o, dmg, src);
     if (!o.alive) return;
     if (o.kind === 'troop' && src && !o.air) { const dx = o.x - src.x, dz = o.z - src.z, L = Math.hypot(dx, dz) || 1, k = clamp(dmg / 600, 0.06, 0.22); o.kx = dx / L * k; o.kz = dz / L * k; } // a visual recoil (the simulated position is untouched)
-    if (a.slow) { o.slowT = Math.max(o.slowT, a.slowDur || 2); o.slowAmt = a.slow; }
+    if (a.slow) { o.slowT = Math.max(o.slowT, a.slowDur || 2); o.slowAmt = a.slow; if (o.kind === 'troop' && G.time - (o.frostT || -1) > 0.5) { o.frostT = G.time; FX.frost(o.x, aimY(o), 0.55, 0x5ad8ff); FX.groundRing(o.x, o.z * TILT, 0.2, 0.9, 0x5ad8ff, 0.5, 0.75); } } // (a cyan frost ring sits over the red team ring)
     if (a.stun) stun(o, a.stun);
     if (a.freeze) { o.freezeT = Math.max(o.freezeT, a.freeze); o.target = o.kind === 'troop' ? null : o.target; }
   }
@@ -1328,12 +1365,13 @@
       b.inst.root.position.set(x, y, 0);
       b.inst.root.rotation.z = Math.atan2(dy, dx);
       b.inst.update(dt);
+      if (b.atk.fx === 'grenade' && b.atk.splash >= 1.2) { FX.particle({ x, y, life: 0.05, size: 0.55, size1: 0.45, color: 0xffa040, tex: FX.tex.glow, alpha: 0.9, order: L.PROJ }); FX.particle({ x: x + (b.tx - x) * 0, y: b.tz * TILT * f + (b.sy - 0.6) * (1 - f) - 0.1, life: 0.05, size: 0.45, size1: 0.4, aspect: TILT, color: 0x000000, tex: FX.tex.dot, normal: true, alpha: 0.35, order: L.GROUND + 3 }); } // a lobbed shell glows, its shadow runs on the ground under it
       if ((b.trT = (b.trT || 0) - dt) <= 0) { b.trT = 0.025; FX.particle({ x, y, life: 0.26, size: 0.5, size1: 0.05, color: b.atk.color, tex: FX.tex.glow, alpha: 0.8 }); FX.particle({ x, y, life: 0.12, size: 0.2, size1: 0, color: 0xffffff, tex: FX.tex.glow, alpha: 0.9 }); } // a fading trail with a bright core
       if (f >= 1) {
         const big = b.dmg ? clamp(b.dmg / 220, 0.75, 1.5) : 0.7;
         if (!(b.hit && spawnStatic(b.hit, b.ex, b.ey, b.k * b.hs * big * 0.85))) FX.hit(b.ex, b.ey, b.atk.color, 1.05 * big);
         { const a0 = Math.atan2(dy, dx); for (let s = 0; s < 3 + big * 3; s++) { const a = a0 + rnd(-0.7, 0.7), v = rnd(3, 6); FX.particle({ x: b.ex, y: b.ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, drag: 5, life: rnd(0.15, 0.3), size: 0.12, size1: 0.02, color: b.atk.color, tex: FX.tex.dot }); } } // sparks carry on in the shot's direction
-        if (b.atk.splash) { FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8); FX.groundGlow(b.tx, b.tz * TILT, b.atk.splash * 0.45, b.atk.color, 0.3, 0.35); } // the blast area lights up, not just its edge
+        if (b.atk.splash) { FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8); FX.groundGlow(b.tx, b.tz * TILT, b.atk.splash * 0.45, b.atk.color, 0.3, 0.35); splashFx(b.tx, b.tz, b.atk); } // the blast area lights up, not just its edge
         if (b.dmg) hit(b.src, b.atk, b.target, b.tx, b.tz, b.dmg);
         b.inst.dispose();
         G.bfx.splice(i, 1);
@@ -1359,11 +1397,11 @@
       const c = p.atk.color;
       switch (p.kind) {
         case 'bullet': FX.trail(p.x, yy, c, 0.5); FX.particle({ x: p.x, y: yy, life: 0.06, size: 0.4, size1: 0.18, color: 0xffffff, tex: FX.tex.glow, alpha: 1, order: L.PROJ }); break; // a bright head on a thicker trail
-        case 'grenade': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.3, size1: 0.15, color: 0xffd080, tex: FX.tex.glow, order: L.PROJ }); break;
+        case 'grenade': FX.particle({ x: p.x, y: yy, life: 0.12, size: 0.6, size1: 0.25, color: 0xffe0a0, tex: FX.tex.glow, alpha: 1, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.06, size: 0.18, size1: 0.12, color: 0x3a2a1a, tex: FX.tex.dot, normal: true, order: L.PROJ }); if (Math.random() < 0.7) FX.particle({ x: p.x + rnd(-0.06, 0.06), y: yy, vy: rnd(0.1, 0.5), life: 0.35, size: 0.18, size1: 0.02, color: c, tex: FX.tex.glow, alpha: 0.8, order: L.PROJ }); break; // a lobbed shell with an ember trail
         case 'missile': FX.particle({ x: p.x, y: yy, life: 0.1, size: 0.35, size1: 0.1, color: c, tex: FX.tex.glow, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.5, size: 0.2, size1: 0.6, color: 0x777777, alpha: 0.4, normal: true, frames: FX.sheets.smoke, order: L.LOW }); break;
         case 'fireball': FX.particle({ x: p.x, y: yy, life: 0.18, size: 0.8, size1: 0.3, color: c, frames: FX.sheets.fire, rot: Math.random() * 6, order: L.PROJ }); break;
         case 'holy': FX.particle({ x: p.x, y: yy, life: 0.12, size: 0.7, size1: 0.2, color: c, tex: FX.tex.glow, order: L.PROJ }); break;
-        case 'frost': FX.particle({ x: p.x, y: yy, life: 0.2, size: 0.5, size1: 0.1, color: c, tex: FX.tex.snow, spin: 6, order: L.PROJ }); break;
+        case 'frost': FX.particle({ x: p.x, y: yy, life: 0.2, size: 0.5, size1: 0.1, color: c, tex: FX.tex.snow, spin: 6, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.07, size: 0.36, size1: 0.2, color: 0xbff4ff, tex: FX.tex.glow, alpha: 0.95, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.3, size: 0.26, size1: 0.04, color: 0x3ad0ff, tex: FX.tex.glow, alpha: 0.6, order: L.PROJ }); break; // a bright ice bolt with a frosty trail
         case 'bomb': FX.particle({ x: p.x, y: yy, life: 0.06, size: 0.4, size1: 0.3, color: 0x333333, tex: FX.tex.dot, normal: true, order: L.PROJ }); break;
         case 'spell': if (p.rocket) { FX.particle({ x: p.x, y: yy, life: 0.12, size: 0.6, size1: 0.2, color: 0xfff0a0, tex: FX.tex.glow, order: L.PROJ }); FX.particle({ x: p.x + rnd(-0.1, 0.1), y: yy, vy: rnd(-0.3, 0.3), life: 1.1, size: 0.4, size1: 1.3, color: 0xb0b4ba, alpha: 0.5, normal: true, frames: FX.sheets.smoke, order: L.LOW }); break; } FX.particle({ x: p.x, y: yy, life: 0.2, size: 1.5, size1: 0.5, color: c, frames: FX.sheets.fire, rot: Math.random() * 6, order: L.PROJ }); FX.particle({ x: p.x, y: yy, life: 0.7, size: 0.5, size1: 1.4, color: 0x666666, alpha: 0.35, normal: true, frames: FX.sheets.smoke, order: L.LOW }); break;
       }
@@ -1373,11 +1411,12 @@
       const ground = p.tz * TILT;
       if (p.kind !== 'wave') {
         if (!(p.gen && spawnStatic(p.gen, p.tx, p.point ? ground + 0.3 : gy, p.k * (p.atk.splash ? 1 : 0.8)))) {
-          if (p.atk.splash || p.point) FX.explosion(p.tx, ground + 0.3, Math.max(0.5, (p.atk.splash || 0.6) * 0.55), c);
+          if (p.atk.slow) FX.frost(p.tx, ground + 0.4, Math.max(0.6, (p.atk.splash || 0.6) * 0.7), 0x5ad8ff); // (ice lands as frost, not fire)
+          else if (p.atk.splash || p.point) FX.explosion(p.tx, ground + 0.3, Math.max(0.5, (p.atk.splash || 0.6) * 0.55), c);
           else FX.hit(p.tx, gy, c, 0.7);
         }
       }
-      if (p.atk.splash) { FX.groundRing(p.tx, ground, 0.2, p.atk.splash, c, 0.35, 0.8); FX.groundGlow(p.tx, ground, p.atk.splash * 0.45, c, 0.3, 0.35); }
+      if (p.atk.splash) { FX.groundRing(p.tx, ground, 0.2, p.atk.splash, c, 0.35, 0.8); FX.groundGlow(p.tx, ground, p.atk.splash * 0.45, c, 0.3, 0.35); splashFx(p.tx, p.tz, p.atk); } // (the role's own splash: ice star, flame licks)
       if (p.dmg) hit(p.src, p.atk, p.target, p.tx, p.tz, p.dmg);
     }
   }
@@ -2620,7 +2659,8 @@
           e.sd.setOrder(order);
           if (e.alive) {
             // status tint, written to the materials only when it changes
-            const tk = e.freezeT > 0 ? 1 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.shieldT > 0 ? 4 : e.hasteT > 0 ? 5 : 0;
+            if (e.slowT > 0 && e.slowAmt > 0.2 && Math.random() < dt * 5) FX.particle({ x: e.x + rnd(-0.3, 0.3), y: sy(e) + rnd(0.3, e.bodyH || 1.2), vy: -0.3, life: 0.8, size: 0.46, size1: 0.18, color: 0xdff9ff, tex: FX.tex.snow, spin: 3, alpha: 1, order: L.FX + 1 }); // slowed: ice crystals on the unit
+            const tk = e.freezeT > 0 ? 1 : G.time - (e.chainT || -9) < 0.3 ? 7 : e.slowT > 0 && e.slowAmt > 0.2 ? 6 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.shieldT > 0 ? 4 : e.hasteT > 0 ? 5 : 0;
             tintTo(e, tk, dt);
           }
         }
@@ -2643,14 +2683,14 @@
             } else shownBars.push(e.bar);
           } else hideBar(e.bar);
           if (e.shieldT > 0 || e.hasteT > 0) for (let n = sparkle(e, dt); n > 0; n--) { SPK.x = e.x + rnd(-0.4, 0.4); SPK.y = y + rnd(0, e.bodyH); SPK.life = 0.45; SPK.size = 0.3; SPK.color = e.shieldT > 0 ? e.card.skill.color : e.hasteColor || 0xd65cff; SPK.tex = FX.tex.dot; FX.particle(SPK); }
-          if (e.disc) { const dc = e.hasteT > 0 ? e.hasteColor || 0xd65cff : teamHex(e.side); if (e.disc.color !== dc) e.disc.color = dc; } // a boosted unit's ring takes the boost colour while it lasts
+          if (e.disc) { const dc = G.time - (e.chainT || -9) < 0.3 ? 0xa77bff : e.slowT > 0 && e.slowAmt > 0.2 ? 0x0a9cff : e.hasteT > 0 ? e.hasteColor || 0xd65cff : teamHex(e.side); if (e.disc.color !== dc) e.disc.color = dc; } // a boosted unit's ring takes the boost colour while it lasts
           // your champion's skill is ready: a pulsing ring at its feet points to the button
           if (e.side === 'blue' && e.card.skill && (e.readyT = (e.readyT || 0) - dt) <= 0 && skillReady(e) && G.sides.blue.elixir >= skillCost(e)) {
             e.readyT = 0.7;
             FX.groundRing(e.x, e.z * TILT, 0.3, 1.0, e.card.skill.color, 0.6, 0.55);
           }
           if (e.stunT > 0 && e.freezeT <= 0) { // stunned: two sparks circle over the head while it lasts
-            for (let k = 0; k < 2; k++) { const a = amb.t * 9 + k * Math.PI; FX.particle({ x: e.x + Math.cos(a) * 0.32, y: y + e.bodyH + 0.22 + Math.sin(a) * 0.1, life: 0.09, size: 0.26, size1: 0.18, color: 0xffe060, tex: FX.tex.cross, alpha: 1, order: L.FX + 2 }); }
+            for (let k = 0; k < 2; k++) { const a = amb.t * 9 + k * Math.PI; FX.particle({ x: e.x + Math.cos(a) * 0.32, y: y + e.bodyH + 0.22 + Math.sin(a) * 0.1, life: 0.09, size: 0.26, size1: 0.18, color: 0xffe060, tex: FX.tex.cross, alpha: 1, order: L.FX + 1 }); }
           }
           if (e.freezeT > 0 && Math.random() < 0.15) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: -0.4, life: 0.5, size: 0.22, size1: 0, color: 0xdff8ff, tex: FX.tex.snow });
         }
@@ -2662,7 +2702,7 @@
         if (e.sd) {
           e.sd.setOrder(e.base.renderOrder + 0.5);
           if (e.alive && e.active) {
-            const tk = e.freezeT > 0 ? 1 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.hasteT > 0 ? 5 : 0;
+            const tk = e.freezeT > 0 ? 1 : G.time - (e.cookT || -9) < 0.25 ? 8 : e.hitT > 0 ? 2 : e.stunT > 0 ? 3 : e.hasteT > 0 ? 5 : 0; // (a tower under a full inferno cooks orange, not white)
             tintTo(e, tk, dt);
           }
           if (e.hasteT > 0) for (let n = sparkle(e, dt); n > 0; n--) { SPK.x = e.x + rnd(-0.5, 0.5); SPK.y = e.z * TILT + TOWER_E[e.type] + rnd(0, 1.2); SPK.life = 0.4; SPK.size = 0.2; SPK.color = e.hasteColor || 0xd65cff; SPK.tex = FX.tex.dot; FX.particle(SPK); }
