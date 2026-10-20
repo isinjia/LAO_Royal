@@ -950,3 +950,6 @@ button:disabled { cursor: default; }
 .moveic:not(.full) b { display: none; }
 .moveic:not(.full) svg { width: 12px; height: 12px; }
 .coll .moveic:not(.full) { width: 15px; height: 15px; padding: 0; } .coll .moveic:not(.full) svg { width: 10px; height: 10px; }
+/* the hand in battle: the same kind / flying badges, just above the name */
+#hand .card .kindic { bottom: calc(19% + 2px); }
+#hand .card .moveic { bottom: calc(19% + 2px); }
