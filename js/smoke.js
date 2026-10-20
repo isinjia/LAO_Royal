@@ -95,10 +95,12 @@
   async function unitChecks() {
     const ok = (cond, msg) => { if (!cond) out.errors.push('check: ' + msg); };
     // 1. an old save (no 'seen' flag) still gets NEW badges for cards added by an update
-    Object.assign(UI.save, { trophy: 900, seen: undefined, newCards: {} });
-    delete UI.save.cards.nymph;
+    // (a save from before the 12-card start gets the starting cards it lacks, with NEW badges)
+    Object.assign(UI.save, { trophy: 900, seen: undefined, newCards: {}, startCards: undefined });
+    const keepB = UI.save.cards.gnome; delete UI.save.cards.gnome;
     UI._sync();
-    ok(UI.save.newCards.nymph === 1, 'migrated save: NEW badge on a card added by an update');
+    ok(UI.save.newCards.gnome === 1, 'migrated save: NEW badge on a card it is given');
+    if (!UI.save.cards.gnome && keepB) UI.save.cards.gnome = keepB;
     // 2. trophy road: claiming pays the parts and opens its crate on the spot
     Object.assign(UI.save, { trophy: 620, road: 0, chests: [] });
     const g0 = UI.save.gold;
@@ -239,16 +241,17 @@
       ok(lit >= 6, `the restored frame is drawn (${lit}/9 sample points lit)`);
       out.runs.push(['context loss', 'lost → restored → deploy ok']);
     }
-    // commander support: orca repairs towers and adds energy, iron drops drones; once per match, never before it is charged
+    // commander support: orca heals every ally unit, iron eats away every enemy unit, Lemonade / the commander bring a champion; once per match, never before it is charged
     {
       const B = G.sides.blue, R = G.sides.red;
       ok(!GAME._useSupport('blue') || B.sup.charge >= 1, 'support cannot be called before it is charged');
       B.sup.charge = R.sup.charge = 1; B.sup.used = R.sup.used = false;
-      const tw = B.towers.find((t) => t.alive); tw.hp = tw.max * 0.5; const e0 = B.elixir = 3;
+      const mine = G.ents.find((e) => e.kind === 'troop' && e.side === 'blue' && e.alive); if (mine) mine.hp = mine.max * 0.3;
       const before = G.ents.filter((e) => e.kind === 'troop' && e.side === 'red').length;
       const okB = GAME._useSupport('blue'), okR = GAME._useSupport('red');
-      ok(okB && B.faction === 'orca' ? tw.hp > tw.max * 0.6 && B.elixir >= e0 + 1.9 : okB, `orca support repairs and adds energy (${Math.round(tw.hp)}/${tw.max})`);
-      ok(okR && G.ents.filter((e) => e.kind === 'troop' && e.side === 'red').length >= before + 3, 'iron support drops drones');
+      ok(okB && (B.faction !== 'orca' || !mine || mine.hp > mine.max * 0.5), `orca support heals the allied units (${mine ? Math.round(mine.hp) + '/' + mine.max : 'no unit'})`);
+      const foes = G.ents.filter((e) => e.kind === 'troop' && e.side === 'blue' && e.alive);
+      ok(okR && (R.faction === 'iron' ? foes.every((e) => e.dotT > 0) : R.faction === 'orca' ? true : G.ents.filter((e) => e.kind === 'troop' && e.side === 'red').length >= before + 1), `${R.faction} support works`);
       ok(!GAME._useSupport('blue'), 'support is once per match');
       out.runs.push(['commander support', `blue ${B.faction}`, `red ${R.faction}`]);
     }
@@ -419,14 +422,14 @@
         if (bad.length) out.errors.push('missing images: ' + bad.slice(0, 5).join(', '));
         out.runs.push(['image files', urls.size + ' checked']);
       }
-      // free deck building: every card is open at 0 trophies, and a deck may mix orca and iron cards
+      // free deck building: a deck may mix orca and iron cards
       {
         const keep = UI.save.decks.orca.slice(), t0 = UI.save.trophy, iron = DATA.CARDS.find((c) => c.faction === 'iron' && c.type === 'troop' && !keep.includes(c.id));
         UI.save.trophy = 0; UI.save.decks.orca = keep.slice(0, 7).concat(iron.id); UI._sync();
         if (UI.save.decks.orca[7] !== iron.id) out.errors.push('check: a mixed orca/iron deck is kept');
-        if (DATA.CARDS.some((c) => !UI.save.cards[c.id])) out.errors.push('check: every card is open from the start');
+        // (a new commander starts with 12 cards; each win opens one more)
         UI.save.decks.orca = keep; UI.save.trophy = t0; UI._sync();
-        out.runs.push(['free decks', `${DATA.CARDS.length} cards open`, 'mixed deck kept']);
+        out.runs.push(['free decks', `${DATA.CARDS.filter((c) => UI.save.cards[c.id]).length} cards owned`, 'mixed deck kept']);
         // faction bonds were taken out: every deck plays without a bonus
         const orcaIds = DATA.byFaction('orca').map((c) => c.id), ironIds = DATA.byFaction('iron').map((c) => c.id);
         const t2 = DATA.synergyOf(orcaIds.slice(0, 8)), t1 = DATA.synergyOf(orcaIds.slice(0, 5).concat(ironIds.slice(0, 3))), t0s = DATA.synergyOf(orcaIds.slice(0, 4).concat(ironIds.slice(0, 4)));

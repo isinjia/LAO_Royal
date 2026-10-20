@@ -136,6 +136,12 @@
     c.rate = Math.round(c.rate * p.rate * 100) / 100;
     c.dmg = Math.round(c.dmg * p.rate * p.dps);
   });
+  // units only a commander's support call brings (never in a deck, the codex or the shop)
+  const TOKENS = [
+    T('lemonadegamma', { rig: 'lemonadegamma', img: 'c_PECS_LemonadeGamma_N', name: '레모네이드 감마', faction: 'lemonade', token: true, cost: 0, rarity: 2, hp: 2600, dmg: 230, rate: 1.4, range: 1.2, hits: 'ground', splash: 0.8, speed: SPD.mid, radius: 0.6, mass: 12, fx: 'slash', color: 0xffd34d, sfx: 'swing', desc: '레모네이드 지원으로 투입되는 근접 전투원.' }),
+    T('rampalion', { rig: 'rampalion', img: 'c_AGS_Rampart_NS1', name: '렘파리온', faction: 'cmd', token: true, cost: 0, rarity: 3, k: 0.5, hp: 3400, dmg: 170, rate: 0.9, range: 5, speed: SPD.mid, radius: 0.7, mass: 16, fx: 'bullet', color: 0xffc27a, sfx: 'mg', desc: '사령관의 부름에 강림하는 수호자.',
+      skill: { name: '헤븐 앤 헬', cost: 2, cd: 12, kind: 'dash', heavenhell: true, castT: 1.9, dist: 8, dmg: 1150, radius: 1.6, color: 0xffc27a, desc: '전자기 회오리로 적을 묶고 불사자를 내달린 뒤, 빛이 되어 일직선으로 돌진합니다.' } }),
+  ];
   const CARDS = [...ORCA, ...IRON, ...BUILDINGS,
     ...SPELLS.map((s) => Object.assign({}, s, { faction: 'orca' })),
     ...SPELLS.map((s) => Object.assign({}, s, { id: 'i_' + s.id, faction: 'iron' }))];
@@ -155,11 +161,19 @@
       deck: ['nightchick', 'drone', 'legion', 'centurion', 'intruder', 'predator', 'gigantes', 'i_strike'],
       emotes: [['e_NightChick_N', '삐빅!'], ['e_IronPrince_N', '하찮군'], ['e_Drone_N', '오류 발생'], ['e_BlackKnight_N', '섬멸한다']],
     },
+    // the commander (사령관): an opponent that turns up now and then; Brownies on both side towers, the commander on the king tower
+    cmd: {
+      name: '사령관', color: '#ff9a3a', hex: 0xff9a3a, banner: 'cmd_face', pool: 'orca', foeOnly: true,
+      king: { drawn: 'commander', h: 1.7, fx: 'bullet', color: 0xffc27a, sfx: 'rifle' },
+      princess: { rig: 'brownie', k: 1.25, fx: 'bullet', color: 0xffe08a, sfx: 'rifle' },
+      deck: ['brownie', 'leprechaun', 'impet', 'raven', 'harpy', 'zero', 'empress', 'strike'],
+      emotes: [['c_BR_Brownie_N', '사령관님!'], ['cmd_face', '...'], ['c_BR_Brownie_N', '으앗!'], ['c_AGS_Rampart_NS1', '각오해라!']],
+    },
     // Lemonade: Alpha on the king tower; Delta (left) and Beta (right) are dagger towers (Clash Royale's Dagger Duchess)
     lemonade: {
-      name: '레모네이드', color: '#ffd34d', hex: 0xffd34d, banner: 'c_PECS_LemonadeAlpha_N',
+      name: '레모네이드', color: '#ffd34d', hex: 0xffd34d, banner: 'c_PECS_LemonadeAlpha_N', pool: 'orca',
       king: { rig: 'lemonadealpha', k: 1.35, fx: 'bullet', color: 0xffe066, sfx: 'rifle' },
-      princess: { rig: 'e_LemonadeDelta_N', h: 2.4, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true },
+      princess: { rig: 'e_LemonadeDelta_N', h: 3.6, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true },
       princessR: { rig: 'lemonadebeta', k: 1.25, fx: 'bullet', color: 0xffe066, sfx: 'rifle', dagger: true, tint: 1.3, clip: 'idle' }, // (her attack clip is a long snake lunge off the tower: she throws from her idle pose) // (all in black: lifted a little to read at unit size)
       deck: ['brownie', 'leprechaun', 'impet', 'raven', 'harpy', 'zero', 'empress', 'strike'],
       emotes: [['c_PECS_LemonadeAlpha_N', '좋아요!'], ['c_PECS_LemonadeBeta_N', '잘했어요'], ['e_LemonadeOmega_N', '이런…'], ['c_PECS_LemonadeAlpha_N', '덤벼라!']],
@@ -231,6 +245,9 @@
       { img: 'e_Raider_B04', name: '레이더 B04', style: 'balanced' },
       { img: 'e_IronPrince_N', name: '철의 왕자', style: 'siege' },
     ],
+    cmd: [
+      { img: 'cmd_face', name: '사령관', style: 'balanced' },
+    ],
     lemonade: [
       { img: 'c_PECS_LemonadeAlpha_N', name: '레모네이드 알파', style: 'balanced' },
       { img: 'c_PECS_LemonadeBeta_N', name: '레모네이드 베타', style: 'aggro' },
@@ -298,7 +315,7 @@
 
   window.DATA = {
     RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
-    card: Object.fromEntries(CARDS.map((c) => [c.id, c])),
-    byFaction: (f) => CARDS.filter((c) => c.faction === f),
+    card: Object.fromEntries(CARDS.concat(TOKENS).map((c) => [c.id, c])),
+    byFaction: (f) => CARDS.filter((c) => c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (Lemonade and the commander play from the orca cards)
   };
 })();

@@ -14,7 +14,8 @@
     ['trophy', 'best', 'gold', 'wins', 'losses', 'draws', 'streak', 'opDay', 'opStreak'].forEach((k) => { s[k] = Math.max(0, Math.floor(+s[k] || 0)); });
     if (!FACTIONS[s.faction]) s.faction = 'orca';
     if (!(s.diff >= 0 && s.diff <= 2)) s.diff = 1;
-    if (!(s.mode >= 0 && s.mode < BAL.modes.length)) s.mode = 0;
+    if (!(s.mode >= 0 && s.mode < BAL.modes.length) || (s.mode >= 1 && s.mode <= 3)) s.mode = 0; // (only 일반전 and 연습전 are left)
+    s.nick = typeof s.nick === 'string' ? s.nick.trim().slice(0, 10) : '';
     if (s.practiceFoe === 'iron') s.practiceFoe = 'orca'; // (decks are shared now)
     if (!['ai', 'orca'].includes(s.practiceFoe)) s.practiceFoe = 'ai';
     const unit = (v, d) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : d);
@@ -31,10 +32,12 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.54'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.55'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
-  const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
+  // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
+  const START_CARDS = ['brownie', 'leprechaun', 'impet', 'raven', 'harpy', 'zero', 'empress', 'strike', 'gnome', 'valkyrie', 'nightchick', 'legion'];
+  const unlocked = (c) => !!save.cards[c.id] || (save.startCards !== true && START_CARDS.includes(c.id));
   // every unlocked card is owned (level 1 at least); fix decks that hold locked / foreign cards
   function syncCollection() {
     // a save that already owns cards (older versions had no 'seen' flag) gets NEW badges for what this sync adds
@@ -47,6 +50,7 @@
       if (o) { o.lv = Math.min(LEVEL.max, Math.max(LEVEL.min, o.lv | 0)); o.n = Math.max(0, o.n | 0); }
     });
     save.seen = true; // after the first sync, every unlock is news
+    save.startCards = true; // (the starting 12 were given: later cards come from wins)
     const valid = (dk) => Array.isArray(dk) && dk.length <= 8 && new Set(dk).size === dk.length && dk.every((id) => CARD[id] && save.cards[id]); // (fewer than 8 while it is being built) // orca and iron cards may be mixed in one deck
     if (typeof save.deckSlots !== 'object' || !save.deckSlots) save.deckSlots = {};
     if (typeof save.deckSlot !== 'object' || !save.deckSlot) save.deckSlot = {};
@@ -650,6 +654,13 @@
     $('stage').appendChild(el);
     pausedRemove(el);
   }
+  // a big two-line shout in the middle of the field (Heaven and Hell)
+  function shout(en, kr, big) {
+    document.querySelectorAll('.shout').forEach((x) => x.remove());
+    const el = document.createElement('div'); el.className = 'shout' + (big ? ' big' : '');
+    el.innerHTML = `<b>${esc(en)}</b><small>${esc(kr)}</small>`;
+    $('stage').appendChild(el); pausedRemove(el);
+  }
   function emote(side, i, atEnd) {
     const G = GAME.G;
     if (!G.sides || G.paused || (G.phase !== 'play' && !(atEnd && G.phase === 'ended'))) return; // only in play (the victory taunt excepted), never over the pause menu
@@ -661,6 +672,19 @@
     el.className = 'bubble ' + side + (side === 'red' && document.querySelector('.skcut.red') ? ' low' : '');
     el.innerHTML = `<span class="pf" style="background-image:url(${IMG[em[0]]})"></span><b>${esc(em[1])}</b>`;
     $('stage').appendChild(el);
+    // the bubble comes out of that side's king tower (above ours, below theirs)
+    const king = G.sides[side].towers.find((t) => t.type === 'king' && t.label);
+    if (king) {
+      const st = $('stage').getBoundingClientRect(), r = king.label.getBoundingClientRect();
+      if (r.width) {
+        el.classList.add('at');
+        const cx = r.left + r.width / 2 - st.left, w = el.offsetWidth;
+        el.style.left = Math.max(6, Math.min(st.width - w - 6, cx - w / 2)) + 'px';
+        el.style.right = 'auto'; el.style.bottom = 'auto';
+        el.style.top = (side === 'blue' ? r.top - st.top - el.offsetHeight - 70 : r.bottom - st.top + 10) + 'px';
+        el.style.setProperty('--tail', (cx - parseFloat(el.style.left)) + 'px');
+      }
+    }
     SFX.play('click', 0.4);
     pausedRemove(el);
   }
@@ -750,7 +774,10 @@
   // VS loading screen (the commander is picked when the battle starts: opts.foe)
   let foe = null;
   // mirror operation: the opponent fights with the player's own faction (and one of its commanders)
-  const foeFaction = (o) => ((o.mode === 4 || o.online) && o.foeFaction ? o.foeFaction : o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.faction === 'orca' ? 'iron' : 'orca');
+  const foeFaction = (o) => ((o.mode === 4 || o.online) && o.foeFaction ? o.foeFaction : o.mode === 3 && (o.mut || DATA.mutatorOf()).mirror ? o.faction : o.foeFaction || (o.faction === 'orca' ? 'iron' : 'orca'));
+  // the AI opponent's faction: one of the three at random, now and then the commander himself
+  const CMD_CHANCE = 0.15;
+  const randomFoe = () => (Math.random() < CMD_CHANCE ? 'cmd' : ['orca', 'iron', 'lemonade'][Math.floor(Math.random() * 3)]);
   // practice: the opponent plays one of the player's own decks (its faction is the deck's majority) or an AI deck
   const PFOE = { ai: 'AI 덱', orca: '내 덱' }; // (one set of decks: 'orca' is the key of the shared deck)
   function practiceOpts() {
@@ -772,7 +799,7 @@
       const vd = $('vsDeck'); vd.innerHTML = ''; myDeck.forEach((id) => vd.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
       $('vsMe').style.backgroundImage = `url(${IMG[FACTIONS[opts.faction].banner]})`;
       $('vsFoe').style.backgroundImage = `url(${IMG[foe.img]})`;
-      $('vsMeName').textContent = '사령관';
+      $('vsMeName').textContent = save.nick || '사령관';
       $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 트로피 ${save.trophy}`;
       $('vsFoeName').textContent = foe.name;
       const rl = GAME.G.sides && GAME.G.sides.red.lvl;
@@ -839,7 +866,10 @@
         save.chests.push({ k: chest.key, t0: null });
       } else picks = rollCards(3);
     } else if (crownsN > 0) picks = rollCards(1);
-    return { gold, picks, chest };
+    // a win opens one card the commander does not have yet
+    let fresh = null;
+    if (win) { const locked = DATA.CARDS.filter((c) => !save.cards[c.id]); if (locked.length) { fresh = locked[Math.floor(Math.random() * locked.length)]; save.cards[fresh.id] = { lv: LEVEL.min, n: 0 }; (save.newCards || (save.newCards = {}))[fresh.id] = 1; } }
+    return { gold, picks, chest, fresh };
   }
 
   // ── supply crates ─────────────────────────────────────
@@ -934,7 +964,7 @@
     const REASON = { king: '킹 타워 파괴', crowns: '크라운 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
     $('resReason').textContent = (practice ? '연습전 · ' : '') + (REASON[reason] || '');
     // the winning side's original cut-scene art behind the result
-    const wf = (win || draw ? G.sides.blue : G.sides.red).faction;
+    const wf0 = (win || draw ? G.sides.blue : G.sides.red).faction, wf = WIN_ART[wf0] ? wf0 : wf0 === 'iron' ? 'iron' : 'orca'; // (Lemonade / the commander borrow the orca art)
     el.style.backgroundImage = `linear-gradient(rgba(4,6,10,.5), rgba(4,6,10,.88)), url(assets/bg/${WIN_ART[wf][Math.floor(Math.random() * WIN_ART[wf].length)]}.jpg)`;
     $('resHero').style.backgroundImage = `url(${IMG[FACTIONS[(win || draw ? G.sides.blue : G.sides.red).faction].banner]})`;
     $('resCrowns').innerHTML = `<div class="rc blue"><small>${FACTIONS[G.sides.blue.faction].name}</small><span>${[0, 1, 2].map((i) => `<i class="${i < b ? 'on' : ''}"></i>`).join('')}</span></div>
@@ -962,7 +992,7 @@
     $('resChart').hidden = top.length < 2;
     $('resChart').innerHTML = top.map(([id, v]) => `<div class="bar"><span>${esc(CARD[id].name)}</span><i style="--w:${(v / top[0][1] * 100).toFixed(0)}%"></i><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
     const rwEl = $('resReward');
-    rwEl.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${rw.gold}</b></div>` + (rw.chest ? `<div class="rw"><span class="chest-i ${rw.chest.key}"></span><b>${esc(rw.chest.name)}</b></div>` : '') + rw.picks.map(([c, n]) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>x${n}</b></div>`).join('');
+    rwEl.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${rw.gold}</b></div>` + (rw.chest ? `<div class="rw"><span class="chest-i ${rw.chest.key}"></span><b>${esc(rw.chest.name)}</b></div>` : '') + (rw.fresh ? `<div class="rw fresh"><span class="pf r${rw.fresh.rarity}" style="background-image:url(${art(rw.fresh)})"></span><b>NEW</b></div>` : '') + rw.picks.map(([c, n]) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>x${n}</b></div>`).join('');
     rwEl.querySelectorAll('.rw').forEach((x, i) => { x.style.animationDelay = (0.5 + i * 0.25) + 's'; });
     rwEl.hidden = rwEl.previousElementSibling.hidden = practice;
     const mDone = practice ? 0 : progressMissions(win, b, s, G.opts);
@@ -1065,14 +1095,13 @@
       const levels = {}; save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
       const profile = { faction: save.faction, deck: save.decks[save.faction].slice(), levels, trophy: save.trophy, arena: arena() };
       $('searchOv').hidden = false; $('searchMsg').textContent = '온라인 대전 상대를 찾고 있습니다';
-      const t0 = Date.now(), WAIT = 15000;
-      const sec = setInterval(() => { $('searchSec').textContent = Math.max(0, Math.ceil((WAIT - (Date.now() - t0)) / 1000)) + '초 후 AI 대전'; }, 250);
+      const WAIT = 10000 + Math.random() * 10000; // nobody in 10-20 s: the AI takes the seat (no countdown shown)
+      $('searchSec').textContent = '';
       const m = await NET.find(profile, WAIT);
-      clearInterval(sec); searching = false;
+      searching = false;
       const how = $('searchOv').dataset.how || ''; $('searchOv').dataset.how = ''; $('searchOv').hidden = true;
       if (m) { startOnline(m); return; }
       if (how === 'cancel') return;
-      toast(how === 'ai' ? 'AI와 대전합니다' : '상대를 찾지 못해 AI와 대전합니다');
     }
     beginBattleScreen();
     const levels = {};
@@ -1080,8 +1109,21 @@
     DATA.CARDS.forEach((c) => { if (!(c.id in levels) && save.cards[c.id]) levels[c.id] = save.cards[c.id].lv; });
     const mut = save.mode === 3 ? DATA.mutatorOf() : null; // drawn once: the commander, the VS screen and the battle all use the same rule (no midnight race)
     const po = practiceOpts();
-    const ff = foeFaction(Object.assign({ faction: save.faction, mode: save.mode, mut }, po)), cs = DATA.COMMANDERS[ff];
+    if (!po.foeFaction) po.foeFaction = randomFoe();
+    const ff = foeFaction(Object.assign({ faction: save.faction, mode: save.mode, mut }, po)), cs = DATA.COMMANDERS[ff] || DATA.COMMANDERS.orca;
     GAME.start(Object.assign({ faction: save.faction, deck: save.decks[save.faction], diff: save.diff, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] }, po));
+  }
+  // nickname: asked once on the very first start (then the tutorial), changed from the chip on the battle tab
+  function renderNick() { $('nickName').textContent = save.nick || '닉네임 설정'; $('btnNick').classList.toggle('unset', !save.nick); }
+  function askNick(first) {
+    $('nickInput').value = save.nick || ''; $('nickOv').hidden = false; $('nickOv').dataset.first = first ? '1' : '';
+    setTimeout(() => $('nickInput').focus(), 50);
+  }
+  function nickOk() {
+    const v = $('nickInput').value.trim().replace(/\s+/g, ' ');
+    if (v.length < 2) { toast('닉네임은 2~10자로 정하세요'); SFX.play('fail', 0.4); return; }
+    save.nick = v.slice(0, 10); persist(); renderNick(); $('nickOv').hidden = true; SFX.play('click');
+    if ($('nickOv').dataset.first && !save.tutorial) showTut(0); // first start: the tutorial right after
   }
   function init() {
     $('appVer').textContent = APP_VERSION;
@@ -1116,6 +1158,11 @@
       deckSel = null; slotSel = null; cardOpen = false; SFX.play('click'); renderDeck();
     });
     $('btnSettings').onclick = () => { SFX.play('click'); openSettings(); };
+    $('btnNick').onclick = () => { SFX.play('click'); askNick(false); };
+    $('btnNickOk').onclick = nickOk;
+    $('nickInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') nickOk(); });
+    renderNick();
+    if (!save.nick && !/[?&]smoke=1/.test(location.search)) setTimeout(() => askNick(true), 400); // the very first start
     $('chestRow').addEventListener('click', (e) => {
       const b = e.target.closest('button.chest'); if (!b) return;
       const i = +b.dataset.i, c = save.chests[i]; if (!c) return;
@@ -1172,7 +1219,7 @@
     };
     $('btnMissions').onclick = () => { SFX.play('click'); renderMissions(); $('missionOv').hidden = false; };
     $('btnSearchCancel').onclick = () => { $('searchOv').dataset.how = 'cancel'; NET.cancel(); };
-    $('btnSearchAi').onclick = () => { $('searchOv').dataset.how = 'ai'; NET.cancel(); };
+
     $('btnMode').onclick = () => { SFX.play('click'); $('modeOv').hidden = false; };
     $('btnModeClose').onclick = () => { SFX.play('click'); $('modeOv').hidden = true; renderTitle(); };
     // the bottom tab bar (Clash Royale style): cards, battle (this screen), missions, trophy road
@@ -1260,6 +1307,6 @@
     } else if (!e.target.closest || !e.target.closest('#emotePanel')) { const p = $('emotePanel'); if (p) p.hidden = true; }
   }, true);
 
-  window.UI = { _sync: () => syncCollection(), init, dmgNum, healNum, elixirLeak, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
+  window.UI = { _sync: () => syncCollection(), init, dmgNum, healNum, elixirLeak, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, shout, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
   window.addEventListener('DOMContentLoaded', init);
 })();

@@ -22,6 +22,7 @@
     <div class="tbg"></div>
     <!-- top: resources and menus -->
     <div class="ttop">
+      <button class="nickchip" id="btnNick" aria-label="닉네임 설정"><i></i><b id="nickName"></b></button>
       <div class="tro-box"><i class="tro"></i><b id="trophy">0</b><small id="record"></small></div>
       <div class="gold-box"><i class="gold-i"></i><b id="gold">0</b></div>
       <span class="sp"></span>
@@ -126,7 +127,7 @@
   <div id="modeOv" class="ov" hidden>
     <div class="dlg modedlg"><h4>전투 설정</h4>
       <div class="lbl">모드</div>
-      <div id="modeSel" class="seg s4"><button data-m="0">일반전</button><button data-m="1">에너지 폭주</button><button data-m="2">무작위 덱</button><button data-m="3">오늘의 작전</button><button data-m="4">연습전</button></div>
+      <div id="modeSel" class="seg s2"><button data-m="0">일반전</button><button data-m="4">연습전</button></div>
       <div id="pfoeBox"></div>
       <div class="lbl">난이도</div>
       <div id="diffSel" class="seg"><button data-d="0">훈련</button><button data-d="1">실전</button><button data-d="2">정예</button></div>
@@ -210,9 +211,16 @@
     <button class="btn d sm lcancel" id="btnLoadCancel">취소</button>
   </div>
 
+  <!-- nickname: set on the very first start, changed from the chip on the battle tab -->
+  <div id="nickOv" class="ov" hidden>
+    <div class="dlg nickdlg"><h4>닉네임 설정</h4><p>전투에서 표시될 이름을 정하세요 (2~10자)</p>
+      <input id="nickInput" maxlength="10" autocomplete="off" spellcheck="false" placeholder="닉네임">
+      <div class="tbtns"><button class="btn y" id="btnNickOk">확인</button></div></div>
+  </div>
+
   <div id="searchOv" class="ov" hidden>
     <div class="dlg searchdlg"><h4>상대를 찾는 중</h4><span class="spin"></span><p id="searchMsg">온라인 대전 상대를 찾고 있습니다</p><b id="searchSec"></b>
-      <div class="tbtns"><button class="btn d" id="btnSearchAi">AI와 대전</button><button class="btn d" id="btnSearchCancel">취소</button></div></div>
+      <div class="tbtns"><button class="btn d" id="btnSearchCancel">취소</button></div></div>
   </div>
 
   <div id="fatal" class="ov" hidden><div class="dlg"><h4>실행할 수 없습니다</h4><p></p></div></div>
@@ -229,6 +237,7 @@
 <script defer src="js/vendor/UnrealBloomPass.js"></script>
 <script defer src="js/assets.js"></script>
 <script defer src="js/anim_events.js"></script>
+<script defer src="js/commander.js"></script>
 <script defer src="js/fx/_meta.js"></script>
 <script defer src="js/sd.js"></script>
 <script defer src="js/fxbake.js"></script>

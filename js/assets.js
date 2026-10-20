@@ -2,6 +2,8 @@
 // The fx_* textures and the two faction banners stay inline: they are drawn into WebGL textures, which must also work from file://.
 window.IMG = {
 "c_BR_Brownie_N": "assets/img/c_BR_Brownie_N.webp",
+"c_PECS_LemonadeGamma_N": "assets/img/c_PECS_LemonadeGamma_N.webp",
+"c_AGS_Rampart_NS1": "assets/img/c_AGS_Rampart_NS1.webp",
 "c_PECS_LemonadeAlpha_N": "assets/img/c_PECS_LemonadeAlpha_N.webp",
 "c_PECS_LemonadeBeta_N": "assets/img/c_PECS_LemonadeBeta_N.webp",
 "c_BR_Gnome_N": "assets/img/c_BR_Gnome_N.webp",
@@ -70,6 +72,10 @@ window.IMG = {
 };
 window.SND = {
 "rifle": "assets/sfx/rifle.mp3",
+"rampalion_charge": "assets/sfx/rampalion_charge.ogg",
+"rampalion_light": "assets/sfx/rampalion_light.ogg",
+"rampalion_launch": "assets/sfx/rampalion_launch.ogg",
+"rampalion_skill2": "assets/sfx/rampalion_skill2.ogg",
 "gun": "assets/sfx/gun.mp3",
 "handgun": "assets/sfx/handgun.mp3",
 "mg": "assets/sfx/mg.mp3",

@@ -30,6 +30,7 @@
   const view = { w: 1, h: 1 };
   const towerTex = {};
   const emblems = {}; // faction -> commander portrait image (king tower badge), loaded at boot
+  let cmdTex = null; // the drawn commander (js/commander.js), made once
 
   const G = {
     phase: 'title', after: [], ents: [], projs: [], bfx: [], sfx: [], zones: [], decals: [], punch: 0, sides: null, time: 0, clock: 0, overtime: false, mult: 1,
@@ -454,7 +455,7 @@
   }
 
   // ── rigs ──────────────────────────────────────────────
-  const isIron = (rig) => rig.startsWith('e_');
+  const isIron = (rig) => !!rig && rig.startsWith('e_');
   const placeholderTex = {};
   const TINTS = [[0.95, 0.95, 0.95], [0.55, 0.85, 1.3], [1.55, 1.5, 1.5], [1.1, 1.1, 0.6], [1.2, 0.8, 0.8], [1.2, 1.05, 0.8]];
   const animCache = {};
@@ -816,7 +817,14 @@
     // the team ring on the tower top breathes (brighter while the tower is firing)
     t.aura = FX.sprite({ x, y: z * TILT + TOWER_E[type], size: (sp.r + 0.35) * 1.5, aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.14 : 0.25, tex: FX.tex.glow, order: 1150 });
     const gk = type === 'princess' ? (isIron(guard.rig) ? 1.2 : 1.95) : (isIron(guard.rig) ? 1.1 : 1.6); // the orca bioroids are drawn up to stand as tall as the iron emplacements opposite // the orca gunners stand as large as the iron emplacements
-    attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
+    if (guard.drawn) { // the commander, drawn in code (js/commander.js): a sprite, timer-driven shots
+      const tx = cmdTex || (cmdTex = new THREE.CanvasTexture(CMD.sprite()));
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthTest: false, transparent: true }));
+      const hh = guard.h * gk; sp.scale.set(hh * 160 / 280, hh, 1); sp.center.set(0.5, 0); sp.renderOrder = L.UNIT;
+      t.holder.add(sp); t.placeholder = sp;
+      t.bodyH = hh; t.fxk = 0.25; t.natural = 1; t.rig = null;
+      t.anim = { dur: 1, shots: [0.45], fire: [1], w0: 0, w1: 1, len: 1 }; t.speedK = 1; t.dmgK = 1;
+    } else attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
     if (guard.tint) t.tintMul = guard.tint;
     if (DG) { t.dagger = DG; t.ammo = DG.ammo; t.reloadT = 0; t.dmgK = 1; t.atkClip = guard.clip || 'atk'; } // throws on its own clock (attackTick), not on its clip
@@ -827,7 +835,7 @@
     t.label.innerHTML = `<i class="bar"><i></i></i><b>${hp}</b>${type === 'king' ? '<em class="crown"></em>' : ''}${DG ? '<i class="ammo"></i>' : ''}`;
     if (DG) t.ammoEl = t.label.querySelector('.ammo');
     labelsEl.appendChild(t.label);
-    if (!t.active && t.sd) t.sd.setTint(0.6, 0.6, 0.65);
+    // (an asleep king tower is not darkened: the owner's call)
     G.ents.push(t);
     G.sides[side].towers.push(t);
     return t;
@@ -909,9 +917,10 @@
   // ── commander support (owner-approved): one call per match, charged over time and by the damage your towers take ──
   const SUPPORT_TIME = 75; // seconds of play to charge it without taking damage
   const SUPPORT = {
-    orca: { name: '긴급 수리', desc: '모든 아군 타워 체력 15% 회복 · 에너지 +2' },
-    lemonade: { name: '긴급 수리', desc: '모든 아군 타워 체력 15% 회복 · 에너지 +2' },
-    iron: { name: '군단 호출', desc: '킹 타워 앞에 드론 편대 투입' },
+    orca: { name: '긴급 치료', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
+    iron: { name: '부식 살포', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
+    lemonade: { name: '감마 투입', desc: '아군 진영 중앙에 레모네이드 감마 소환' },
+    cmd: { name: '렘파리온 강림', desc: '아군 진영 중앙에 렘파리온 소환' },
   };
   const supOut = {}, skOut = {};
   const supportReady = (S) => !!(S && S.sup && !S.sup.used && S.sup.charge >= 1);
@@ -920,7 +929,27 @@
     if (G.phase !== 'play' || !supportReady(S)) return false;
     S.sup.used = true;
     const king = S.towers.find((t) => t.type === 'king'), fz = king ? king.z - SGN[side] * 2.6 : SGN[side] * 10;
-    if (S.faction === 'iron') {
+    if (S.faction === 'orca') { // every ally on the field (not the towers) is mended
+      for (const u of G.ents) if (u.side === side && u.kind === 'troop' && u.alive) {
+        const amt = Math.round(u.max * 0.6); u.hp = Math.min(u.max, u.hp + amt);
+        FX.groundRing(u.x, u.z * TILT, 0.3, 1.5, 0x7dffb0, 0.6, 0.8);
+        for (let i = 0; i < 6; i++) FX.particle({ x: u.x + rnd(-0.4, 0.4), y: sy(u) + rnd(0, u.bodyH || 1.4), vy: rnd(1, 2), life: rnd(0.5, 0.9), size: 0.26, size1: 0, color: i % 3 ? 0x9fffc8 : 0xffffff, tex: FX.tex.cross });
+        if (u.hp < u.max || amt > 0) { const q = toScreen(u.x, sy(u) + (u.bodyH || 1.4) + 0.3); UI.healNum(q[0], q[1], '+' + amt); }
+      }
+      FX.groundGlow(0, SGN[side] * 8 * TILT, 9, 0x7dffb0, 0.6, 0.18, 0.8);
+      SFX.play('reinforce', 0.7);
+    } else if (S.faction === 'iron') { // every enemy on the field (not the towers) is eaten away for a while
+      for (const u of G.ents) if (u.side !== side && u.kind === 'troop' && u.alive) { u.dotT = 6; u.dotDps = Math.max(40, u.max * 0.06); u.dotSrc = side; FX.groundRing(u.x, u.z * TILT, 0.2, 1.2, 0xb04aff, 0.7, 0.7); }
+      FX.flash(0x7a2aff, 0.12);
+      SFX.play('elec', 0.6);
+    } else if (S.faction === 'lemonade' || S.faction === 'cmd') { // a champion drops in at the middle of our half
+      const tc = CARD[S.faction === 'cmd' ? 'rampalion' : 'lemonadegamma'], zc = SGN[side] * 7;
+      FX.groundRing(0, zc * TILT, 0.3, 3.2, S.faction === 'cmd' ? 0xffc27a : 0xffd34d, 0.8, 0.9);
+      for (let k = 0; k < 6; k++) FX.later(k * 0.05, () => FX.particle({ x: rnd(-0.3, 0.3), y: zc * TILT + 7 - k * 1.1, vy: -18, life: 0.25, size: 0.5, size1: 0.15, color: 0xfff0c0, tex: FX.tex.glow, alpha: 0.8 }));
+      spawnTroop(side, tc, 0, zc, 0.35, S.lvl || LEVEL.min);
+      FX.later(0.4, () => { FX.flash(0xfff0c0, 0.1); FX.shake(0.2); FX.groundRing(0, zc * TILT, 0.3, 4, 0xffffff, 0.5, 0.6); for (let k = 0; k < 10; k++) { const a = rnd(0, 6.28); FX.particle({ x: 0, y: zc * TILT, vx: Math.cos(a) * 3, vy: Math.sin(a) * 1.4, life: 0.6, size: 0.4, size1: 1, color: 0x8a8070, frames: FX.sheets.smoke, alpha: 0.5, normal: true, drag: 2 }); } });
+      SFX.play('missile', 0.6);
+    } else if (false) {
       // a target mark first, then each drone streaks down onto it with a dust puff
       for (let i = 0; i < 3; i++) {
         const dx = (i - 1) * 1.8, dl = 0.35 + i * 0.12;
@@ -949,7 +978,9 @@
   }
   // the opponent calls its support when it matters: repairs once a tower is hurt, reinforcements a moment after they are ready
   function aiSupport(S) {
-    if (S.faction !== 'iron') { if (S.towers.some((t) => t.alive && t.hp < t.max * 0.7)) useSupport(S.side); }
+    const mine = G.ents.filter((u) => u.side === S.side && u.kind === 'troop' && u.alive), theirs = G.ents.filter((u) => u.side !== S.side && u.kind === 'troop' && u.alive);
+    if (S.faction === 'orca') { if (mine.reduce((s, u) => s + (u.max - u.hp), 0) > 1500) useSupport(S.side); } // a hurt army
+    else if (S.faction === 'iron') { if (theirs.length >= 3) useSupport(S.side); } // a crowd to eat away
     else if ((S.sup.readyT = (S.sup.readyT || G.time)) && G.time - S.sup.readyT > 2.5) useSupport(S.side);
   }
 
@@ -1538,14 +1569,15 @@
     S.elixir -= skillCost(u);
     if (voiced(u.card) && say(unitLine(u.card, 'skill'), 0.95, u.side === 'blue' ? 3 : 2)) FX.groundRing(u.x, u.z * TILT, 0.3, 1.4, sk.color, 0.5, 0.7); // the champion calls its skill (a ring marks who speaks)
     u.skillCd = sk.cd * (G.mut && G.mut.skillCd || 1);
-    u.casting = 0.9;
+    u.casting = sk.castT || 0.9;
     u.skillFired = false;
     if (u.sd) {
       const a = animInfo(u.rig, u.sd, 'skill');
       u.sd.play('skill', null, false);
       u.sd.time = a.w0;
-      u.sd.speed = u.castSpeed = clamp(a.len / 0.9, 0.8, 2.5);
+      u.sd.speed = u.castSpeed = clamp(a.len / (sk.castT || 0.9), 0.5, 2.5);
     }
+    if (sk.heavenhell) FX.later(0, () => heavenHell(u)); // (its build-up starts once the dash is aimed, below)
     UI.skillCut(u, toScreen(u.x, u.z * TILT)[1] / (view.h || 1)); // (the banner keeps clear of where the skill goes off)
     logEvent(`${u.card.name} · ${sk.name}`, u.side, 'skill');
     // where it will land (barrage aims now and keeps that spot); the enemy's gets a red warning ring
@@ -1679,6 +1711,53 @@
     if (t) { const d = dist(u, t), k = Math.min(1, reach / (d || 1)); return [u.x + (t.x - u.x) * k, u.z + (t.z - u.z) * k]; }
     return [u.x, u.z - SGN[u.side] * 4];
   }
+  // ── 헤븐 앤 헬 (Rampalion; after LAST SHOOTING's rampalion-skill.js): the dash itself is skillEffect's 'dash' ──
+  const rampTex = {};
+  ['lion', 'lion0'].forEach((k) => new THREE.TextureLoader().load(`assets/fx_ramp/${k}.webp`, (tx) => { rampTex[k] = tx; }, undefined, () => {}));
+  function heavenHell(u) {
+    const sk = u.card.skill, side = u.side, sp = u.skillSpot || [u.x, u.z - SGN[side] * sk.dist];
+    const dx = sp[0] - u.x, dz = sp[1] - u.z, L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L, reach = sk.dist + 1;
+    const alive = () => u.alive && G.phase === 'play';
+    const hand = () => [u.x + ux * 0.6, (u.z + uz * 0.6) * TILT + u.bodyH * 0.55];
+    // 1. the charge: a growing glow at the hand
+    SFX.play('rampalion_charge', 0.7);
+    for (let k = 0; k < 8; k++) FX.later(k * 0.07, () => { if (!alive()) return; const [hx, hy] = hand(); FX.particle({ x: hx, y: hy, life: 0.18, size: 0.3 + k * 0.08, size1: 0.1, color: k % 2 ? 0xfff0a0 : 0x7dffb0, tex: FX.tex.glow, alpha: 0.8 }); });
+    // 2. the electromagnetic tornado: a green helix down the line; enemies on it are held and drawn toward its end
+    FX.later(0.35, () => {
+      if (!alive()) return;
+      SFX.play('rampalion_skill2', 0.6); FX.shake(0.15);
+      const [hx, hy] = hand();
+      FX.beam(hx, hy, u.x + ux * reach, (u.z + uz * reach) * TILT + 0.8, 0.5, 0x7dffb0, 0.7);
+      for (let i = 1; i <= 14; i++) { const f = i / 14, x = u.x + ux * reach * f, z = u.z + uz * reach * f; for (const c of [0x7dffb0, 0xffd34d, 0xffffff]) FX.particle({ x: x + Math.sin(f * 12 + c) * 0.5, y: z * TILT + 0.8 + Math.cos(f * 12 + c) * 0.3, life: 0.6, size: 0.35, size1: 0.1, color: c, tex: FX.tex.glow, alpha: 0.7 }); }
+      const ex = u.x + ux * reach * 0.8, ez = u.z + uz * reach * 0.8;
+      for (const o of G.ents) {
+        if (o.side === side || o.kind !== 'troop' || !o.alive) continue;
+        const px = o.x - u.x, pz = o.z - u.z, along = px * ux + pz * uz, off = Math.abs(px * uz - pz * ux);
+        if (along < -0.5 || along > reach || off > sk.radius * 1.4) continue;
+        o.stunT = Math.max(o.stunT || 0, 1.6);
+        if (!o.card.skill || !o.card.skill.boss) { o.x += (ex - o.x) * 0.35; o.z += (ez - o.z) * 0.35; } // drawn into the spiral
+        FX.particle({ x: o.x, y: sy(o) + (o.bodyH || 1.2) * 0.5, life: 0.5, size: 0.6, size1: 1.2, color: 0x7dffe0, tex: FX.tex.glow, alpha: 0.5 });
+      }
+    });
+    // 3. the fire lion runs down the line
+    FX.later(0.7, () => {
+      if (!alive()) return;
+      SFX.play('rampalion_launch', 0.6); FX.shake(0.2); G.hitStop = Math.max(G.hitStop || 0, 0.05);
+      const [hx, hy] = hand(), tx = rampTex.lion || FX.tex.glow, v = 14, dirX = ux >= 0 ? 1 : -1;
+      FX.particle({ x: hx, y: hy, vx: ux * v, vy: uz * v * TILT, life: reach / v, size: 1.4, size1: 3.2, color: 0xff7a2a, tex: tx, alpha: 0.95, scaleX: dirX }); // (the art faces right)
+      FX.particle({ x: hx, y: hy, vx: ux * v, vy: uz * v * TILT, life: reach / v, size: 1.2, size1: 2.6, color: 0xffb04a, tex: FX.tex.glow, alpha: 0.45 });
+      for (let k = 0; k < 10; k++) FX.later(k * 0.05, () => { const f = k / 10; FX.particle({ x: hx + ux * reach * f, y: hy + uz * reach * f * TILT, life: 0.45, size: 0.6, size1: 0.1, color: k % 2 ? 0xff5a1f : 0xffc27a, tex: FX.tex.glow, alpha: 0.7 }); });
+    });
+    // 4. the glow and the merge: gold and green lights spiral in, "HEAVEN AND…"
+    FX.later(0.9, () => {
+      if (!alive()) return;
+      SFX.play('rampalion_light', 0.7);
+      for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, c = k % 2 ? 0xffcd46 : 0x5affaa; FX.particle({ x: u.x + Math.cos(a) * 1.6, y: sy(u) + u.bodyH * 0.5 + Math.sin(a) * 1.2, vx: -Math.cos(a) * 3.2, vy: -Math.sin(a) * 2.4, life: 0.45, size: 0.4, size1: 0.1, color: c, tex: FX.tex.glow, alpha: 0.9 }); }
+      FX.particle({ x: u.x, y: sy(u) + u.bodyH * 0.5, life: 0.6, size: 0.8, size1: 2.4, color: 0xfff0c0, tex: FX.tex.glow, alpha: 0.6 });
+    });
+    FX.later(1.02, () => { if (!alive()) return; UI.shout('HEAVEN AND…', '헤븐 앤드…', false); FX.flash(0xffffff, 0.12); FX.ring(u.x, sy(u) + u.bodyH * 0.5, 0.3, 3, 0xfff0c0, 0.4); });
+  }
+
   function skillEffect(u) {
     const sk = u.card.skill, side = u.side, m = LEVEL.mult(u.lv);
     const hitArea = (x, z, r, dmg, extra) => spellHit(side, Object.assign({ radius: r, dmg: dmg * m, towerK: 0.3 }, extra), x, z, u);
@@ -1745,6 +1824,7 @@
       }
       case 'dash': {
         const sp = u.skillSpot || [u.x, u.z - SGN[side] * sk.dist];
+        if (sk.heavenhell) { UI.shout('HELL!!', '헬!!', true); FX.flash(0xfff2c0, 0.22); FX.shake(0.5); G.hitStop = Math.max(G.hitStop || 0, 0.06); SFX.play('expB', 0.6); }
         const dx = sp[0] - u.x, dz = sp[1] - u.z, Ld = Math.hypot(dx, dz) || 1;
         const x0 = u.x, z0 = u.z, [ex, ez, went] = dashPath(u, sp[0], sp[1]);
         const k = went / Ld; // the path actually travelled (the chasm may stop it short)
@@ -2139,6 +2219,7 @@
       if (e.type === 'bld') { e.hitT = Math.max(0, e.hitT - dt); if (updateBuilding(e, dt)) { disposeEnt(e); G.ents.splice(i, 1); } continue; }
       if (e.kind === 'tower') { e.hitT = Math.max(0, e.hitT - dt); updateTower(e, dt); continue; }
       if (e.alive) e.hitT = Math.max(0, e.hitT - dt);
+      if (e.alive && e.dotT > 0) { e.dotT -= dt; e.dotAcc = (e.dotAcc || 0) + dt; if (e.dotAcc >= 0.5) { e.dotAcc -= 0.5; damage(e, e.dotDps * 0.5, null); for (let k = 0; k < 3; k++) FX.particle({ x: e.x + rnd(-0.3, 0.3), y: sy(e) + rnd(0.2, e.bodyH || 1.2), vy: rnd(0.4, 1), life: 0.5, size: 0.24, size1: 0, color: k % 2 ? 0xb04aff : 0x7dff5a, tex: FX.tex.dot }); } } // corrosion (the iron support)
       if (updateTroop(e, dt)) { disposeEnt(e); G.ents.splice(i, 1); }
     }
     separate();
@@ -3050,7 +3131,7 @@
     G.opDay = DATA.dayIndex(); // credited to the day the rule was drawn (a match may end past midnight)
     // practice: the opponent's faction comes with the deck the player picked for it; mirror: the same faction too
     const practice = opts.mode === 4 && Array.isArray(opts.foeDeck) && opts.foeDeck.length === 8 && opts.foeDeck.every((id) => CARD[id]);
-    const foeF = (practice || opts.online) && FACTIONS[opts.foeFaction] ? opts.foeFaction : G.mut && G.mut.mirror ? opts.faction : opts.faction === 'orca' ? 'iron' : 'orca';
+    const foeF = G.mut && G.mut.mirror && !practice && !opts.online ? opts.faction : FACTIONS[opts.foeFaction] ? opts.foeFaction : opts.faction === 'orca' ? 'iron' : 'orca'; // (the UI draws the opponent's faction)
     G.ironHalves = { home: opts.faction === 'iron', far: foeF === 'iron' }; // the floor shows which half the iron side holds
     setArena(G.arena);
     const diff = BAL.diffs[opts.diff] || BAL.diffs[1];
@@ -3078,8 +3159,9 @@
     const rigs = new Set(), fxs = new Set();
     for (const s of ['blue', 'red']) {
       const f = FACTIONS[G.sides[s].faction];
-      rigs.add(f.king.rig); rigs.add(f.princess.rig); if (f.princessR) rigs.add(f.princessR.rig);
-      if (G.sides[s].faction === 'iron') rigs.add(CARD.drone.rig); // the commander's support call drops drones
+      if (f.king.rig) rigs.add(f.king.rig); rigs.add(f.princess.rig); if (f.princessR) rigs.add(f.princessR.rig);
+      if (G.sides[s].faction === 'lemonade') rigs.add(CARD.lemonadegamma.rig); // the support calls bring a champion in
+      if (G.sides[s].faction === 'cmd') { rigs.add(CARD.rampalion.rig); fxNamesFor(CARD.rampalion).forEach((n) => fxs.add(n)); }
       G.sides[s].deck.forEach((id) => {
         const c = CARD[id];
         if (c.rig) rigs.add(c.rig);
@@ -3093,7 +3175,7 @@
     ['simple_explosion', 'skill_hit_simple'].forEach((n) => fxs.add(n));
     const list = [...rigs], fxl = [...fxs].filter(fxOk);
     // free what the previous matches loaded but this one does not use (GPU memory on phones)
-    const towerRigs = new Set(Object.values(FACTIONS).flatMap((f) => [f.king.rig, f.princess.rig].concat(f.princessR ? [f.princessR.rig] : [])));
+    const towerRigs = new Set(Object.values(FACTIONS).flatMap((f) => [f.king.rig, f.princess.rig].concat(f.princessR ? [f.princessR.rig] : [])).filter(Boolean));
     const rigCap = MOBILE ? 14 : 40;
     if (SD.loaded().length + list.length > rigCap) SD.loaded().forEach((id) => { if (!rigs.has(id) && !towerRigs.has(id)) SD.evict(id); });
     if (MOBILE || FXB.loaded().length > 60) FXB.loaded().forEach((n) => { if (!fxs.has(n)) FXB.evict(n); });
