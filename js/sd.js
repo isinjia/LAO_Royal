@@ -1066,7 +1066,7 @@
         const x = this.W[pb * 12 + 9], y = this.W[pb * 12 + 10];
         if (!this.pinRef) this.pinRef = [x, y];
         const dx = x - this.pinRef[0], dy = y - this.pinRef[1], L = Math.hypot(dx, dy);
-        const R = SD.pinRanges && SD.pinRanges[this.tpl.id] != null ? SD.pinRanges[this.tpl.id] : SD.pinRange;
+        const R = this.pinAll ? 0 : SD.pinRanges && SD.pinRanges[this.tpl.id] != null ? SD.pinRanges[this.tpl.id] : SD.pinRange; // (pinAll: a tower guard keeps its spot)
         const k = L > 1e-6 && R > 0 ? (R * Math.tanh(L / R)) / L : 0; // share of the travel that is kept
         this.mesh.position.set(dx * (k - 1), dy * (k - 1), 0);
       } else if (this.mesh.position.x || this.mesh.position.y) this.mesh.position.set(0, 0, 0);
@@ -1265,7 +1265,7 @@
     // down toward the viewer) vanished behind the housing; the blade, guard and its lights now draw over it
     orderFix: { labiata: [{ re: /^parts_LF_weapon_(blade|central_ridge|grip|cross_guard|fx)/, add: 32 }] },
     // Pupp Head's attack shoots a cord forward (its arrest chain); here it fires electricity instead, so the cord goes
-    hideParts: { e_PuppHead_N: /^(skill_\d_Line|line_B|line_fx)/ },
+    hideParts: { e_PuppHead_N: /^(skill_\d_Line|line_B|line_fx)/, e_LemonadeDelta_N: /^parts_Shadow$/ }, // (Delta's own big shadow: the game draws a smaller one)
     prepare,
     create(id) { const t = templates[id]; return t ? new SDChar(t) : null; },
     // pooled instances for short-lived rigs (enemies): no typed arrays / materials / textures per spawn

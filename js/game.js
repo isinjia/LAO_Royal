@@ -412,8 +412,8 @@
     }
     // dress the bunker with the original props: iron wreckage; rubble on a ruin (orca bunkers stand clean, no cover in front)
     const prop = (im, cx, by, w) => { if (!im || !im.naturalWidth) return; const h = w * im.naturalHeight / im.naturalWidth; g.drawImage(im, X(cx) - w * P / 2, Y(by) - h * P, w * P, h * P); };
-    if (dead) prop(PROPS.wreck2, 0.05, -r * TILT * 0.55, r * 1.75);
-    else if (type !== 'bld' && faction !== 'orca') {
+    if (dead) { if (faction === 'iron') prop(PROPS.wreck2, 0.05, -r * TILT * 0.55, r * 1.75); } // (only an iron ruin is iron wreckage; the others are rubble)
+    else if (type !== 'bld' && faction === 'iron') {
       prop(PROPS.wreck, -r * 0.68, -r * TILT * 0.62, r * 0.9);
       prop(PROPS.wreck2, r * 0.7, -r * TILT * 0.5, r * 0.8);
     }
@@ -826,8 +826,10 @@
       t.anim = { dur: 1, shots: [0.45], fire: [1], w0: 0, w1: 1, len: 1 }; t.speedK = 1; t.dmgK = 1;
     } else attachRig(t, guard.rig, guard.k * gk, guard.h && guard.h * gk, false); // a defender you can actually see on its tower
     if (isIron(guard.rig)) t.tintMul = 1.35;
+    if (t.sd) t.sd.pinAll = true; // a tower guard never walks off its tower while it shoots (the clip's root travel is taken out)
     if (guard.tint) t.tintMul = guard.tint;
     if (guard.dy) t.dy = guard.dy; // (a guard drawn standing high is set down onto its tower)
+    if (guard.shadow) t.shadow = FX.sprite({ x, y: z * TILT + TOWER_E[type] * 0.92 + (guard.dy || 0) + 0.05, size: guard.shadow, aspect: TILT * 0.75, color: 0x000000, alpha: 0.6, tex: FX.tex.dot, normal: true, order: L.UNIT - 40 }); // (its own shadow, a third of the rig's)
     if (DG) { t.dagger = DG; t.ammo = DG.ammo; t.reloadT = 0; t.dmgK = 1; t.atkClip = guard.clip || 'atk'; } // throws on its own clock (attackTick), not on its clip
 
     t.label = document.createElement('div');
@@ -1089,12 +1091,13 @@
     e.label.classList.add('dead');
     const go = () => {
       if (!e.base) return;
-      const dk = e.side + e.type + 'dead';
-      const tc = towerTex[dk] || (towerTex[dk] = towerCanvas(e.type, e.side, true)); // rubble art is shared too
+      const fac = G.sides[e.side].faction, dk = e.side + e.type + fac + 'dead';
+      const tc = towerTex[dk] || (towerTex[dk] = towerCanvas(e.type, e.side, true, null, fac)); // rubble art is shared too
       e.base.material.map = tc.tex; e.base.material.needsUpdate = true;
       e.base.scale.set(tc.w, tc.h, 1);
       e.base.position.set(e.x, e.z * TILT + tc.cy, 0);
       if (e.sd) { e.sd.speed = 1; e.sd.play('die', () => { if (e.sd) e.sd.root.visible = false; }, false); }
+      if (e.shadow) e.shadow.alpha = 0; // (the guard's own shadow goes with it)
       FX.later(1.8, () => { if (e.sd) e.sd.root.visible = false; }); // long guard death clips are cut short
       const gy = e.z * TILT + 1;
       for (let i = 0; i < 4; i++) FX.later(i * 0.13, () => { const x = e.x + rnd(-1, 1), y = gy + rnd(-0.6, 0.8); if (!spawnStatic('simple_explosion', x, y, 0.28)) FX.explosion(x, y, 1.1, 0xff8a40, true); FX.explosion(x, y, 0.9, 0xffa040); });
@@ -1102,7 +1105,7 @@
       scorch(e.x, e.z * TILT, 2.6);
       e.ruinGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.3, size: e.r * 3.2, aspect: TILT, color: 0xff5020, alpha: 0.28, tex: FX.tex.glow, order: L.GROUND + 4 }); FX.later(6, () => { if (e.ruinGlow) { FX.kill(e.ruinGlow); e.ruinGlow = null; } }); // the ruin smoulders red for a while
       for (let i = 0; i < 24; i++) FX.later(0.6 + i * 0.22, () => { if (G.phase !== 'play') return; const x = e.x + rnd(-1, 1), y = e.z * TILT + rnd(0.2, 1.2); FX.particle({ x, y, vy: rnd(0.5, 1.1), life: rnd(0.6, 1), size: rnd(0.28, 0.42), size1: 0.04, color: Math.random() < 0.5 ? 0xff8a30 : 0xffc060, tex: FX.tex.glow, alpha: 0.9 }); if (i % 3 === 0) FX.particle({ x, y: y + 0.3, vx: rnd(-0.2, 0.2), vy: 0.5, life: 1.4, size: 0.4, size1: 1.2, color: 0x4a4e54, frames: FX.sheets.smoke, alpha: 0.35, normal: true, drag: 0.6 }); }); // embers and a smoke wisp keep the ruin alive for a few seconds
-      crater(e.x, e.z * TILT, 4.2, isIron(e.rig || '') ? 'crack_red' : 'crack');
+      crater(e.x, e.z * TILT, 4.2, fac === 'iron' ? 'crack_red' : 'crack');
       // the bunker breaks apart: chunks thrown up that fall back, and a dust wave rolling out
       for (let i = 0; i < 16; i++) {
         const a = rnd(0.3, Math.PI - 0.3), v = rnd(3, 7);
@@ -1167,7 +1170,13 @@
       e.rampSt = e.rampT >= 4 ? 2 : e.rampT >= 2 ? 1 : 0;
       if (real) { dmg *= RAMP[e.rampSt]; e.rampT += a.rate; }
     }
-    const rk = a.ramp ? 1 + (e.rampSt || 0) * 0.8 : 1; // (its beam / cut grows with each stage)
+    const rk = a.ramp ? 1 + (e.rampSt || 0) * 0.8 : 1;
+    if (e.kind === 'tower' && real) { // a tower's shot is easy to see: a white-hot tracer in the team colour, a muzzle flash and a pop on the target
+      const tx = t.x, ty = sy(t) + (t.bodyH || 1.2) * 0.5, tc = e.side === 'blue' ? 0x7fe4ff : 0xff6a5a;
+      FX.beam(mx, my, tx, ty, 0.34, tc, 0.16); FX.beam(mx, my, tx, ty, 0.12, 0xffffff, 0.12);
+      FX.particle({ x: mx, y: my, life: 0.12, size: 0.5, size1: 0.9, color: tc, tex: FX.tex.glow, alpha: 0.9 });
+      FX.later(0.06, () => { FX.particle({ x: tx, y: ty, life: 0.16, size: 0.4, size1: 1.0, color: 0xffffff, tex: FX.tex.glow, alpha: 0.85 }); FX.sparks(tx, ty, tc, 4, 3, 0.12, 0.25); });
+    } // (its beam / cut grows with each stage)
     if (real && a.sfx) SFX.play(a.sfx, e.kind === 'tower' ? 0.3 : 0.5);
     if (real && a.healHit) { // every blow mends the friendly troops around it (itself included)
       const amt = a.healHit.amt * LEVEL.mult(e.lv);
@@ -1285,6 +1294,7 @@
 
   function hit(src, a, t, px, pz, dmg) {
     if (!dmg) return;
+    if (a.selfSplash && src) { px = src.x; pz = src.z; FX.groundRing(px, pz * TILT, 0.3, a.splash, a.color || 0xffffff, 0.22, 0.75); } // a Valkyrie spin: the blow sweeps all around the attacker
     if (a.splash) {
       if (G.time - (src.scT || -1) > 0.7) { src.scT = G.time; scorch(px, pz * TILT, a.splash * 0.45); } // blasts leave scorch marks that fade over a few seconds
       for (const o of enemiesNear(src.side, px, pz, a.splash)) { // only the other side's units and structures near the blast
