@@ -895,3 +895,9 @@ button:disabled { cursor: default; }
 .facdlg .factions b, .facdlg .factions small { position: relative; display: block; background: rgba(6,14,22,.8); }
 .facdlg .factions small { color: #9fb3c4; font-size: 11px; padding-bottom: 4px; }
 .facdlg .facnote { font-size: 11px; margin: 4px 0 0; color: var(--dim); }
+
+/* deck header: the parts and the faction bond on the right of the title (one row) */
+.dhead { flex-wrap: nowrap; }
+.dhead #deckAvg { order: 0; flex: none; flex-basis: auto; font-size: 12px; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.deckfoot { padding-top: 6px; }
+.slots .emptyslot.sel { outline: 3px solid #fff; outline-offset: 1px; border-color: #2ee6ff; }

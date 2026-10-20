@@ -64,12 +64,14 @@
     <!-- five saved decks per faction (Clash Royale deck tabs) -->
     <div id="deckTabs" class="dtabs"></div>
     <div id="deckSlots" class="slots"></div>
-    <!-- under the deck: its average energy -->
     <!-- under the deck: the hint (left) and the faction it plays, shown as a card (right; tap -> faction popup) -->
     <div class="deckfoot"><span class="dhint" id="deckHint"></span>
       <button class="facslot" id="btnFaction" aria-label="진영 설정"><span class="fsp" id="facPf"></span><b id="facName"></b><small>진영 설정</small></button></div>
-    <div class="lbl pad">도감<span class="csort" id="collSort"></span></div>
-    <div id="collection" class="coll"></div>
+    <!-- the codex: only while a deck card (or an empty place) is picked, right under the deck -->
+    <div id="codex" hidden>
+      <div class="lbl pad">도감<span class="csort" id="collSort"></span></div>
+      <div id="collection" class="coll"></div>
+    </div>
   </section>
 
   <!-- battle -->
