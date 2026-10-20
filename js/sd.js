@@ -315,6 +315,16 @@
     const data = window.SD_DATA && SD_DATA[id];
     if (!data) return null;
     if ((data.fmt || 1) !== SD.FORMAT) { delete SD_DATA[id]; window.BUILD_MISMATCH = true; return null; } // newer deploy
+    // per-rig sorting tweaks (SD.orderFix[id] = [{ re, add }]): parts whose name matches are drawn `add` orders later
+    const fix = SD.orderFix && SD.orderFix[id];
+    if (fix && !data.orderFixed) {
+      data.orderFixed = true; // (once: a retried build keeps the same data)
+      for (const n of data.nodes) for (const f of fix) {
+        if (!f.re.test(n.n)) continue;
+        if (n.sr) n.sr.o += f.add;
+        if (n.mesh) n.mesh.forEach((m) => { m.o += f.add; });
+      }
+    }
     let atlas, nTex;
     if (data.atlas) {
       // packed at build time (tools/build_sd.py packed_atlas): decode off the main thread, scale once if needed
@@ -1244,6 +1254,9 @@
     pinSkip: null, // { rigId: [clip names] }: clips whose root motion is kept
     pinRange: 0, // rig units of root travel kept (softly) by pinned clips
     pinRanges: null, // { rigId: rig units }: a tighter range for some rigs (units that dash to their target)
+    // Labiata's front-hand greatsword: its battery housing is sorted over the blade, so the second swing (blade brought
+    // down toward the viewer) vanished behind the housing; the blade, guard and its lights now draw over it
+    orderFix: { labiata: [{ re: /^parts_LF_weapon_(blade|central_ridge|grip|cross_guard|fx)/, add: 32 }] },
     prepare,
     create(id) { const t = templates[id]; return t ? new SDChar(t) : null; },
     // pooled instances for short-lived rigs (enemies): no typed arrays / materials / textures per spawn

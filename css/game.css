@@ -869,7 +869,7 @@ button:disabled { cursor: default; }
 .csort button.on { background: #2ee6ff; color: #04141f; }
 
 /* card popup: the preview scene on top */
-.pvbox { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 0 0 10px; overflow: hidden; background: #0b121a center 20% / cover no-repeat; border: 1px solid #4f6a82;
+.pvbox { position: relative; width: 100%; aspect-ratio: 5 / 4; margin: 0 0 10px; overflow: hidden; background: #0b121a center 20% / cover no-repeat; border: 1px solid #4f6a82;
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
 .pvbox canvas { display: block; width: 100%; height: 100%; }
 .pvbox .pvload { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px; font-size: 11px; color: #9fd8ea; background: linear-gradient(transparent, rgba(4,10,16,.85)); }

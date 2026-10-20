@@ -3069,7 +3069,7 @@
       view.w = cw / pr; view.h = ch / pr;
       lastSize = ''; // the battle sizes itself again when it is shown
     }
-    const w = 12, h = w * ch / cw, cy = -1.3; // (attacker's feet at the bottom, the targets' heads at the top)
+    const w = 12, h = w * ch / cw, cy = -5.4 + h / 2; // the attacker's feet stay at the bottom; a taller canvas shows more above (big units, high swings)
     camera.left = -w / 2; camera.right = w / 2; camera.top = cy + h / 2; camera.bottom = cy - h / 2;
     camera.updateProjectionMatrix();
   }

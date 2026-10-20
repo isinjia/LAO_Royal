@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.36'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.37'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -248,7 +248,7 @@
     const box = $('cardPvBox'), cv = $('cardPv'), k = Math.min(2, window.devicePixelRatio || 1);
     box.classList.remove('live');
     box.style.backgroundImage = `url(${art(c)})`;
-    cv.width = Math.round((box.clientWidth || 320) * k); cv.height = Math.round(cv.width * 9 / 16);
+    cv.width = Math.round((box.clientWidth || 320) * k); cv.height = Math.round(cv.width * 4 / 5);
     cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
     const id = c.id;
     Promise.resolve(GAME.ready ? GAME.preview(id, cv) : false).then((ok) => { if (ok && pvId === id) box.classList.add('live'); }).catch(() => {});
