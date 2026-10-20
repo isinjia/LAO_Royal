@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.28'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.29'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -44,10 +44,17 @@
       if (o) { o.lv = Math.min(LEVEL.max, Math.max(1, o.lv | 0)); o.n = Math.max(0, o.n | 0); }
     });
     save.seen = true; // after the first sync, every unlock is news
+    const valid = (dk) => Array.isArray(dk) && dk.length === 8 && new Set(dk).size === 8 && dk.every((id) => CARD[id] && save.cards[id]); // orca and iron cards may be mixed in one deck
+    if (typeof save.deckSlots !== 'object' || !save.deckSlots) save.deckSlots = {};
+    if (typeof save.deckSlot !== 'object' || !save.deckSlot) save.deckSlot = {};
     for (const f of ['orca', 'iron']) {
-      const dk = Array.isArray(save.decks[f]) ? save.decks[f] : [];
-      const ok = dk.length === 8 && new Set(dk).size === 8 && dk.every((id) => CARD[id] && save.cards[id]); // orca and iron cards may be mixed in one deck
-      if (!ok) save.decks[f] = FACTIONS[f].deck.slice();
+      if (!valid(save.decks[f])) save.decks[f] = FACTIONS[f].deck.slice();
+      // five saved decks: the active slot is the very array in save.decks (edits land in both)
+      const old = Array.isArray(save.deckSlots[f]) ? save.deckSlots[f] : [];
+      const sl = [0, 1, 2, 3, 4].map((i) => (valid(old[i]) ? old[i] : FACTIONS[f].deck.slice()));
+      const i = save.deckSlot[f] >= 0 && save.deckSlot[f] < 5 ? save.deckSlot[f] | 0 : 0;
+      sl[i] = save.decks[f];
+      save.deckSlots[f] = sl; save.deckSlot[f] = i;
     }
     persist();
   }
@@ -166,6 +173,7 @@
   // ── screens ───────────────────────────────────────────
   function show(id) {
     ['title', 'deck', 'battle'].forEach((s) => $(s).classList.toggle('on', s === id));
+    if (id !== 'battle') { const tb = document.querySelector('.tabbar'); $(id).appendChild(tb); tb.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (id === 'deck' ? 'deck' : 'battle'))); }
     if (id === 'battle') requestAnimationFrame(() => GAME.resize(true));
   }
 
@@ -221,7 +229,7 @@
   }
 
   // deck builder
-  let deckSel = null, swapMode = false;
+  let deckSel = null, swapMode = false, cardOpen = false; // cardOpen: the card popup is up
   // faction bond chip: what the deck's faction mix gives (4 / 6 cards of one faction)
   function synChip(deck) {
     const s = DATA.synergyOf(deck);
@@ -233,13 +241,15 @@
     $('deckTitle').textContent = `덱 편성 · ${FACTIONS[f].name}`;
     $('deckAvg').innerHTML = `<i class="gold-i"></i>${save.gold} · ${synChip(deck)}`;
     $('deckAvg2').innerHTML = `<i class="drop-i"></i><b>${avg(deck)}</b>`; // (Clash Royale: the average under the deck)
+    $('deckHint').textContent = swapMode ? '덱에서 바꿀 카드를 누르세요' : '';
+    $('deckTabs').innerHTML = save.deckSlots[f].map((d, i) => `<button data-i="${i}" class="${i === save.deckSlot[f] ? 'on' : ''}">덱 ${i + 1}</button>`).join('');
     const slots = $('deckSlots');
     slots.innerHTML = '';
     deck.forEach((id, i) => {
       const el = cardEl(CARD[id], (deckSel === id ? 'sel' : '') + (swapMode ? ' swap' : ''), { lv: levelOf(id), rank: true });
       el.onclick = () => {
         if (swapMode && deckSel && !deck.includes(deckSel)) { deck[i] = deckSel; swapMode = false; persist(); SFX.play('click'); }
-        else { deckSel = id; swapMode = false; }
+        else { deckSel = id; swapMode = false; cardOpen = true; }
         renderDeck();
       };
       slots.appendChild(el);
@@ -252,13 +262,13 @@
       const locked = !unlocked(c) || !o;
       const prog = o && o.lv < LEVEL.max ? o.n / upCost(c, o.lv).n : null;
       const el = cardEl(c, (deck.includes(c.id) ? 'used' : '') + (deckSel === c.id ? ' sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, progress: locked ? null : prog, isNew: !locked && save.newCards && save.newCards[c.id], rank: true });
-      el.onclick = () => { deckSel = c.id; swapMode = false; if (save.newCards && save.newCards[c.id]) { delete save.newCards[c.id]; persist(); } renderDeck(); };
+      el.onclick = () => { deckSel = c.id; swapMode = false; cardOpen = true; if (save.newCards && save.newCards[c.id]) { delete save.newCards[c.id]; persist(); } renderDeck(); };
       col.appendChild(el);
     });
     const info = $('cardInfo');
-    if (!deckSel || !CARD[deckSel]) deckSel = deck[0]; // the panel always shows a card (the first deck slot until one is tapped)
-    const c = deckSel && CARD[deckSel];
-    if (!c) { info.innerHTML = '<p class="hint">카드를 눌러 정보를 확인하세요. 덱은 8장, 카드는 승리 보상으로 강화합니다.</p>'; return; }
+    const c = cardOpen && deckSel && CARD[deckSel];
+    $('cardOv').hidden = !c;
+    if (!c) return; // (the details live in a popup: only while a card is tapped)
     const o = save.cards[c.id], lv = o ? o.lv : 1, m = LEVEL.mult(lv);
     const st = [];
     if (c.type === 'troop') {
@@ -290,7 +300,7 @@
         const k = upCost(c, lv);
         act += `<button class="btn ${canUpgrade(c) ? 'g' : 'd'} sm" id="btnUp" ${canUpgrade(c) ? '' : 'disabled'}>강화 Lv.${lv + 1} · 카드 ${o.n}/${k.n} · <i class="gold-i"></i>${k.gold}</button>`;
       } else act += '<span class="hint">최대 레벨</span>';
-      act += inDeck ? ' <span class="hint">덱에 포함됨</span>' : swapMode ? ' <span class="hint blink">위의 덱에서 교체할 카드를 누르세요</span>' : ' <button class="btn y sm" id="btnUse">덱에 넣기</button>';
+      act += inDeck ? ' <span class="hint">덱에 포함됨</span>' : ' <button class="btn y sm" id="btnUse">덱에 넣기</button>';
     }
     const skill = c.skill ? `<div class="skillinfo"><b>챔피언 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
     info.innerHTML = `<div class="ci-head"></div><div class="ci-body"><h4>${rankIc(c)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
@@ -298,7 +308,7 @@
       <div class="ci-act">${act}</div></div>`;
     info.querySelector('.ci-head').appendChild(cardEl(c, '', { lv: o && o.lv, locked: !o || !unlocked(c), rank: true }));
     const b = $('btnUse');
-    if (b) b.onclick = () => { swapMode = true; SFX.play('click'); renderDeck(); };
+    if (b) b.onclick = () => { swapMode = true; cardOpen = false; SFX.play('click'); renderDeck(); }; // then a deck slot takes it
     const u = $('btnUp');
     if (u) u.onclick = () => {
       const k = upCost(c, o.lv);
@@ -957,9 +967,15 @@
     $('pfoeBox').addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; save.practiceFoe = b.dataset.p; persist(); SFX.play('click'); renderTitle(); });
     $('modeSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.mode = +b.dataset.m; persist(); SFX.play('click'); renderTitle(); toast(save.mode === 3 ? `오늘의 작전: ${DATA.mutatorOf().name} — ${DATA.mutatorOf().desc}` : BAL.modes[save.mode].desc); });
     $('btnBattle').onclick = startBattle;
-    $('btnDeck').onclick = () => { SFX.play('click'); deckSel = null; swapMode = false; renderDeck(); show('deck'); };
-    $('btnDeckDone').onclick = () => { SFX.play('click'); renderTitle(); show('title'); };
-    $('btnDeckReset').onclick = () => { save.decks[save.faction] = FACTIONS[save.faction].deck.slice(); persist(); deckSel = null; swapMode = false; renderDeck(); };
+    $('btnDeck').onclick = () => { SFX.play('click'); deckSel = null; swapMode = false; cardOpen = false; renderDeck(); show('deck'); };
+    $('btnCardClose').onclick = () => { cardOpen = false; renderDeck(); };
+    $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') { cardOpen = false; renderDeck(); } }); // a tap outside the popup closes it
+    $('deckTabs').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-i]'); if (!b) return;
+      const f = save.faction, i = +b.dataset.i;
+      save.deckSlot[f] = i; save.decks[f] = save.deckSlots[f][i]; persist();
+      deckSel = null; swapMode = false; cardOpen = false; SFX.play('click'); renderDeck();
+    });
     $('btnSettings').onclick = () => { SFX.play('click'); openSettings(); };
     $('chestRow').addEventListener('click', (e) => {
       const b = e.target.closest('button.chest'); if (!b) return;
@@ -1021,10 +1037,11 @@
     $('btnMode').onclick = () => { SFX.play('click'); $('modeOv').hidden = false; };
     $('btnModeClose').onclick = () => { SFX.play('click'); $('modeOv').hidden = true; renderTitle(); };
     // the bottom tab bar (Clash Royale style): cards, battle (this screen), missions, trophy road
-    document.querySelector('#title .tabbar').addEventListener('click', (e) => {
+    document.querySelector('.tabbar').addEventListener('click', (e) => { // (the bar moves between home and deck: one listener)
       const b = e.target.closest('[data-tab]'); if (!b) return;
       const t = b.dataset.tab;
-      if (t === 'deck') $('btnDeck').click();
+      if (t === 'deck') { if (!$('deck').classList.contains('on')) $('btnDeck').click(); }
+      else if (t === 'battle') { if (!$('title').classList.contains('on')) SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; renderTitle(); show('title'); }
       else if (t === 'road') { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); }
       // (missions: its own handler above; battle: this screen)
     });

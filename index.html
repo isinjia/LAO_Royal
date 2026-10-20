@@ -64,11 +64,12 @@
 
   <!-- deck builder -->
   <section id="deck" class="screen">
-    <header class="dhead"><h3 id="deckTitle">덱 편성</h3><span id="deckAvg"></span><button class="btn d sm" id="btnDeckReset">기본 덱</button><button class="btn y sm" id="btnDeckDone">완료</button></header>
+    <header class="dhead"><h3 id="deckTitle">덱 편성</h3><span id="deckAvg"></span></header>
+    <!-- five saved decks per faction (Clash Royale deck tabs) -->
+    <div id="deckTabs" class="dtabs"></div>
     <div id="deckSlots" class="slots"></div>
     <!-- under the deck: its average energy -->
-    <div class="deckfoot"><span class="davg" id="deckAvg2"></span><span class="sp"></span></div>
-    <div id="cardInfo" class="cinfo"></div>
+    <div class="deckfoot"><span class="davg" id="deckAvg2"></span><span class="sp"></span><span class="dhint" id="deckHint"></span></div>
     <div class="lbl pad">카드 컬렉션</div>
     <div id="collection" class="coll"></div>
   </section>
@@ -129,6 +130,12 @@
       <div class="lbl">출전 덱</div>
       <div id="deckPreview" class="deckrow"></div>
       <div class="tbtns"><button class="btn y" id="btnModeClose">확인</button></div></div>
+  </div>
+
+  <!-- deck builder: the tapped card's details -->
+  <div id="cardOv" class="ov" hidden>
+    <div class="dlg carddlg"><div id="cardInfo" class="cinfo"></div>
+      <div class="tbtns"><button class="btn d" id="btnCardClose">닫기</button></div></div>
   </div>
 
   <div id="pauseOv" class="ov" hidden>

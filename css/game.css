@@ -760,15 +760,15 @@ button:disabled { cursor: default; }
 #title.cr .mdicon { width: 30px; height: 30px; background: #ffd84a; -webkit-mask: var(--s-i_target) center / contain no-repeat; mask: var(--s-i_target) center / contain no-repeat; }
 #btnDeck.dot::after { right: 4px; top: 4px; }
 /* the bottom tab bar */
-#title.cr .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 6px env(safe-area-inset-bottom); background: linear-gradient(#1a2636, #0d141d); border-top: 1px solid rgba(255,255,255,.08); box-shadow: 0 -4px 14px rgba(0,0,0,.4); }
-#title.cr .tabbar button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 56px; color: #8fa2b5; font-size: 11px; font-weight: 700; }
-#title.cr .tabbar button.on { color: #ffd84a; background: linear-gradient(rgba(255,216,74,.16), transparent); box-shadow: inset 0 2px 0 #ffd84a; }
-#title.cr .tabbar i { width: 26px; height: 26px; background: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
-#title.cr .t-cards { -webkit-mask-image: var(--s-i_squad) !important; mask-image: var(--s-i_squad) !important; }
-#title.cr .t-battle { -webkit-mask-image: var(--s-i_battle) !important; mask-image: var(--s-i_battle) !important; width: 30px !important; height: 30px !important; }
-#title.cr .t-mission { -webkit-mask-image: var(--s-i_check) !important; mask-image: var(--s-i_check) !important; }
-#title.cr .t-road { -webkit-mask-image: var(--s-i_medal) !important; mask-image: var(--s-i_medal) !important; }
-#title.cr .tabbar em { position: absolute; top: 6px; left: calc(50% + 8px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ff3b4f; color: #fff; font: 700 10px/16px var(--en-font); font-style: normal; }
+.tabbar { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 6px env(safe-area-inset-bottom); background: linear-gradient(#1a2636, #0d141d); border-top: 1px solid rgba(255,255,255,.08); box-shadow: 0 -4px 14px rgba(0,0,0,.4); }
+.tabbar button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 56px; color: #8fa2b5; font-size: 11px; font-weight: 700; }
+.tabbar button.on { color: #ffd84a; background: linear-gradient(rgba(255,216,74,.16), transparent); box-shadow: inset 0 2px 0 #ffd84a; }
+.tabbar i { width: 26px; height: 26px; background: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+.tabbar .t-cards { -webkit-mask-image: var(--s-i_squad) !important; mask-image: var(--s-i_squad) !important; }
+.tabbar .t-battle { -webkit-mask-image: var(--s-i_battle) !important; mask-image: var(--s-i_battle) !important; width: 30px !important; height: 30px !important; }
+.tabbar .t-mission { -webkit-mask-image: var(--s-i_check) !important; mask-image: var(--s-i_check) !important; }
+.tabbar .t-road { -webkit-mask-image: var(--s-i_medal) !important; mask-image: var(--s-i_medal) !important; }
+.tabbar em { position: absolute; top: 6px; left: calc(50% + 8px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ff3b4f; color: #fff; font: 700 10px/16px var(--en-font); font-style: normal; }
 /* the battle settings sheet (modes, difficulty, deck in) */
 .modedlg { text-align: left; }
 .modedlg .lbl { margin: 10px 0 6px; }
@@ -792,3 +792,13 @@ button:disabled { cursor: default; }
 .deckfoot .sp { flex: 1; }
 .davg { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px 6px 8px; border-radius: 20px; background: rgba(0,0,0,.35); font: 900 italic 22px var(--en-font); color: #fff; }
 .drop-i { display: inline-block; width: 22px; height: 26px; background: radial-gradient(circle at 40% 35%, #f3a6ff, var(--en) 55%, #6b1e86); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+
+/* deck builder: five deck tabs, the bottom bar kept, card details in a popup */
+.dtabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 10px 14px 0; }
+.dtabs button { height: 30px; border-radius: 8px; background: #1a2636; color: #8fa2b5; font-size: 12px; font-weight: 700; border: 1px solid rgba(255,255,255,.08); }
+.dtabs button.on { background: linear-gradient(#ffe27a, #f0b82a); color: #3a2600; border-color: #ffd84a; }
+.dhint { color: var(--y); font-size: 12px; font-weight: 700; animation: bl .7s infinite alternate; }
+#deck > .tabbar { position: sticky; bottom: 0; z-index: 5; margin-top: auto; }
+.carddlg { width: min(92%, 400px); max-height: 86%; overflow-y: auto; padding: 14px; }
+.carddlg .cinfo { margin: 0 0 10px; flex-direction: column; align-items: center; text-align: left; }
+.carddlg .ci-body { width: 100%; }

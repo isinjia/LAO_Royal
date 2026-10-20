@@ -102,7 +102,7 @@
     // 2. trophy road with every crate slot full stops before the crate (nothing converted away)
     Object.assign(UI.save, { trophy: 620, road: 0, chests: [{ k: 'normal', t0: null }, { k: 'normal', t0: null }, { k: 'normal', t0: null }, { k: 'normal', t0: null }] });
     const g0 = UI.save.gold;
-    document.getElementById('btnDeckDone').click();
+    document.querySelector('.tabbar [data-tab="battle"]').click();
     document.getElementById('btnRoadClaim').click();
     ok(UI.save.road === 400 && UI.save.gold > g0, `road claim with full slots stops at 400 (got ${UI.save.road})`);
     const g1 = UI.save.gold; document.getElementById('btnRoadClaim').click(); // again: the first reward is the blocked crate
@@ -495,7 +495,7 @@
       // a crate: start unlocking, rush it with parts (double tap), open it
       UI.save.chests = [{ k: 'epic', t0: null }];
       UI.save.gold = Math.max(UI.save.gold, 999);
-      document.getElementById('btnDeckDone').click();
+      document.querySelector('.tabbar [data-tab="battle"]').click();
       const tap = () => document.querySelector('#chestRow button.chest').click();
       tap(); await wait(100); // start the unlock
       tap(); await wait(100); tap(); await wait(100); // rush: arm, confirm
