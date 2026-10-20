@@ -1330,7 +1330,7 @@
       for (let k = 0; k < 4; k++) for (let j = 0; j < 5; j++) { const ang = (k / 4) * Math.PI * 2 + G.time * 4 + j * 0.14; FX.later(j * 0.012, () => FX.particle({ x: px + Math.cos(ang) * R0 * 0.95, y: y0 + Math.sin(ang) * R0 * 0.95 * TILT, life: 0.22, size: 0.6 - j * 0.07, size1: 0.12, color: j ? a.color : 0xffffff, tex: FX.tex.glow, alpha: 1 - j * 0.14, order: L.FX + 1 })); } // 4 curved arc streaks (about 40 degrees each) on the ring
       { const a0 = G.time * 4; for (let j = 0; j < 6; j++) FX.later(j * 0.03, () => { const g = a0 + j * 0.9; FX.particle({ x: px + Math.cos(g) * R0 * 0.95, y: y0 + Math.sin(g) * R0 * 0.95 * TILT, life: 0.1, size: 0.9, size1: 0.4, color: 0xffffff, tex: FX.tex.glow, alpha: 1, order: L.FX + 1 }); }); } // a white flare riding the leading edge (the spin's direction in any frame)
       FX.groundRing(px, pz * TILT, R0 * 0.6, R0, 0x9a8a78, 0.35, 0.45); // dust rolling out to the full radius
-      FX.later(0.06, () => FX.ring(px, y0, R0 * 0.85 * 1.65, R0 * 1.65, 0xf2f6ff, 0.18, 0.38, TILT, L.FX)); // a faint second ring trailing (the rotation in a still)
+      { const a0 = G.time * 4; for (let i = 0; i < 14; i++) for (let r = 0; r < 3; r++) { const g = a0 - i * 0.13, rr = R0 * (0.74 + r * 0.12), f = 1 - i / 14; FX.particle({ x: px + Math.cos(g) * rr, y: y0 + Math.sin(g) * rr * TILT, life: 0.2, size: 0.62, size1: 0.4, color: i < 3 ? 0xffffff : r === 2 ? 0xffd2b0 : 0xe6eeff, tex: FX.tex.glow, alpha: 0.6 * f, order: L.FX + 1 }); } } // a sweep wedge (~100 degrees, fading to the tail): the spin's smear in a still
     }
     if (a.splash) {
       if (G.time - (src.scT || -1) > 0.7) { src.scT = G.time; scorch(px, pz * TILT, a.splash * 0.45); } // blasts leave scorch marks that fade over a few seconds
@@ -1365,7 +1365,7 @@
       b.inst.root.position.set(x, y, 0);
       b.inst.root.rotation.z = Math.atan2(dy, dx);
       b.inst.update(dt);
-      if (b.atk.fx === 'grenade' && b.atk.splash >= 1.2) { FX.particle({ x, y, life: 0.05, size: 0.55, size1: 0.45, color: 0xffa040, tex: FX.tex.glow, alpha: 0.9, order: L.PROJ }); FX.particle({ x: x + (b.tx - x) * 0, y: b.tz * TILT * f + (b.sy - 0.6) * (1 - f) - 0.1, life: 0.05, size: 0.45, size1: 0.4, aspect: TILT, color: 0x000000, tex: FX.tex.dot, normal: true, alpha: 0.35, order: L.GROUND + 3 }); } // a lobbed shell glows, its shadow runs on the ground under it
+      if (b.atk.fx === 'grenade' && b.atk.splash >= 1.2) { FX.particle({ x, y, life: 0.05, size: 1.1, size1: 0.9, color: 0xffa040, tex: FX.tex.glow, alpha: 0.95, order: L.PROJ }); FX.particle({ x, y, life: 0.05, size: 0.45, size1: 0.4, color: 0xfff0c0, tex: FX.tex.glow, alpha: 1, order: L.PROJ }); FX.particle({ x, y, vy: 0.3, life: 0.28, size: 0.55, size1: 0.08, color: 0xff7a1a, tex: FX.tex.glow, alpha: 0.85, order: L.PROJ }); FX.particle({ x: x + (b.tx - x) * 0, y: b.tz * TILT * f + (b.sy - 0.6) * (1 - f) - 0.1, life: 0.05, size: 0.8, size1: 0.7, aspect: TILT, color: 0x000000, tex: FX.tex.dot, normal: true, alpha: 0.45, order: L.GROUND + 3 }); } // a lobbed shell glows, its shadow runs on the ground under it
       if ((b.trT = (b.trT || 0) - dt) <= 0) { b.trT = 0.025; FX.particle({ x, y, life: 0.26, size: 0.5, size1: 0.05, color: b.atk.color, tex: FX.tex.glow, alpha: 0.8 }); FX.particle({ x, y, life: 0.12, size: 0.2, size1: 0, color: 0xffffff, tex: FX.tex.glow, alpha: 0.9 }); } // a fading trail with a bright core
       if (f >= 1) {
         const big = b.dmg ? clamp(b.dmg / 220, 0.75, 1.5) : 0.7;
