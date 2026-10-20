@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.47'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.48'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -57,6 +57,7 @@
       const sl = [0, 1, 2, 3, 4].map((i) => (valid(old[i]) ? old[i] : FACTIONS[f].deck.slice()));
       const i = save.deckSlot[f] >= 0 && save.deckSlot[f] < 5 ? save.deckSlot[f] | 0 : 0;
       sl[i] = save.decks[f];
+      sl.forEach(oneHero); // (a deck holds one hero: older decks drop the extra ones)
       save.deckSlots[f] = sl; save.deckSlot[f] = i;
     }
     // one set of decks for the commander, whichever faction it plays: both factions point at the same decks
@@ -66,6 +67,8 @@
     save.deckShared = true;
     persist();
   }
+  // a deck holds one hero (champion): the first one stays, any other is taken out
+  function oneHero(dk) { let seen = false; for (let i = 0; i < dk.length; i++) { const c = CARD[dk[i]]; if (!c || !c.skill) continue; if (seen) { dk.splice(i, 1); i--; } else seen = true; } }
   const levelOf = (id) => LEVEL.fixed || (save.cards[id] ? save.cards[id].lv : LEVEL.min);
 
   // ── missions ──────────────────────────────────────────
@@ -394,12 +397,13 @@
       } else act += '<span class="hint">최대 레벨</span>';
       act += inDeck ? ' <button class="btn d sm" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
     }
-    const skill = c.skill ? `<div class="skillinfo"><b>챔피언 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
+    const skill = c.skill ? `<div class="heronote">영웅: 덱에 1장만, 전장에는 1기만 나옵니다 (나와 있는 동안 카드가 손에 들어오지 않음)</div><div class="skillinfo"><b>영웅 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
     info.innerHTML = `<div class="ci-body"><h4>${kindIc(c, true)}${moveIc(c, true)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
       <dl>${st.map(([k2, v]) => `<div><dt>${k2}</dt><dd>${v}</dd></div>`).join('')}</dl></div>`;
     $('cardAct').innerHTML = act;
     const b = $('btnUse');
     if (b) b.onclick = () => { // into the picked place (or the first free one); the codex closes
+      if (c.skill && deck.some((d, k) => CARD[d].skill && k !== slotSel)) { toast('영웅은 덱에 1장만 넣을 수 있습니다'); SFX.play('fail', 0.4); return; } // (unless it replaces the hero)
       if (slotSel != null && slotSel < deck.length) deck[slotSel] = c.id; else if (deck.length < 8) deck.push(c.id); else return;
       persist(); slotSel = null; cardOpen = false; deckSel = null; SFX.play('click'); renderDeck();
     };

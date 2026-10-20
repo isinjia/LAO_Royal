@@ -953,3 +953,6 @@ button:disabled { cursor: default; }
 /* the hand in battle: the same kind / flying badges, just above the name */
 #hand .card .kindic { bottom: calc(19% + 2px); }
 #hand .card .moveic { bottom: calc(19% + 2px); }
+
+/* hero note in the card popup */
+.heronote { margin: 6px 0 4px; padding: 4px 8px; font-size: 11px; color: #ffd34d; background: rgba(255,211,77,.1); border-left: 3px solid #ffd34d; }

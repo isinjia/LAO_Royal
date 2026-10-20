@@ -1762,7 +1762,11 @@
     if (c.type === 'building' && !canBuild(side, x, z, c)) return false;
     if (c.type === 'spell') { x = clamp(x, -9, 9); z = clamp(z, -16, 16); }
     S.elixir -= c.cost;
-    S.hand[idx] = S.queue.shift();
+    // one hero (champion) at a time: while one is on the field, hero cards wait in the queue and the next other card comes
+    const heroOut = c.skill || G.ents.some((e) => e.side === side && e.kind === 'troop' && e.alive && e.card.skill);
+    let qi = heroOut ? S.queue.findIndex((q) => !CARD[q].skill) : 0;
+    if (qi < 0) qi = 0;
+    S.hand[idx] = S.queue.splice(qi, 1)[0];
     S.queue.push(id);
     G.stats[side].spent += c.cost;
     G.stats[side].cards++;
@@ -2245,7 +2249,7 @@
   function buildDeck(faction, arena, style, forPlayer, vs) {
     if (!forPlayer) hints = [];
     const pool = DATA.byFaction(faction).filter((c) => forPlayer || c.arena <= arena); // the player's random deck may draw any card (all open); the opponent stays on its arena's cards
-    const pick = (f) => { const l = pool.filter((c) => f(c) && !deck.includes(c.id)); return l.length ? l[Math.floor(Math.random() * l.length)].id : null; };
+    const pick = (f) => { const l = pool.filter((c) => f(c) && !deck.includes(c.id) && !(c.skill && deck.some((d) => CARD[d].skill))); return l.length ? l[Math.floor(Math.random() * l.length)].id : null; }; // (one hero per deck)
     const deck = [];
     const add = (id) => { if (id && deck.length < 8) deck.push(id); };
     add(pick((c) => c.aim === 'buildings' || (c.type === 'troop' && c.hp >= 2500)));
@@ -2265,7 +2269,7 @@
     add(pick((c) => c.type === 'troop' && c.cost <= 3));
     if (Math.random() < 0.45) add(pick((c) => c.type === 'building'));
     // a champion (the opponent may field one from the next arena: a preview of what is coming)
-    if (Math.random() < 0.7) {
+    if (Math.random() < 0.7 && !deck.some((d) => CARD[d].skill)) {
       const ch = DATA.byFaction(faction).filter((c) => c.rarity === 3 && (forPlayer || c.arena <= arena + 1) && !deck.includes(c.id));
       if (ch.length) add(ch[Math.floor(Math.random() * ch.length)].id);
     }
