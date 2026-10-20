@@ -121,7 +121,7 @@
     // the towers must outlast this test (fourteen champion skills would otherwise end the match early)
     for (const s of ['blue', 'red']) G.sides[s].towers.forEach((t) => { t.hp = t.max = 1e7; });
     for (const c of champs) await SD.prepare(c.rig);
-    const healer = DATA.CARDS.find((c) => c.heal); // (only when a card heals: the original roster has no healer at the moment)
+    const healer = DATA.CARDS.find((c) => c.type === 'troop' && c.heal); // (a healing troop, not the repair spell; only when a card heals: the original roster has no healer at the moment)
     if (healer) {
       await SD.prepare(healer.rig);
       put('blue', healer.id, 0, -10); put('blue', 'brownie', 0, -11);

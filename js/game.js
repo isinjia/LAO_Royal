@@ -20,7 +20,8 @@
   const IRON_FXK = 0.2;      // baked effect scale for Iron Blood rigs (no rig scale of their own)
   const MOBILE = /[?&]mobile=1\b/.test(location.search) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || // (?mobile=1: run the phone path on a PC, for tests)
     (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
-  const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]] };
+  const FORM = { 1: [[0, 0]], 2: [[-0.5, 0], [0.5, 0]], 3: [[0, 0.5], [-0.55, -0.35], [0.55, -0.35]], 4: [[-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, -0.5]],
+    5: [[0, 0.65], [-0.62, 0.15], [0.62, 0.15], [-0.38, -0.55], [0.38, -0.55]], 6: [[-0.6, 0.5], [0, 0.65], [0.6, 0.5], [-0.6, -0.45], [0, -0.6], [0.6, -0.45]] };
   const TOWER_E = { king: 2.3, princess: 1.75, bld: 0.9 }; // tower top height (guard stands there)
   const L = FX.L;
 
@@ -1101,8 +1102,23 @@
     if (Math.abs(t.x - e.x) > 0.05) e.face = t.x > e.x ? 1 : -1;
     e.holder.scale.x = e.face * e.natural;
     const [mx, my] = muzzle(e, fireN);
-    const dmg = real ? a.dmg * (e.dmgK || 1) : 0;
+    let dmg = real ? a.dmg * (e.dmgK || 1) : 0;
+    if (a.ramp) { // the longer it stays on one target, the harder it hits (x1 -> x3.5 -> x12 after 2 s and 4 s)
+      if (e.rampTgt !== t) { e.rampTgt = t; e.rampT = 0; }
+      e.rampSt = e.rampT >= 4 ? 2 : e.rampT >= 2 ? 1 : 0;
+      if (real) { dmg *= RAMP[e.rampSt]; e.rampT += a.rate; }
+    }
+    const rk = a.ramp ? 1 + (e.rampSt || 0) * 0.8 : 1; // (its beam / cut grows with each stage)
     if (real && a.sfx) SFX.play(a.sfx, e.kind === 'tower' ? 0.3 : 0.5);
+    if (real && a.healHit) { // every blow mends the friendly troops around it (itself included)
+      const amt = a.healHit.amt * LEVEL.mult(e.lv);
+      FX.groundRing(e.x, e.z * TILT, 0.3, a.healHit.r, 0x7dffb0, 0.45, 0.6);
+      for (const o of G.ents) {
+        if (o.side !== e.side || !o.alive || o.kind !== 'troop' || o.hp >= o.max || Math.hypot(o.x - e.x, o.z - e.z) > a.healHit.r) continue;
+        o.hp = Math.min(o.max, o.hp + amt);
+        FX.particle({ x: o.x, y: sy(o) + o.bodyH * 0.6, vy: 1.2, life: 0.6, size: 0.4, size1: 0.2, color: 0x7dffb0, tex: FX.tex.cross, alpha: 0.9 });
+      }
+    }
     const tx = t.x, ty = aimY(t);
     const ang = Math.atan2(ty - my, tx - mx);
     const ranged = a.fx !== 'claw' && a.fx !== 'slash' && a.fx !== 'cannon' && a.fx !== 'flame';
@@ -1122,7 +1138,7 @@
     const P = (o2) => G.projs.push(Object.assign({ x: mx, y: my, src: e, side: e.side, atk: a, target: t, tx: t.x, tz: t.z, ty, dmg, t: 0, gen: GENERIC_HIT[a.fx], k: e.fxk || 0.2 }, o2));
     switch (a.fx) {
       case 'bullet': P({ speed: 24, kind: 'bullet' }); FX.beam(mx, my, tx, ty, 0.1, teamHex(e.side), 0.14); break; // a team-coloured tracer shows who is shooting whom
-      case 'snipe': FX.beam(mx, my, tx, ty, 0.1, a.color, 0.2); if (real) { hit(e, a, t, t.x, t.z, dmg); hitFx(e, a, tx, ty); } break;
+      case 'snipe': FX.beam(mx, my, tx, ty, 0.1, a.color, 0.2); if (real) { hit(e, a, t, t.x, t.z, dmg); hitFx(e, a, tx, ty); splashFx(t.x, t.z, a); } break;
       case 'grenade': P({ speed: 8.5, kind: 'grenade', arc: 1.8, point: true }); break;
       case 'missile': P({ speed: 10, kind: 'missile', arc: 1.2, point: true }); break;
       case 'fireball': P({ speed: 9, kind: 'fireball', arc: 0.6, point: true }); break;
@@ -1143,14 +1159,15 @@
         }
         const pts = [{ x: mx, y: my }, ...list.map((q) => ({ x: q.x, y: aimY(q) }))];
         FX.lightning(pts, a.color, real ? 0.2 : 0.12, 0.2);
-        if (real) list.forEach((q) => hit(e, a, q, q.x, q.z, dmg));
+        if (real) list.forEach((q) => { hit(e, a, q, q.x, q.z, dmg); FX.hit(q.x, aimY(q), a.color, 0.7); }); // every link of the chain flashes on its target
         break;
       }
       case 'laser': {
         const dx = t.x - e.x, dz = t.z - e.z, Ld = Math.hypot(dx, dz) || 1;
         const reach = Math.max(Ld, (a.range || 5) + 0.6);
         const ex = e.x + dx / Ld * reach, ez = e.z + dz / Ld * reach;
-        FX.beam(mx, my, ex, ez * TILT + aimH(t), real ? 0.28 : 0.14, a.color, 0.3);
+        FX.beam(mx, my, ex, ez * TILT + aimH(t), (real ? 0.28 : 0.14) * rk, rk > 2 ? 0xfff0c0 : a.color, 0.3);
+        if (a.pierce && real) FX.groundRing(t.x, t.z * TILT, 0.1, 0.6, a.color, 0.25, 0.6); // a piercing shot marks its line on the deck
         if (!real) break;
         hitFx(e, a, tx, ty);
         if (a.pierce) {
@@ -1165,18 +1182,26 @@
       }
       case 'flame':
         FX.flame(mx, my, tx, ty, a.color);
-        if (real) hit(e, a, t, t.x, t.z, dmg);
+        if (real) { hit(e, a, t, t.x, t.z, dmg); splashFx(t.x, t.z, a); }
         break;
       default: // slash / claw / cannon: contact hits
-        if (a.fx === 'slash') FX.slash(tx, ty, a.color, 1.1); else FX.hit(tx, ty, a.color, a.fx === 'cannon' ? 1.6 : 1);
+        if (a.fx === 'slash') FX.slash(tx, ty, a.color, (1.1 + (a.splash || 0) * 0.7) * rk); else FX.hit(tx, ty, a.color, (a.fx === 'cannon' ? 1.6 : 1) + (a.splash || 0) * 0.5); // a sweeping blow cuts a wider arc
         if (real) {
-          if (a.fx === 'cannon') FX.shake(0.1);
+          if (a.fx === 'cannon' || a.splash) FX.shake(0.08);
           hitFx(e, a, tx, ty);
           hit(e, a, t, t.x, t.z, dmg);
+          splashFx(t.x, t.z, a);
         }
     }
   }
   const EXPLOSIVE = { grenade: 1, missile: 1, cannon: 1, fireball: 1, bomb: 1 };
+  const RAMP = [1, 3.5, 12];
+  // an area attack shows the area it hit (projectiles draw theirs where they land)
+  function splashFx(x, z, a) {
+    if (!a.splash) return;
+    FX.groundRing(x, z * TILT, 0.2, a.splash, a.color, 0.35, 0.85);
+    FX.groundGlow(x, z * TILT, a.splash * 0.5, a.color, 0.3, 0.4);
+  }
   function hitFx(e, a, x, y) {
     const n = GENERIC_HIT[a.fx];
     const big = clamp(a.dmg * (e.dmgK || 1) / 220, 0.7, 1.6); // heavier blows get bigger bursts
@@ -1307,9 +1332,10 @@
       SFX.play('elec');
       FX.flash(0x9fe8ff, 0.25);
     } else if (c.spell === 'zone') {
-      // a burning field: ticks every half second (see updateZones)
+      // a burning field (or a poison cloud): ticks every half second (see updateZones)
       const y = z * TILT;
-      G.zones.push({ side, x, z, r: c.radius, dps: cc.dmg, t: c.dur, tick: 0, slow: c.slow, towerK: c.towerK, card: cc });
+      G.zones.push({ kind: c.gas ? 'gas' : 'fire', side, x, z, r: c.radius, dps: cc.dmg, t: c.dur, tick: 0, slow: c.slow, towerK: c.towerK, card: cc });
+      if (c.gas) { FX.groundGlow(x, y, c.radius, c.color, c.dur, 0.5, 0.3); FX.particle({ x, y, life: c.dur, size: c.radius * 2.1, size1: c.radius * 2.2, aspect: TILT, color: 0x2f6a1f, alpha: 0.42, tex: FX.tex.dot, normal: true, order: L.GROUND, fadeIn: 0.3 }); FX.groundRing(x, y, 0.3, c.radius, c.color, 0.6); SFX.play('spray', 0.7); return; } // a green stain that holds as long as the gas
       FX.groundGlow(x, y, c.radius, c.color, c.dur, 0.45, 0.3);
       FX.groundRing(x, y, 0.3, c.radius, c.color, 0.5);
       scorch(x, y, c.radius * 0.8);
@@ -1326,6 +1352,53 @@
         o.hasteT = Math.max(o.hasteT || 0, c.dur); o.hasteK = c.k; o.hasteColor = c.color;
       }
       SFX.play('reinforce', 0.7);
+    } else if (c.spell === 'clone') {
+      // every friendly troop inside gets a 1-HP holographic twin beside it (champions are not copied)
+      const y = z * TILT;
+      FX.groundRing(x, y, 0.3, c.radius, c.color, 0.6);
+      FX.groundGlow(x, y, c.radius, c.color, 0.8, 0.5);
+      for (let i = 0; i < 18; i++) { const a = Math.random() * 6.28, r = Math.random() * c.radius; FX.particle({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r * TILT, vy: rnd(1.2, 2.6), life: 0.7, size: 0.3, size1: 0, aspect: 3, color: c.color, tex: FX.tex.beam, alpha: 0.9 }); } // scan lines rising
+      const src = G.ents.filter((o) => o.side === side && o.alive && o.kind === 'troop' && !o.clone && !o.card.skill && o.deployT <= 0 && Math.hypot(o.x - x, o.z - z) <= c.radius + o.r * 0.5);
+      for (const o of src) {
+        const cp = spawnTroop(side, o.card, clamp(o.x + 0.6 * (o.x > x ? 1 : o.x < x ? -1 : MIR()), -8.6, 8.6), o.z, 0, o.lv);
+        cp.hp = cp.max = 1; cp.clone = true; cp.deployT = 0; cp.dropT = 0; cp.elev = 0; cp.tintRGB = [0.55, 0.95, 1.5];
+        if (cp.sd) cp.sd.setOpacity(0.7); // a see-through hologram
+        FX.particle({ x: cp.x, y: cp.z * TILT + 0.6, life: 0.4, size: 0.4, size1: 1.8, color: c.color, tex: FX.tex.glow, alpha: 0.8 });
+      }
+      SFX.play('reinforce', 0.7);
+    } else if (c.spell === 'heal') {
+      const y = z * TILT;
+      FX.groundRing(x, y, 0.3, c.radius, c.color, 0.6);
+      FX.groundGlow(x, y, c.radius, c.color, 0.9, 0.5);
+      for (const o of G.ents) {
+        if (o.side !== side || !o.alive || o.kind !== 'troop' || Math.hypot(o.x - x, o.z - z) > c.radius + o.r * 0.5) continue;
+        o.hp = Math.min(o.max, o.hp + c.heal * LEVEL.mult(lv));
+        for (let k = 0; k < 3; k++) FX.particle({ x: o.x + rnd(-0.3, 0.3), y: sy(o) + o.bodyH * 0.4, vy: rnd(1, 1.8), life: 0.8, size: 0.45, size1: 0.2, color: c.color, tex: FX.tex.cross, alpha: 0.95 }); // green crosses rise from every mended unit
+      }
+      SFX.play('reinforce', 0.6);
+    } else if (c.spell === 'volley') {
+      // three waves of fire rain on the area (sim-timed in updateZones, the same on both online devices)
+      G.zones.push({ kind: 'volley', side, x, z, r: c.radius, t: 0.75, tick: 0, waves: c.waves, hitDmg: cc.dmg / c.waves, towerK: c.towerK, card: cc });
+      FX.groundRing(x, z * TILT, 0.3, c.radius, c.color, 0.7, 0.8);
+    } else if (c.spell === 'lightning') {
+      // the toughest few targets inside are struck
+      const y = z * TILT;
+      FX.groundRing(x, y, 0.3, c.radius, c.color, 0.5);
+      const tg = G.ents.filter((o) => o.side !== side && o.alive && Math.hypot(o.x - x, o.z - z) <= c.radius + o.r * 0.6).sort((a, b) => b.hp - a.hp || a.id - b.id).slice(0, c.n);
+      for (const o of tg) {
+        const oy = o.kind === 'troop' ? sy(o) + o.bodyH * 0.5 : o.z * TILT + (TOWER_E[o.type] || 1);
+        FX.thunderBolt(o.x, oy, c.color); FX.thunderBolt(o.x + rnd(-0.2, 0.2), oy, 0xffffff);
+        FX.groundRing(o.x, o.z * TILT, 0.2, 1.2, c.color, 0.35, 0.9); FX.hit(o.x, oy, c.color, 1.4);
+        damage(o, cc.dmg * (o.kind === 'tower' && o.type !== 'bld' ? c.towerK : 1), { side, card: cc });
+        if (o.alive && c.stun) stun(o, c.stun);
+      }
+      FX.flash(0xdfefff, 0.3); FX.shake(0.25);
+      SFX.play('elec'); SFX.play('expM', 0.6);
+    } else if (c.spell === 'pull') {
+      G.zones.push({ kind: 'pull', side, x, z, r: c.radius, dps: cc.dmg, t: c.dur, tick: 0, towerK: c.towerK, card: cc });
+      FX.groundRing(x, z * TILT, c.radius, 0.3, c.color, c.dur, 0.7); // the ring closes in
+      FX.groundGlow(x, z * TILT, c.radius * 0.8, c.color, c.dur, 0.45);
+      SFX.play('quake', 0.7);
     } else if (c.spell === 'freeze') {
       const y = z * TILT;
       spawnStatic('Titania_skill1_Ground_ice', x, y, 0.3, 1, L.FX);
@@ -1344,6 +1417,38 @@
     for (let i = G.zones.length - 1; i >= 0; i--) {
       const zn = G.zones[i];
       zn.t -= dt; zn.tick -= dt;
+      if (zn.kind === 'volley') { // waves of shots rain down
+        if (zn.tick <= 0 && zn.waves > 0) {
+          zn.tick = 0.25; zn.waves--;
+          for (let k = 0; k < 22; k++) { const a = Math.random() * 6.28, r = zn.r * Math.sqrt(Math.random()), px = zn.x + Math.cos(a) * r, py = (zn.z + Math.sin(a) * r) * TILT; FX.particle({ x: px + 0.6, y: py + 3.2, vx: -2.4, vy: -13, life: 0.24, size: 0.55, size1: 0.3, aspect: 5, rot: 0.18, color: zn.card.color, tex: FX.tex.beam, alpha: 1 }); FX.later(0.22, () => FX.hit(px, py, zn.card.color, 0.35)); }
+          FX.groundRing(zn.x, zn.z * TILT, 0.3, zn.r, zn.card.color, 0.3, 0.5);
+          SFX.play('mg', 0.5);
+          spellHit(zn.side, { radius: zn.r, dmg: zn.hitDmg, towerK: zn.towerK }, zn.x, zn.z, { side: zn.side, card: zn.card });
+        }
+        if (zn.waves <= 0) G.zones.splice(i, 1);
+        continue;
+      }
+      if (zn.kind === 'pull') { // everything inside is dragged toward the centre (heavy machines less)
+        const pk = zn.card.radius;
+        for (const o of G.ents) {
+          if (o.side === zn.side || !o.alive || o.kind !== 'troop') continue;
+          const dx = zn.x - o.x, dz = zn.z - o.z, d = Math.hypot(dx, dz);
+          if (d > pk + o.r * 0.5 || d < 0.3) continue;
+          const v = 3.6 * dt * clamp(1.2 - (o.mass || 4) / 16, 0.25, 1);
+          o.x += dx / d * Math.min(v, d - 0.3); o.z += dz / d * Math.min(v, d - 0.3);
+        }
+        for (let k = 0; k < 3; k++) { const a = Math.random() * 6.28, r = pk * rnd(0.3, 1); FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT + 0.3, vx: -Math.cos(a) * r * 1.6 - Math.sin(a) * 3, vy: (-Math.sin(a) * r * 1.6 + Math.cos(a) * 3) * TILT, life: 0.4, size: 0.25, size1: 0.05, aspect: 2.5, color: zn.card.color, tex: FX.tex.beam, alpha: 0.9 }); } // a swirl spiralling in
+        if (zn.tick <= 0 && zn.t > 0) { zn.tick = 0.35; spellHit(zn.side, { radius: pk, dmg: zn.dps * 0.35, towerK: zn.towerK }, zn.x, zn.z, { side: zn.side, card: zn.card }); }
+        if (zn.t <= 0) G.zones.splice(i, 1);
+        continue;
+      }
+      if (zn.kind === 'gas') { // green clouds rolling over the area, bubbles rising
+        if (Math.random() < 0.55) { const a = Math.random() * 6.28, r = zn.r * Math.sqrt(Math.random()) * 0.9; FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT + 0.2, vx: rnd(-0.3, 0.3), vy: rnd(0.2, 0.6), life: rnd(1.2, 1.8), size: 0.8, size1: 2, color: 0x6fd84a, alpha: 0.45, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.LOW }); }
+        if (Math.random() < 0.4) { const a = Math.random() * 6.28, r = zn.r * Math.sqrt(Math.random()) * 0.8; FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT, vy: rnd(0.6, 1.4), life: 0.7, size: 0.12, size1: 0.22, color: 0xb8ff7a, tex: FX.tex.ring, alpha: 0.9 }); }
+        if (zn.tick <= 0 && zn.t > 0) { zn.tick = 0.5; spellHit(zn.side, { radius: zn.r, dmg: zn.dps * 0.5, towerK: zn.towerK, slow: zn.slow }, zn.x, zn.z, { side: zn.side, card: zn.card }); }
+        if (zn.t <= 0) G.zones.splice(i, 1);
+        continue;
+      }
       // a wall of flame along the rim, embers rising inside
       if (Math.random() < 0.7) { const a = Math.random() * 6.28, r = zn.r * rnd(0.8, 1); FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT, vy: rnd(0.8, 1.6), life: 0.55, size: 0.4, size1: 0.9, color: Math.random() < 0.5 ? 0xff6a2a : 0xffc040, frames: FX.sheets.fire, alpha: 0.85 }); }
       if (Math.random() < 0.6) { const a = Math.random() * 6.28, r = zn.r * Math.sqrt(Math.random()) * 0.8; FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT, vx: rnd(-0.3, 0.3), vy: rnd(1, 2.4), life: rnd(0.6, 1.1), size: 0.1, size1: 0, color: 0xffb040, tex: FX.tex.dot }); }
@@ -1500,7 +1605,7 @@
   }
   // status tint toward its target: a hit flash snaps on, everything else eases (freeze / stun / shield read smoothly)
   function tintTo(e, tk, dt) {
-    const m = e.tintMul || 1, T0 = TINTS[tk], T = m === 1 ? T0 : [T0[0] * m, T0[1] * m, T0[2] * m]; // dark iron rigs are lifted a little so they read on the deck
+    const m = e.tintMul || 1, q = e.tintRGB, T0 = TINTS[tk], T = m === 1 && !q ? T0 : [T0[0] * m * (q ? q[0] : 1), T0[1] * m * (q ? q[1] : 1), T0[2] * m * (q ? q[2] : 1)]; // (a clone is tinted holographic blue) // dark iron rigs are lifted a little so they read on the deck
     if (!e.tintC) { e.tintC = T.slice(); e.sd.setTint(T[0], T[1], T[2]); e.tintK = tk; return; } // first frame: written once (a pooled rig may carry an old tint)
     const c = e.tintC, k = tk === 2 ? 1 : Math.min(1, dt * 12);
     let ch = false;
@@ -2302,6 +2407,11 @@
       const oc = hand.find((o) => o.c.spell === 'rage');
       const atk = mine.filter((m) => m.state === 'attack' && m.z < 2);
       if (oc && atk.length >= 2 && S.elixir >= oc.c.cost + 1) { playCard('red', oc.i, atk[0].x, atk[0].z); return; }
+      // copy the push, or mend it once it has taken hits
+      const cl = hand.find((o) => o.c.spell === 'clone'), hl = hand.find((o) => o.c.spell === 'heal');
+      if (cl && atk.length >= 2 && S.elixir >= cl.c.cost + 1) { playCard('red', cl.i, atk[0].x, atk[0].z); return; }
+      const hurt = atk.filter((m) => m.hp < m.max * 0.5);
+      if (hl && hurt.length >= 2 && S.elixir >= hl.c.cost) { playCard('red', hl.i, hurt[0].x, hurt[0].z); return; }
       const sup = hand.filter((o) => o.c.type === 'troop' && o.c.aim !== 'buildings').sort((a, b) => b.c.range - a.c.range)[0];
       if (sup && S.elixir >= sup.c.cost + reserve * 0.5) { aiPlace(S, sup.i, push.u.x + rnd(-0.5, 0.5), Math.max(push.u.z + 2, 2)); return; }
     }
@@ -2899,7 +3009,7 @@
     // the opponent is matched to the arena and to the player's deck level (difficulty shifts it by one)
     const myLvl = myDeck.reduce((s, id) => s + ((opts.levels || {})[id] || LEVEL.min), 0) / myDeck.length;
     // mostly the player's own deck level (a small arena floor): out-levelling must not become a wall either way
-    const aiLvl = clamp(Math.round(myLvl * 0.8 + ARENAS[G.arena].lvl * 0.2 + diff.lvl), LEVEL.min, LEVEL.max);
+    const aiLvl = LEVEL.fixed || clamp(Math.round(myLvl * 0.8 + ARENAS[G.arena].lvl * 0.2 + diff.lvl), LEVEL.min, LEVEL.max); // (fixed: every card at one level for now)
     mpSetup(opts);
     // online: the opponent's own deck and levels, no AI; both devices shuffle the host's deck first (same draws)
     const redDeck = mp ? opts.foeDeck.slice() : aiDeck, redAi = mp ? null : { diff, style, t: 3 + Math.random() * 2, push: null, lane: Math.random() < 0.5 ? -1 : 1 };
@@ -2988,7 +3098,7 @@
     const air = c.type !== 'spell' && c.hits !== 'ground' && !c.heal; // a unit that can shoot up also gets a flying target
     const slots = [{ id: F.ground, x: -1.4, z: -2.4 }, { id: F.ground, x: 1.4, z: -2.2 }, { id: air ? F.air : F.ground, x: 0.1, z: -1.4 }];
     const me = { c, cv, ctx: cv.getContext('2d'), fac, foe, slots, ready: false, t: 0, len: c.skill ? 9 : 7, tower: c.aim === 'buildings',
-      ally: c.spell === 'rage' ? PV_FOES[fac].ally : null };
+      ally: ['rage', 'clone', 'heal'].includes(c.spell) ? PV_FOES[fac].ally : null };
     pv = me; pvAcc = 0;
     // what it needs: its rigs (units, summons, spawns), the targets, its effects
     const rigs = new Set(), fxs = new Set(['simple_explosion', 'skill_hit_simple']);
@@ -3021,7 +3131,7 @@
     p.t = 0; p.skilled = false; p.nextCast = 0.9;
     if (p.tower) { const t = makeTower('red', 'princess', 0, -1.4); t.atk.dmg = 0; t.label.hidden = true; }
     p.slots.forEach((s) => { s.u = previewFoe(s); s.wait = 0; });
-    if (p.ally) [-0.8, 0.8].forEach((x) => spawnTroop('blue', CARD[p.ally], x, -5.0, 0, LEVEL.min));
+    if (p.ally) [-0.8, 0.8].forEach((x) => { const u = spawnTroop('blue', CARD[p.ally], x, -5.0, 0, LEVEL.min); if (p.c.spell === 'heal') u.hp = u.max * 0.3; }); // (wounded, for the repair spell)
     if (p.c.type !== 'spell') { pvHand(); playCard('blue', 0, 0, p.c.type === 'building' ? -5.0 : -5.2); }
   }
   // a full hand of the one card (the battle HUD's hand stays valid), energy to play it
@@ -3069,7 +3179,7 @@
       view.w = cw / pr; view.h = ch / pr;
       lastSize = ''; // the battle sizes itself again when it is shown
     }
-    const w = 12, h = w * ch / cw, cy = -5.4 + h / 2; // the attacker's feet stay at the bottom; a taller canvas shows more above (big units, high swings)
+    const w = 12, h = w * ch / cw, cy = p.c.type === 'spell' && !p.ally ? -1.6 : -5.4 + h / 2; // (a spell on its own: the target group in the middle) // the attacker's feet stay at the bottom; a taller canvas shows more above (big units, high swings)
     camera.left = -w / 2; camera.right = w / 2; camera.top = cy + h / 2; camera.bottom = cy - h / 2;
     camera.updateProjectionMatrix();
   }

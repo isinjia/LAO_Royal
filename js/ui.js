@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.39'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.40'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -60,7 +60,7 @@
     }
     persist();
   }
-  const levelOf = (id) => (save.cards[id] ? save.cards[id].lv : LEVEL.min);
+  const levelOf = (id) => LEVEL.fixed || (save.cards[id] ? save.cards[id].lv : LEVEL.min);
 
   // ── missions ──────────────────────────────────────────
   const MDEF = Object.fromEntries(DATA.MISSIONS.map((m) => [m.k, m]));
@@ -137,6 +137,23 @@
       g.fillStyle = col; g.beginPath(); g.moveTo(64, 10); g.lineTo(74, 40); g.lineTo(54, 40); g.closePath(); g.fill();
     } else if (c.spell === 'zap') {
       g.beginPath(); g.moveTo(74, 14); g.lineTo(44, 68); g.lineTo(66, 68); g.lineTo(52, 114); g.lineTo(88, 54); g.lineTo(66, 54); g.closePath(); g.fill();
+    } else if (c.icon === 'poison') { // a gas drop with bubbles
+      g.beginPath(); g.moveTo(64, 14); g.bezierCurveTo(96, 54, 98, 78, 64, 108); g.bezierCurveTo(30, 78, 32, 54, 64, 14); g.fill();
+      g.fillStyle = col; g.shadowBlur = 0;
+      for (const [bx, by, br] of [[56, 74, 9], [74, 62, 6], [70, 88, 5]]) { g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2); g.fill(); }
+    } else if (c.icon === 'clone') { // a figure and its hologram twin
+      const man = (ox, a) => { g.globalAlpha = a; g.beginPath(); g.arc(ox, 40, 14, 0, Math.PI * 2); g.fill(); g.beginPath(); g.moveTo(ox - 22, 108); g.quadraticCurveTo(ox - 22, 60, ox, 60); g.quadraticCurveTo(ox + 22, 60, ox + 22, 108); g.fill(); };
+      man(48, 1); g.fillStyle = col; man(82, 0.75); g.globalAlpha = 1;
+    } else if (c.icon === 'volley') { // shots raining down
+      for (let i = 0; i < 6; i++) { const bx = 26 + i * 15, by = 18 + (i % 2) * 18; g.beginPath(); g.moveTo(bx + 8, by); g.lineTo(bx, by + 46); g.stroke(); g.beginPath(); g.moveTo(bx - 6, by + 38); g.lineTo(bx, by + 52); g.lineTo(bx + 7, by + 40); g.fill(); }
+      g.fillRect(18, 104, 92, 6);
+    } else if (c.icon === 'thunder') { // a cloud and a bolt
+      g.beginPath(); g.arc(46, 38, 16, Math.PI * 0.5, Math.PI * 1.5); g.arc(64, 28, 20, Math.PI, 0); g.arc(84, 40, 14, Math.PI * 1.5, Math.PI * 0.5); g.closePath(); g.fill();
+      g.fillStyle = col; g.beginPath(); g.moveTo(70, 56); g.lineTo(50, 88); g.lineTo(64, 88); g.lineTo(54, 118); g.lineTo(82, 78); g.lineTo(68, 78); g.closePath(); g.fill();
+    } else if (c.icon === 'repair') { // a cross
+      g.fillRect(52, 22, 24, 84); g.fillRect(22, 52, 84, 24);
+    } else if (c.icon === 'gravity') { // a spiral pulling in
+      g.beginPath(); for (let a = 0; a < Math.PI * 6; a += 0.1) { const r = 4 + a * 2.4; const px = 64 + Math.cos(a) * r, py = 64 + Math.sin(a) * r; if (a === 0) g.moveTo(px, py); else g.lineTo(px, py); } g.stroke();
     } else {
       for (let i = 0; i < 6; i++) {
         const a = i * Math.PI / 3;
@@ -234,7 +251,7 @@
   const avg = (d) => (d.length ? d.reduce((s, id) => s + CARD[id].cost, 0) / d.length : 0).toFixed(1);
   function canUpgrade(c) {
     const o = save.cards[c.id];
-    if (!o || o.lv >= LEVEL.max) return false;
+    if (LEVEL.fixed || !o || o.lv >= LEVEL.max) return false; // (levels are fixed for now)
     const k = upCost(c, o.lv);
     return o.n >= k.n && save.gold >= k.gold;
   }
@@ -315,6 +332,7 @@
         ['대상', c.aim === 'buildings' ? '건물' : c.hits === 'ground' ? '지상' : '공중·지상']);
       if (c.air) st.push(['유형', '비행']);
       if (c.heal) st.push(['치료', `${Math.round(c.heal.amount * m)} / ${c.heal.every}초`], ['치료 반경', c.heal.radius]);
+      if (c.healHit) st.push(['공격 시 회복', Math.round(c.healHit.amt * m)], ['회복 반경', c.healHit.r]);
       if (c.chain) st.push(['연쇄', c.chain + '타겟']);
       if (c.slow) st.push(['둔화', Math.round(c.slow * 100) + '%']);
       if (c.splash) st.push(['범위', c.splash]);
@@ -324,6 +342,16 @@
       if (c.spawn) st.push(['출격', `${CARD[c.spawn.card].name} / ${c.spawn.every}초`]);
     } else if (c.spell === 'rage') {
       st.push(['반경', c.radius], ['지속', c.dur + '초'], ['가속', '+' + Math.round((c.k - 1) * 100) + '%']);
+    } else if (c.spell === 'clone') {
+      st.push(['반경', c.radius], ['복제체 체력', 1]);
+    } else if (c.spell === 'heal') {
+      st.push(['반경', c.radius], ['회복', Math.round(c.heal * m)]);
+    } else if (c.spell === 'lightning') {
+      st.push(['피해', Math.round(c.dmg * m)], ['반경', c.radius], ['대상', c.n + '개'], ['탑 피해', Math.round(c.dmg * m * c.towerK)], ['기절', c.stun + '초']);
+    } else if (c.spell === 'volley') {
+      st.push(['피해', Math.round(c.dmg * m)], ['반경', c.radius], ['탄막', c.waves + '회'], ['탑 피해', Math.round(c.dmg * m * c.towerK)]);
+    } else if (c.spell === 'pull') {
+      st.push(['피해', Math.round(c.dmg * m * c.dur) + ' (총)'], ['반경', c.radius], ['지속', c.dur + '초']);
     } else {
       st.push(['피해', Math.round(c.dmg * m) + (c.dur ? '/초' : '')], ['반경', c.radius], ['탑 피해', Math.round(c.dmg * m * c.towerK)]);
       if (c.dur) st.push(['지속', c.dur + '초']);
@@ -334,7 +362,8 @@
     let act = '';
     if (!o || !unlocked(c)) act = `<span class="hint">${esc(ARENAS[c.arena].name)} (트로피 ${ARENAS[c.arena].trophy})에서 해금</span>`;
     else {
-      if (lv < LEVEL.max) {
+      if (LEVEL.fixed) act += `<span class="hint">${LEVEL.fixed}레벨 고정 중</span>`;
+      else if (lv < LEVEL.max) {
         const k = upCost(c, lv);
         act += `<button class="btn ${canUpgrade(c) ? 'g' : 'd'} sm" id="btnUp" ${canUpgrade(c) ? '' : 'disabled'}>강화 Lv.${lv + 1} · 카드 ${o.n}/${k.n} · <i class="gold-i"></i>${k.gold}</button>`;
       } else act += '<span class="hint">최대 레벨</span>';

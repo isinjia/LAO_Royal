@@ -317,6 +317,8 @@
     if ((data.fmt || 1) !== SD.FORMAT) { delete SD_DATA[id]; window.BUILD_MISMATCH = true; return null; } // newer deploy
     // per-rig sorting tweaks (SD.orderFix[id] = [{ re, add }]): parts whose name matches are drawn `add` orders later
     const fix = SD.orderFix && SD.orderFix[id];
+    const hide = SD.hideParts && SD.hideParts[id]; // parts left out of a rig (SD.hideParts[id] = name regexp)
+    if (hide && !data.partsHidden) { data.partsHidden = true; for (const n of data.nodes) if (hide.test(n.n)) { delete n.sr; delete n.mesh; delete n.skin; } }
     if (fix && !data.orderFixed) {
       data.orderFixed = true; // (once: a retried build keeps the same data)
       for (const n of data.nodes) for (const f of fix) {
@@ -1257,6 +1259,8 @@
     // Labiata's front-hand greatsword: its battery housing is sorted over the blade, so the second swing (blade brought
     // down toward the viewer) vanished behind the housing; the blade, guard and its lights now draw over it
     orderFix: { labiata: [{ re: /^parts_LF_weapon_(blade|central_ridge|grip|cross_guard|fx)/, add: 32 }] },
+    // Pupp Head's attack shoots a cord forward (its arrest chain); here it fires electricity instead, so the cord goes
+    hideParts: { e_PuppHead_N: /^(skill_\d_Line|line_B|line_fx)/ },
     prepare,
     create(id) { const t = templates[id]; return t ? new SDChar(t) : null; },
     // pooled instances for short-lived rigs (enemies): no typed arrays / materials / textures per spawn
