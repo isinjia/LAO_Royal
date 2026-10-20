@@ -261,6 +261,12 @@
   };
 
   // supply crates: earned by winning, opened after a short real-time unlock
+  // the shop: crates for parts (opened on the spot), master cards for tuna (a master card of a grade is one copy of any card of that grade)
+  const SHOP = {
+    crates: [{ key: 'normal', price: 120 }, { key: 'rare', price: 350 }, { key: 'epic', price: 900 }],
+    masters: [{ r: 0, n: 10, price: 20 }, { r: 1, n: 5, price: 30 }, { r: 2, n: 2, price: 40 }, { r: 3, n: 1, price: 60 }],
+    tunaStart: 50, tunaWin: 3, tunaFirstWin: 10,
+  };
   const CHESTS = [
     { key: 'normal', name: '보급 상자', time: 30, gold: [40, 70], cards: 3, weight: 70, color: '#8aa0b4' },
     { key: 'rare', name: '정예 보급 상자', time: 120, gold: [110, 170], cards: 5, weight: 24, color: '#38b6ff' },
@@ -315,7 +321,7 @@
   // emotes: the original emotion icons (EmojiSprite), the same eight for every faction (0-3 are the AI's: cheer, praise, oops, taunt)
   const EMOTES = [['heart', '좋아요!'], ['shiny', '잘했어요'], ['sweat', '이런…'], ['aggro', '덤벼라!'], ['note', '신난다~'], ['electric', '좋은 생각!'], ['big_surprise', '뭐라고!?'], ['question', '응?']];
   window.DATA = {
-    EMOTES, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
+    EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
     card: Object.fromEntries(CARDS.concat(TOKENS).map((c) => [c.id, c])),
     byFaction: (f) => CARDS.filter((c) => c.anyFaction || c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (spells belong to every faction) // (Lemonade and the commander play from the orca cards)
   };

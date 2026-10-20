@@ -11,7 +11,9 @@
     const d = { trophy: 0, best: 0, gold: 100, wins: 0, losses: 0, draws: 0, faction: 'orca', diff: 1, mode: 0, decks: {}, cards: {},
       music: 1, sfx: 1, quality: null, autoQuality: true, muted: false, tutorial: false, streak: 0 };
     s = Object.assign(d, typeof s === 'object' ? s : {});
-    ['trophy', 'best', 'gold', 'wins', 'losses', 'draws', 'streak', 'opDay', 'opStreak'].forEach((k) => { s[k] = Math.max(0, Math.floor(+s[k] || 0)); });
+    if (s.tuna == null) s.tuna = DATA.SHOP.tunaStart; // (tuna: the second currency, for master cards)
+    s.master = [0, 1, 2, 3].map((r) => Math.max(0, Math.floor(+(Array.isArray(s.master) ? s.master[r] : 0) || 0)));
+    ['trophy', 'best', 'gold', 'tuna', 'wins', 'losses', 'draws', 'streak', 'opDay', 'opStreak'].forEach((k) => { s[k] = Math.max(0, Math.floor(+s[k] || 0)); });
     if (!FACTIONS[s.faction]) s.faction = 'orca';
     if (!(s.diff >= 0 && s.diff <= 2)) s.diff = 1;
     if (!(s.mode >= 0 && s.mode < BAL.modes.length) || (s.mode >= 1 && s.mode <= 3)) s.mode = 0; // (only 일반전 and 연습전 are left)
@@ -37,7 +39,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.57'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.58'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -281,6 +283,17 @@
     $('mBadge').hidden = !cl;
   }
   const avg = (d) => (d.length ? d.reduce((s, id) => s + CARD[id].cost, 0) / d.length : 0).toFixed(1);
+  // the shop: balances, crates (parts), master cards (tuna) with how many of each grade are held
+  function renderShop() {
+    $('shopGold').textContent = save.gold; $('shopTuna').textContent = save.tuna;
+    $('shopCrates').innerHTML = DATA.SHOP.crates.map((it, i) => { const ch = DATA.CHESTS.find((x) => x.key === it.key); return `<button class="shopit" data-buy="crate:${i}"><i class="chest-i ${it.key}"></i><b>${esc(ch.name)}</b><small>카드 ${ch.cards}장</small><em><i class="gold-i"></i>${it.price}</em></button>`; }).join('');
+    $('shopMasters').innerHTML = DATA.SHOP.masters.map((it, i) => `<button class="shopit master r${it.r}" data-buy="master:${i}"><span class="mcard"><b>${RARITY[it.r].name}</b><small>MASTER</small></span><b>${RARITY[it.r].name} 마스터 x${it.n}</b><small>보유 ${save.master[it.r]}</small><em><i class="tuna-i"></i>${it.price}</em></button>`).join('');
+  }
+  function copiesLeft(c) {
+    const o = save.cards[c.id]; if (!o) return 0;
+    let need = 0; for (let l = o.lv; l < LEVEL.max; l++) need += upCost(c, l).n;
+    return Math.max(0, need - o.n);
+  }
   function canUpgrade(c) {
     const o = save.cards[c.id];
     if (LEVEL.fixed || !o || o.lv >= LEVEL.max) return false; // (levels are fixed for now)
@@ -402,13 +415,15 @@
     }
     const inDeck = deck.includes(c.id);
     let act = '';
-    if (!o || !unlocked(c)) act = `<span class="hint">${esc(ARENAS[c.arena].name)} (트로피 ${ARENAS[c.arena].trophy})에서 해금</span>`;
+    if (!o || !unlocked(c)) act = '<span class="hint">아직 없는 카드 · 승리하면 새 카드가 1장씩 열립니다</span>';
     else {
       if (LEVEL.fixed) act += `<span class="hint">${LEVEL.fixed}레벨 고정 중</span>`;
       else if (lv < LEVEL.max) {
         const k = upCost(c, lv);
         act += `<button class="btn ${canUpgrade(c) ? 'g' : 'd'} sm" id="btnUp" ${canUpgrade(c) ? '' : 'disabled'}>강화 Lv.${lv + 1} · 카드 ${o.n}/${k.n} · <i class="gold-i"></i>${k.gold}</button>`;
       } else act += '<span class="hint">최대 레벨</span>';
+      const left = copiesLeft(c), ms = save.master[c.rarity] || 0;
+      if (ms > 0 && left > 0) act += ` <button class="btn g sm" id="btnMaster">${RARITY[c.rarity].name} 마스터 카드 사용 +${Math.min(ms, left)} <small>(보유 ${ms})</small></button>`;
       act += inDeck ? ' <button class="btn d sm out" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel >= 0 && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
     }
     const skill = c.skill ? `<div class="heronote">영웅: 덱에 1장만, 전장에는 1기만 나옵니다 (나와 있는 동안 카드가 손에 들어오지 않음)</div><div class="skillinfo"><b>영웅 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
@@ -421,6 +436,8 @@
       if (slotSel != null && slotSel >= 0 && slotSel < deck.length) deck[slotSel] = c.id; else if (deck.length < 8) deck.push(c.id); else { toast('덱에서 바꿀 카드를 먼저 고르세요'); SFX.play('fail', 0.4); return; } // (browsing: a full deck needs a place picked)
       persist(); slotSel = null; cardOpen = false; deckSel = null; SFX.play('click'); renderDeck();
     };
+    const mb = $('btnMaster');
+    if (mb) mb.onclick = () => { const add = Math.min(save.master[c.rarity], copiesLeft(c)); if (add <= 0) return; save.master[c.rarity] -= add; o.n += add; persist(); SFX.play('pickSS', 0.6); toast(`${c.name} 카드 +${add}`); renderDeck(); };
     const out = $('btnOut');
     if (out) out.onclick = () => { deck.splice(deck.indexOf(c.id), 1); persist(); cardOpen = false; deckSel = null; slotSel = null; SFX.play('click'); renderDeck(); };
     const u = $('btnUp');
@@ -843,7 +860,7 @@
   // card copies of unlocked cards of the played faction (rarer cards come in smaller stacks)
   function rollCards(n, bonus, ss) {
     const a = arena();
-    const pool = DATA.CARDS.filter((c) => save.cards[c.id]); // any card can be in a deck, so any card can drop
+    const pool = DATA.CARDS.filter((c) => save.cards[c.id] && copiesLeft(c) > 0); // owned cards that can still use copies (a card with all it needs for the max level drops no more)
     const picks = new Map();
     for (let i = 0; i < n && pool.length; i++) {
       const r = Math.random();
@@ -964,6 +981,7 @@
     if (!practice) save.best = Math.max(save.best, save.trophy);
     if (practice) { /* not on the record */ } else if (win) { save.wins++; save.streak++; } else if (draw) save.draws++; else { save.losses++; save.streak = 0; }
     save.gold += rw.gold;
+    if (win && !practice) { rw.tuna = DATA.SHOP.tunaWin + (save.firstWin === 'd' + DATA.dayIndex() ? 0 : DATA.SHOP.tunaFirstWin); save.tuna += rw.tuna; } // (the first win of the day gives more)
     const a1 = arena();
     syncCollection();
     const el = $('result');
@@ -1000,7 +1018,7 @@
     $('resChart').hidden = top.length < 2;
     $('resChart').innerHTML = top.map(([id, v]) => `<div class="bar"><span>${esc(CARD[id].name)}</span><i style="--w:${(v / top[0][1] * 100).toFixed(0)}%"></i><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
     const rwEl = $('resReward');
-    rwEl.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${rw.gold}</b></div>` + (rw.chest ? `<div class="rw"><span class="chest-i ${rw.chest.key}"></span><b>${esc(rw.chest.name)}</b></div>` : '') + (rw.fresh ? `<div class="rw fresh"><span class="pf r${rw.fresh.rarity}" style="background-image:url(${art(rw.fresh)})"></span><b>NEW</b></div>` : '') + rw.picks.map(([c, n]) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>x${n}</b></div>`).join('');
+    rwEl.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${rw.gold}</b></div>` + (rw.tuna ? `<div class="rw gold-rw"><i class="tuna-i big"></i><b>+${rw.tuna}</b></div>` : '') + (rw.chest ? `<div class="rw"><span class="chest-i ${rw.chest.key}"></span><b>${esc(rw.chest.name)}</b></div>` : '') + (rw.fresh ? `<div class="rw fresh"><span class="pf r${rw.fresh.rarity}" style="background-image:url(${art(rw.fresh)})"></span><b>NEW</b></div>` : '') + rw.picks.map(([c, n]) => `<div class="rw"><span class="pf r${c.rarity}" style="background-image:url(${art(c)})"></span><b>x${n}</b></div>`).join('');
     rwEl.querySelectorAll('.rw').forEach((x, i) => { x.style.animationDelay = (0.5 + i * 0.25) + 's'; });
     rwEl.hidden = rwEl.previousElementSibling.hidden = practice;
     const mDone = practice ? 0 : progressMissions(win, b, s, G.opts);
@@ -1159,7 +1177,21 @@
     $('btnFactionClose').onclick = () => { $('factionOv').hidden = true; };
     $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; deckSel = null; slotSel = null; cardOpen = false; persist(); SFX.play('click'); $('factionOv').hidden = true; renderTitle(); if ($('deck').classList.contains('on')) renderDeck(); });
     document.querySelectorAll('#factionSel button').forEach((b) => { b.querySelector('.fp').style.backgroundImage = `url(${IMG[FACTIONS[b.dataset.f].banner]})`; });
-    $('btnShopClose').onclick = () => { SFX.play('click'); $('shopOv').hidden = true; };
+    $('btnShopClose').onclick = () => { SFX.play('click'); $('shopOv').hidden = true; renderTitle(); };
+    $('shopOv').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-buy]'); if (!b) return;
+      const [kind, i] = b.dataset.buy.split(':');
+      if (kind === 'crate') {
+        const it = DATA.SHOP.crates[+i];
+        if (save.gold < it.price) { toast('부품이 부족합니다'); SFX.play('fail', 0.4); return; }
+        save.gold -= it.price; save.chests.push({ k: it.key, t0: null }); SFX.play('purchase', 0.6); openChest(save.chests.length - 1);
+      } else {
+        const it = DATA.SHOP.masters[+i];
+        if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
+        save.tuna -= it.price; save.master[it.r] += it.n; persist(); SFX.play('purchase', 0.6); toast(`${RARITY[it.r].name} 마스터 카드 +${it.n}`);
+      }
+      renderShop();
+    });
     $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; if (save.collSort === b.dataset.s) save.collDesc = !save.collDesc; else { save.collSort = b.dataset.s; save.collDesc = false; } persist(); SFX.play('click'); renderDeck(); });
     $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') closeCard(); }); // a tap outside the popup closes it
     $('deckTabs').addEventListener('click', (e) => {
@@ -1237,7 +1269,7 @@
     document.querySelector('.tabbar').addEventListener('click', (e) => { // (the bar moves between home and deck: one listener)
       const b = e.target.closest('[data-tab]'); if (!b) return;
       const t = b.dataset.tab;
-      if (t === 'shop') { SFX.play('click'); $('shopOv').hidden = false; } // (not built yet)
+      if (t === 'shop') { SFX.play('click'); renderShop(); $('shopOv').hidden = false; }
       else if (t === 'deck') { if (!$('deck').classList.contains('on')) $('btnDeck').click(); }
       else if (t === 'battle') { if (!$('title').classList.contains('on')) SFX.play('click'); cardOpen = false; slotSel = null; $('cardOv').hidden = true; cardPreview(null); renderTitle(); show('title'); }
       else if (t === 'road') { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); }

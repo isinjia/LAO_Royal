@@ -1249,3 +1249,32 @@ button:disabled { cursor: default; }
 .bubble .pf.emo { width: 36px; height: 36px; }
 
 #btnPause[hidden] { display: none !important; }
+
+/* shop: crates for parts, master cards for tuna */
+.tuna-i { display: inline-block; width: 18px; height: 14px; vertical-align: -2px; margin-right: 3px; background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 24'%3E%3Cpath d='M2 12c5-8 15-10 22-6l6-5v22l-6-5C17 22 7 20 2 12z' fill='%2366b8ff' stroke='%23123' stroke-width='1.6'/%3E%3Ccircle cx='9' cy='10.5' r='1.8' fill='%23123'/%3E%3Cpath d='M14 8c2 3 2 5 0 8' fill='none' stroke='%23123' stroke-width='1.4'/%3E%3C/svg%3E"); }
+.tuna-i.big { width: 30px; height: 22px; }
+.shopdlg { width: min(94%, 400px); max-height: 92vh; overflow-y: auto; text-align: left; }
+.shopdlg h4 { text-align: center; }
+.shopdlg .lbl { margin: 10px 0 6px; font-weight: 800; }
+.shopdlg .lbl small { font-weight: 500; font-size: 11px; color: var(--dim); margin-left: 6px; }
+.shopwallet { display: flex; justify-content: center; gap: 14px; font-size: 15px; }
+.shopwallet span { padding: 4px 12px; border-radius: 14px; background: rgba(0,0,0,.4); border: 1px solid #2c3a4a; }
+.shopgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.shopgrid.m4 { grid-template-columns: repeat(4, 1fr); }
+.shopit { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border: 1px solid #2c3a4a; border-radius: 8px; background: linear-gradient(#18222e, #0f161e); color: #fff; font: inherit; cursor: pointer; }
+.shopit:active { transform: scale(.97); }
+.shopit > b { font-size: 11.5px; text-align: center; line-height: 1.2; }
+.shopit > small { font-size: 10px; color: var(--dim); }
+.shopit em { font-style: normal; font-weight: 900; font-size: 13px; color: #ffd34d; margin-top: 2px; }
+.shopit .chest-i { width: 54px; height: 44px; display: block; background-size: contain; background-repeat: no-repeat; background-position: center; }
+.shopit .mcard { width: 40px; height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; border: 2px solid #fff3; background: linear-gradient(160deg, #3a4656, #141b24); box-shadow: inset 0 0 10px rgba(255,255,255,.15); }
+.shopit .mcard b { font: 900 italic 18px var(--en-font, sans-serif); }
+.shopit .mcard small { font-size: 7px; letter-spacing: 1px; color: #fff9; }
+.shopit.r0 .mcard { border-color: #8aa0b4; } .shopit.r0 .mcard b { color: #c9d6e2; }
+.shopit.r1 .mcard { border-color: #38b6ff; } .shopit.r1 .mcard b { color: #7fd0ff; }
+.shopit.r2 .mcard { border-color: #ffc81e; } .shopit.r2 .mcard b { color: #ffd94d; }
+.shopit.r3 .mcard { border-color: #ff7a2a; background: linear-gradient(160deg, #5a3016, #1c120a); } .shopit.r3 .mcard b { color: #ff9a4a; }
+.shopnote { font-size: 11px; color: var(--dim); margin: 10px 0 0; }
+#cardAct #btnMaster small { font-size: 10px; opacity: .8; }
+.shopdlg .lbl { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.shopdlg .lbl small { margin-left: 0; }
