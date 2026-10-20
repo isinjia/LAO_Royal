@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.52'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.53'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -253,7 +253,6 @@
     $('avgCost').innerHTML = '<b>덱 편성</b>'; // the deck button: its name and lead card (no average energy: the owner's call)
     { const lead = CARD[save.decks[save.faction][0]]; $('deckIcon').style.backgroundImage = lead ? `url(${art(lead)})` : ''; }
     $('modeLabel').innerHTML = `${BAL.modes[save.mode].name}<br>${BAL.diffs[save.diff].name}`;
-    $('deckPreview').insertAdjacentHTML('beforeend', `<div class="syn-row">${synChip(save.decks[save.faction])}</div>`);
     $('pfoeBox').innerHTML = (save.mode === 4 ? `<div class="seg pfoe" id="pfoeSel">${Object.entries(PFOE).map(([k, n]) => `<button data-p="${k}" class="${save.practiceFoe === k ? 'on' : ''}">${n}</button>`).join('')}</div>` : '');
     const up = DATA.CARDS.some((c) => canUpgrade(c));
     $('btnDeck').classList.toggle('dot', up || !!(save.newCards && Object.keys(save.newCards).some((id) => CARD[id])));
@@ -316,7 +315,7 @@
   function renderDeck() {
     const f = save.faction, deck = save.decks[f];
     $('deckTitle').textContent = `덱 편성 · ${FACTIONS[f].name}`;
-    $('deckAvg').innerHTML = `<i class="gold-i"></i>${save.gold} · ${synChip(deck)}`;
+    $('deckAvg').innerHTML = `<i class="gold-i"></i>${save.gold}`;
     $('facPf').style.backgroundImage = `url(${IMG[FACTIONS[f].banner]})`; $('facName').textContent = FACTIONS[f].name; $('btnFaction').className = 'facrow f-' + f;
     if (slotSel != null && slotSel > deck.length) slotSel = null;
     const picking = true; // (the codex is always shown under the deck)
@@ -833,7 +832,7 @@
     let chest = null, picks = [];
     if (win) {
       if (!Array.isArray(save.chests)) save.chests = [];
-      if (save.chests.length < 4) {
+      if (false) { // (no crate slots any more: a win pays its cards at once)
         const tot = DATA.CHESTS.reduce((s, c) => s + c.weight, 0);
         let r = Math.random() * tot;
         chest = DATA.CHESTS.find((c) => (r -= c.weight) < 0) || DATA.CHESTS[0];
@@ -853,6 +852,7 @@
   const rushCost = (left) => Math.max(5, Math.ceil(left / 6)); // parts to finish an unlock now
   let chestKey = '';
   function renderChests() {
+    if ($('chestRow').hidden) return; // (the crate row was taken out of the battle tab)
     if (!Array.isArray(save.chests)) save.chests = [];
     const row = $('chestRow');
     // the slots are rebuilt only when their set changes; the timers update text and classes in place
@@ -988,9 +988,8 @@
       save.opDay = day;
       const og = 100 + 40 * Math.min(save.opStreak, 5);
       save.gold += og;
-      const crate = save.chests.length < 4 ? (save.opStreak >= 3 ? 'epic' : 'rare') : null;
-      if (crate) save.chests.push({ k: crate, t0: null });
-      notes.push(`<b>오늘의 작전 완수! (${save.opStreak}일 연속)</b> 부품 +${og}${crate ? ' · ' + esc(CH[crate].name) : ' · 상자 슬롯이 가득 차 상자는 받지 못했습니다'}`);
+      const crate = null; // (no crate slots any more)
+      notes.push(`<b>오늘의 작전 완수! (${save.opStreak}일 연속)</b> 부품 +${og}`);
     }
     $('resArena').hidden = !notes.length;
     $('resArena').innerHTML = notes.join('<br>');
@@ -1100,9 +1099,6 @@
     $('btnCardX').onclick = closeCard;
     $('btnResLog').onclick = () => { const l = $('resLog'); l.hidden = !l.hidden; $('btnResLog').textContent = l.hidden ? '전투 기록 보기' : '전투 기록 닫기'; SFX.play('click'); };
     // the bond chip in the deck header opens the list of faction bonds
-    $('deckAvg').addEventListener('click', (e) => { if (!e.target.closest('.syn')) return; SFX.play('click'); renderSyn(); $('synOv').hidden = false; });
-    $('btnSynClose').onclick = () => { $('synOv').hidden = true; };
-    $('synOv').addEventListener('click', (e) => { if (e.target.id === 'synOv') $('synOv').hidden = true; });
     // a tap on the empty part of the deck screen drops the pick
     $('deck').addEventListener('click', (e) => { if (slotSel == null || e.target.closest('.tile, .card, button, .csort, .lbl')) return; slotSel = null; renderDeck(); });
     // the faction card under the deck opens the faction picker
@@ -1162,17 +1158,17 @@
       let gold = 0, crates = 0;
       let full = false;
       for (const r of road) {
-        if (r.chest) { if (save.chests.length >= 4) { full = true; break; } save.chests.push({ k: r.chest, t0: null }); crates++; } // a crate waits for a free slot
+        if (r.chest) { save.chests.push({ k: r.chest, t0: null }); crates++; } // (opened right away below: there are no crate slots)
         else gold += r.gold;
         save.road = r.trophy;
       }
-      if (!gold && !crates) { toast('상자 슬롯이 가득 찼습니다 — 상자를 열고 다시 받으세요'); SFX.play('fail', 0.4); renderRoad(); return; }
-      if (full) setTimeout(() => toast('상자 슬롯이 가득 찼습니다 — 상자를 열고 다시 받으세요'), 1500);
+      if (!gold && !crates) { renderRoad(); return; }
       save.gold += gold;
       persist();
       SFX.play('pickSS', 0.6);
       toast(`트로피 로드 보상: ${gold ? '부품 +' + gold : ''}${gold && crates ? ' · ' : ''}${crates ? '상자 ' + crates + '개' : ''}`);
       renderRoad();
+      if (crates) openChest(save.chests.length - 1); // the road's crate opens on the spot
     };
     $('btnMissions').onclick = () => { SFX.play('click'); renderMissions(); $('missionOv').hidden = false; };
     $('btnSearchCancel').onclick = () => { $('searchOv').dataset.how = 'cancel'; NET.cancel(); };

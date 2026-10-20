@@ -44,7 +44,7 @@
       <div class="anext"><span id="arenaNext"></span><span class="aun" id="arenaUnlock"></span></div>
     </div>
     <div class="fwin" id="firstWin"></div>
-    <div class="chests" id="chestRow"></div>
+    <div class="chests" id="chestRow" hidden></div>
     <!-- deck / BATTLE / mode -->
     <div class="actrow">
       <button class="btn d actside" id="btnDeck" aria-label="덱 편성"><span class="dkicon" id="deckIcon"></span><small id="avgCost"></small></button>
@@ -159,13 +159,6 @@
       <div class="tbtns"><button class="btn d" id="btnFactionClose">닫기</button></div></div>
   </div>
 
-  <!-- deck builder: the faction bonds (tap the bond chip in the header) -->
-  <div id="synOv" class="ov" hidden>
-    <div class="dlg syndlg"><h4>진영 결속</h4>
-      <p class="synnote">덱에 한 진영 카드가 많을수록 그 진영 유닛이 강해집니다. 두 진영이 같은 수면 결속이 없습니다.</p>
-      <div id="synList" class="synlist"></div>
-      <div class="tbtns"><button class="btn d" id="btnSynClose">닫기</button></div></div>
-  </div>
 
   <div id="pauseOv" class="ov" hidden>
     <div class="dlg"><h4>일시 정지</h4><p>전투가 멈춰 있습니다.</p>

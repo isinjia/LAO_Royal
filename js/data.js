@@ -277,7 +277,7 @@
     const n = { orca: 0, iron: 0 };
     deck.forEach((id) => { const c = CARDS.find((x) => x.id === id); if (c) n[c.faction]++; });
     const f = n.orca >= n.iron ? 'orca' : 'iron', tier = n.orca === n.iron ? 0 : n[f] >= 6 ? 2 : n[f] >= 4 ? 1 : 0; // (an even split bonds neither)
-    return tier ? Object.assign({ faction: f, tier, count: n[f] }, SYNERGY[f][tier]) : { faction: f, tier: 0, count: n[f], hp: 1, dmg: 1, name: '', desc: '' };
+    return { faction: f, tier: 0, count: n[f], hp: 1, dmg: 1, name: '', desc: '' }; // (faction bonds were taken out: no deck gets a bonus)
   }
 
   window.DATA = {

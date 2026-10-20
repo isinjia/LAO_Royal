@@ -99,15 +99,15 @@
     delete UI.save.cards.nymph;
     UI._sync();
     ok(UI.save.newCards.nymph === 1, 'migrated save: NEW badge on a card added by an update');
-    // 2. trophy road with every crate slot full stops before the crate (nothing converted away)
-    Object.assign(UI.save, { trophy: 620, road: 0, chests: [{ k: 'normal', t0: null }, { k: 'normal', t0: null }, { k: 'normal', t0: null }, { k: 'normal', t0: null }] });
+    // 2. trophy road: claiming pays the parts and opens its crate on the spot
+    Object.assign(UI.save, { trophy: 620, road: 0, chests: [] });
     const g0 = UI.save.gold;
     document.querySelector('.tabbar [data-tab="battle"]').click();
     document.getElementById('btnRoadClaim').click();
-    ok(UI.save.road === 400 && UI.save.gold > g0, `road claim with full slots stops at 400 (got ${UI.save.road})`);
-    const g1 = UI.save.gold; document.getElementById('btnRoadClaim').click(); // again: the first reward is the blocked crate
-    ok(UI.save.road === 400 && UI.save.gold === g1, 'road claim blocked by a full slot changes nothing');
-    document.getElementById('roadOv').hidden = true;
+    const top = Math.max(...DATA.ROAD.filter((r) => r.trophy <= 620).map((r) => r.trophy));
+    ok(UI.save.road === top && UI.save.gold > g0, `road claim pays everything up to ${top} (got ${UI.save.road})`);
+    ok(UI.save.chests.length === 0, 'road crates open on the spot (none left waiting)');
+    document.getElementById('roadOv').hidden = true; document.getElementById('chestOv').hidden = true;
     UI.save.chests = [];
     // 3. in a battle: heal, every champion skill of both factions, the AI punish path, a 30-unit load
     Object.assign(UI.save, { faction: 'orca', mode: 0, trophy: 2600, diff: 2 });
@@ -427,10 +427,10 @@
         if (DATA.CARDS.some((c) => !UI.save.cards[c.id])) out.errors.push('check: every card is open from the start');
         UI.save.decks.orca = keep; UI.save.trophy = t0; UI._sync();
         out.runs.push(['free decks', `${DATA.CARDS.length} cards open`, 'mixed deck kept']);
-        // faction bond: 6+ of one faction = tier 2, 4-5 = tier 1, a 4/4 split = none
+        // faction bonds were taken out: every deck plays without a bonus
         const orcaIds = DATA.byFaction('orca').map((c) => c.id), ironIds = DATA.byFaction('iron').map((c) => c.id);
         const t2 = DATA.synergyOf(orcaIds.slice(0, 8)), t1 = DATA.synergyOf(orcaIds.slice(0, 5).concat(ironIds.slice(0, 3))), t0s = DATA.synergyOf(orcaIds.slice(0, 4).concat(ironIds.slice(0, 4)));
-        if (!(t2.tier === 2 && t2.hp > 1 && t1.tier === 1 && t0s.tier === 0 && t0s.hp === 1)) out.errors.push(`check: faction bond tiers (${t2.tier}/${t1.tier}/${t0s.tier})`);
+        if (![t2, t1, t0s].every((x) => x.tier === 0 && x.hp === 1 && x.dmg === 1)) out.errors.push('check: faction bonds are gone (no deck gets a bonus)');
       }
       const arenas = DATA.ARENAS.map((a) => a.trophy);
       let k = 0;
@@ -492,18 +492,6 @@
           if (UI.save.trophy !== tr0 || UI.save.diff !== 1) out.errors.push('check: a failed save write lost the in-memory progress');
         } finally { Storage.prototype.setItem = orig; }
       }
-      // a crate: start unlocking, rush it with parts (double tap), open it
-      UI.save.chests = [{ k: 'epic', t0: null }];
-      UI.save.gold = Math.max(UI.save.gold, 999);
-      document.querySelector('.tabbar [data-tab="battle"]').click();
-      const tap = () => document.querySelector('#chestRow button.chest').click();
-      tap(); await wait(100); // start the unlock
-      tap(); await wait(100); tap(); await wait(100); // rush: arm, confirm
-      if (!(UI.save.chests[0] && UI.save.chests[0].t0 && Date.now() - UI.save.chests[0].t0 >= 299000)) out.errors.push('crate rush did not finish the unlock');
-      tap();
-      await wait(300);
-      out.runs.push(['crate opened', document.getElementById('chestList').childElementCount + ' rewards']);
-      document.getElementById('btnChestClose').click();
     } catch (e) { out.errors.push('smoke: ' + (e.stack || e)); }
     // put the player's progress back exactly as it was
     try { localStorage.setItem('lastroyal.v2', backup); } catch (e) { /* ignore */ }
