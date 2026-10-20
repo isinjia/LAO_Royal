@@ -38,6 +38,8 @@
     <div class="arena-box">
       <div class="an" id="arenaName" role="status" aria-live="polite"></div>
       <div class="road"><small id="roadNext" role="status"></small><button class="btn y sm" id="roadBtn" hidden></button></div>
+      <div class="aemb" id="arenaEmb" aria-hidden="true"></div>
+      <div class="adeck" id="arenaDeck" aria-label="내 덱"></div>
       <div class="abar"><i id="arenaBar"></i></div>
       <div class="anext"><span id="arenaNext"></span><span class="aun" id="arenaUnlock"></span></div>
     </div>
@@ -65,7 +67,9 @@
     <div id="deckTabs" class="dtabs"></div>
     <div id="deckSlots" class="slots"></div>
     <!-- under the deck: the hint (left) and the faction it plays, shown as a card (right; tap -> faction popup) -->
-    <div class="deckfoot"><span class="dhint" id="deckHint"></span>
+    <div class="deckfoot"><div class="dcomp" id="deckComp"></div><span class="dhint" id="deckHint"></span>
+      <button class="codexbtn" id="btnCodex">도감 열기 <b id="codexN"></b></button>
+      <div class="codexpeek" id="codexPeek" aria-hidden="true"></div>
       <button class="facslot" id="btnFaction" aria-label="진영 설정"><span class="fsp" id="facPf"></span><b id="facName"></b><small>진영 설정</small></button></div>
     <!-- the codex: only while a deck card (or an empty place) is picked, right under the deck -->
     <div id="codex" hidden>
@@ -113,6 +117,7 @@
       <div id="resArena" class="rarena" hidden></div>
       <div id="resStats" class="rstats"></div>
       <div id="resMvp" class="rmvp" hidden></div><div id="resChart" class="rchart" hidden></div>
+      <button class="btn d sm rlogbtn" id="btnResLog" hidden>전투 기록 보기</button>
       <div id="resLog" class="rlog" hidden></div>
       <div class="lbl c">보급 보상</div>
       <div id="resReward" class="rreward"></div>
@@ -134,7 +139,7 @@
 
   <!-- deck builder: the tapped card's details -->
   <div id="cardOv" class="ov" hidden>
-    <div class="dlg carddlg">
+    <div class="dlg carddlg"><button class="dlgx" id="btnCardX" aria-label="닫기"></button>
       <!-- the card in action: a short staged fight drawn by the battle engine -->
       <div class="pvbox" id="cardPvBox"><canvas id="cardPv"></canvas><span class="pvload">미리보기 준비 중</span></div>
       <div id="cardInfo" class="cinfo"></div>

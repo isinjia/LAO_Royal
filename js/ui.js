@@ -31,7 +31,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.49'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.50'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -234,11 +234,14 @@
     $('trophy').textContent = save.trophy;
     $('gold').textContent = save.gold;
     $('record').textContent = `${save.wins}승 ${save.losses}패`;
-    $('arenaName').textContent = `ARENA ${a + 1} · ${A.name}`;
+    $('arenaName').textContent = `ARENA ${a + 1}`; // (the emblem below names it)
     document.querySelector('.arena-box').style.backgroundImage = `linear-gradient(180deg, rgba(10,14,20,.15) 40%, rgba(10,14,20,.88)), url(${A.bg})`;
     const f0 = A.trophy, f1 = nx ? nx.trophy : A.trophy + 1;
     $('arenaBar').style.width = (nx ? Math.min(100, (save.trophy - f0) / (f1 - f0) * 100) : 100) + '%';
-    $('arenaNext').textContent = nx ? `다음: ${nx.name} (${nx.trophy})` : '최고 아레나 도달!';
+    $('arenaEmb').innerHTML = `<b>${a + 1}</b><span>${esc(A.name)}</span>`; // the arena's emblem in the middle of its picture
+    $('arenaNext').innerHTML = nx ? `<span>${save.trophy} / ${nx.trophy}</span><span>다음: ${esc(nx.name)}</span>` : '<span>최고 아레나 도달!</span>';
+    // the deck this commander takes into battle, as a strip on the arena picture
+    $('arenaDeck').innerHTML = save.decks[save.faction].map((id) => CARD[id] ? `<i class="r${CARD[id].rarity}" style="background-image:url(${art(CARD[id])})"><b>${CARD[id].cost}</b></i>` : '').join('');
     const nextCards = []; // (every card is already open: nothing to preview)
     $('arenaUnlock').innerHTML = nextCards.map((c) => `<i style="background-image:url(${art(c)})" title="${esc(c.name)}"></i>`).join('');
     document.querySelectorAll('#diffSel button').forEach((b) => b.classList.toggle('on', +b.dataset.d === save.diff));
@@ -247,7 +250,7 @@
     const row = $('deckPreview');
     row.innerHTML = '';
     save.decks[save.faction].forEach((id) => row.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
-    $('avgCost').innerHTML = '<b>덱 편성</b>평균 ' + avg(save.decks[save.faction]); // the deck button: its name, lead card and average cost
+    $('avgCost').innerHTML = '<b>덱 편성</b>'; // the deck button: its name and lead card (no average energy: the owner's call)
     { const lead = CARD[save.decks[save.faction][0]]; $('deckIcon').style.backgroundImage = lead ? `url(${art(lead)})` : ''; }
     $('modeLabel').innerHTML = `${BAL.modes[save.mode].name}<br>${BAL.diffs[save.diff].name}`;
     $('deckPreview').insertAdjacentHTML('beforeend', `<div class="syn-row">${synChip(save.decks[save.faction])}</div>`);
@@ -277,7 +280,7 @@
   }
 
   // deck builder
-  // slotSel: the deck place picked (the codex opens under the deck to fill it); deckSel: the card the popup shows
+  // slotSel: the deck place picked (the codex opens under the deck to fill it), -1 = the codex opened just to browse; deckSel: the card the popup shows
   let deckSel = null, slotSel = null, cardOpen = false, pvId = null; // cardOpen: the card popup is up; pvId: the card its preview shows
   // the popup's preview: the card fighting in a small scene (the poster is the card art until the first frame)
   function cardPreview(c) {
@@ -318,7 +321,14 @@
     if (slotSel != null && slotSel > deck.length) slotSel = null;
     const picking = slotSel != null;
     $('deckHint').textContent = !picking && deck.length < 8 ? `${8 - deck.length}장을 더 넣으세요` : ''; // (only an unfinished deck says anything)
-    $('codex').hidden = !picking; $('btnFaction').hidden = picking; // (the faction card steps aside while the codex is open)
+    $('codex').hidden = !picking; $('btnFaction').hidden = picking;
+    // what the deck is made of (kinds and flyers), shown while the codex is closed
+    const comp = {}; deck.forEach((id) => { const k = kindOf(CARD[id]); comp[k] = (comp[k] || 0) + 1; });
+    const airN = deck.filter((id) => CARD[id].air).length, anti = deck.filter((id) => CARD[id].type !== 'spell' && CARD[id].hits !== 'ground' && (CARD[id].dmg || 0) > 0).length;
+    $('deckComp').hidden = picking;
+    $('btnCodex').hidden = picking; $('codexN').textContent = DATA.CARDS.filter((x) => !deck.includes(x.id)).length + '장';
+    $('codexPeek').hidden = picking; if (!picking) { const pk = $('codexPeek'); pk.innerHTML = ''; DATA.CARDS.filter((x) => !deck.includes(x.id)).slice(0, 10).forEach((x) => pk.appendChild(cardEl(x, '', { lv: levelOf(x.id), rank: true, tile: true }))); } // (the real tiles, fading out)
+    $('deckComp').innerHTML = '<b>덱 구성</b><div>' + Object.keys(KIND).filter((k) => comp[k]).map((k) => `<span class="k-${k}">${KIND[k].name} ${comp[k]}</span>`).join('') + `</div><div><span class="m-air">공중 유닛 ${airN}</span><span class="aa">공중 공격 가능 ${anti}</span></div>`; // (the faction card steps aside while the codex is open)
     $('deckTabs').innerHTML = save.deckSlots[f].map((d, i) => `<button data-i="${i}" class="${i === save.deckSlot[f] ? 'on' : ''}">덱 ${i + 1}</button>`).join('');
     const slots = $('deckSlots');
     slots.innerHTML = '';
@@ -395,16 +405,16 @@
         const k = upCost(c, lv);
         act += `<button class="btn ${canUpgrade(c) ? 'g' : 'd'} sm" id="btnUp" ${canUpgrade(c) ? '' : 'disabled'}>강화 Lv.${lv + 1} · 카드 ${o.n}/${k.n} · <i class="gold-i"></i>${k.gold}</button>`;
       } else act += '<span class="hint">최대 레벨</span>';
-      act += inDeck ? ' <button class="btn d sm" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
+      act += inDeck ? ' <button class="btn d sm out" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel >= 0 && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
     }
     const skill = c.skill ? `<div class="heronote">영웅: 덱에 1장만, 전장에는 1기만 나옵니다 (나와 있는 동안 카드가 손에 들어오지 않음)</div><div class="skillinfo"><b>영웅 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
-    info.innerHTML = `<div class="ci-body"><h4>${kindIc(c, true)}${moveIc(c, true)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
+    info.innerHTML = `<div class="ci-body"><div class="ci-tags">${kindIc(c, true)}${moveIc(c, true)}</div><h4>${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
       <dl>${st.map(([k2, v]) => `<div><dt>${k2}</dt><dd>${v}</dd></div>`).join('')}</dl></div>`;
     $('cardAct').innerHTML = act;
     const b = $('btnUse');
     if (b) b.onclick = () => { // into the picked place (or the first free one); the codex closes
       if (c.skill && deck.some((d, k) => CARD[d].skill && k !== slotSel)) { toast('영웅은 덱에 1장만 넣을 수 있습니다'); SFX.play('fail', 0.4); return; } // (unless it replaces the hero)
-      if (slotSel != null && slotSel < deck.length) deck[slotSel] = c.id; else if (deck.length < 8) deck.push(c.id); else return;
+      if (slotSel != null && slotSel >= 0 && slotSel < deck.length) deck[slotSel] = c.id; else if (deck.length < 8) deck.push(c.id); else { toast('덱에서 바꿀 카드를 먼저 고르세요'); SFX.play('fail', 0.4); return; } // (browsing: a full deck needs a place picked)
       persist(); slotSel = null; cardOpen = false; deckSel = null; SFX.play('click'); renderDeck();
     };
     const out = $('btnOut');
@@ -425,11 +435,15 @@
   // ── battle HUD ────────────────────────────────────────
   let handKey = '', prevHand = [];
   function hand(played) {
+    { const S = GAME.G.sides && GAME.G.sides.blue; if (S) for (const id of S.hand.concat(S.queue || [])) if (CARD[id] && CARD[id].skill) cutArt(id); } // the heroes' cut-in art loads well before their first skill
     const G = GAME.G, S = G.sides && G.sides.blue;
     if (!S) return;
     const h = $('hand');
     // selection only toggles a class: rebuilding would detach the card under the finger mid-gesture (iOS drops the pointer)
-    const key = S.hand.join() + '|' + S.queue[0];
+    // the next card: while a hero is on the field, hero cards wait (as the draw does, see playCard)
+    const heroOut = G.ents.some((e) => e.side === 'blue' && e.kind === 'troop' && e.alive && e.card.skill);
+    const nextId = (heroOut && S.queue.find((q) => !CARD[q].skill)) || S.queue[0];
+    const key = S.hand.join() + '|' + nextId;
     if (key !== handKey) {
       handKey = key;
       h.innerHTML = '';
@@ -444,7 +458,7 @@
       prevHand = S.hand.slice();
       const n = $('nextCard');
       n.innerHTML = '';
-      if (S.queue[0]) n.appendChild(cardEl(CARD[S.queue[0]], 'mini'));
+      if (nextId) n.appendChild(cardEl(CARD[nextId], 'mini'));
       tickCards(true);
     }
     for (const el of h.children) el.classList.toggle('sel', +el.dataset.i === G.sel);
@@ -548,7 +562,8 @@
       b.className = 'skb';
       b.dataset.id = u.id;
       b._u = u;
-      b.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><span class="cd"></span><b>${esc(u.card.skill.name)}</b><span class="cost-s">${GAME.skillState(u).cost}</span>${HOVER ? '<i class="hk"></i>' : ''}`;
+      cutArt(u.card.id); // (the cut-in art is ready before the first skill)
+      b.innerHTML = `<span class="pf" style="background-image:url(${art(u.card)})"></span><span class="cd"></span><i class="cdn"></i><b>${esc(u.card.skill.name)}</b><span class="cost-s">${GAME.skillState(u).cost}</span>${HOVER ? '<i class="hk"></i>' : ''}`;
       if (GAME.aimable(u)) b.title = '탭: 자동 조준 · 전장으로 끌기: 직접 조준';
       b.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); if (GAME.aimable(u) && GAME.skillState(u).ready && !aim) { startAim(u, b, ev); return; } fireSkill(u); });
       const st0 = GAME.skillState(u); b._ready = st0.ready && G.sides.blue.elixir >= st0.cost; // no "ready" chime just for appearing
@@ -562,6 +577,7 @@
       const st = GAME.skillState(u);
       const deg = Math.round(st.cd / st.cdMax * 72) * 5, ready = st.ready && e >= st.cost;
       if (b._deg !== deg) { b._deg = deg; b.style.setProperty('--cd', deg + 'deg'); }
+      { const sec = st.cd > 0 ? String(Math.ceil(st.cd)) : ''; if (b._sec !== sec) { b._sec = sec; b.querySelector('.cdn').textContent = sec; } } // the seconds left, on the portrait
       if (b._ready !== ready) { b._ready = ready; b.classList.toggle('ready', ready); if (ready) SFX.play('charge', 0.25); }
       const why = !u.alive ? '' : u.stunT > 0 || u.freezeT > 0 ? 'stun' : u.casting > 0 ? 'cast' : u.deployT > 0 ? 'deploy' : st.cd <= 0 && e < st.cost ? 'poor' : ''; // why it is not ready, shown on the button itself
       if (b._why !== why) { b._why = why; b.dataset.why = why; }
@@ -595,8 +611,9 @@
     clearTimeout(toastT);
     toastT = setTimeout(() => el.classList.remove('on'), 1400);
   }
-  function banner(msg, kind) {
+  function banner(msg, kind, n) {
     const el = $('banner');
+    if (document.querySelector('.skcut:not(.mini)') && (n || 0) < 8) { setTimeout(() => banner(msg, kind, (n || 0) + 1), 250); return; } // one full-width band at a time: it waits for the hero ribbon
     el.className = 'banner ' + (kind || '');
     el.textContent = msg;
     void el.offsetWidth;
@@ -619,15 +636,19 @@
   const HOVER = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches; // a mouse: show the Q / W / E keys
   const FULL_ART = new Set(['empress', 'sleipnir', 'labiata', 'titania', 'tiamat', 'constantia', 'fafnir', 'ramiel', 'goltarion', 'nidhogg']);
   const PANEL_ART = new Set(['blackknight', 'juggernaut', 'executioner', 'emperorchick']); // original boss panels (no full-body art)
-  function skillCut(u) {
+  const CUT_IMG = {};
+  function cutArt(id) { const src = FULL_ART.has(id) ? `assets/full/${id}.png` : PANEL_ART.has(id) ? `assets/full/${id}_panel.png` : null; if (src && !CUT_IMG[id]) { const im = CUT_IMG[id] = new Image(); im.src = src; } return CUT_IMG[id]; }
+  function skillCut(u, sy, waited) {
+    if (u.side === 'blue' && !waited) { const im = cutArt(u.card.id); if (im && !(im.complete && im.naturalWidth)) { if (!u._cutWait) { u._cutWait = 1; const go = () => { u._cutWait = 0; if (u.alive) skillCut(u, sy, true); }; Promise.race([im.decode().catch(() => {}), new Promise((r) => setTimeout(r, 150))]).then(go); } return; } } // the ribbon waits a moment for its art (never a half-built band)
     const el = document.createElement('div');
     // one cut-in per side at a time; the opponent's is a compact banner that keeps the field readable
     document.querySelectorAll('.skcut.' + u.side).forEach((x) => x.remove());
     el.className = 'skcut ' + u.side + (u.side === 'red' ? ' mini' : '');
+    if (u.side === 'blue') el.style.top = (sy != null && sy < 0.5 ? 64 : 40) + '%'; // away from the blast and clear of both tower rows
     if (u.side === 'red') document.querySelectorAll('.bubble.red').forEach((x) => x.classList.add('low'));
     // champions with original full-body art step into the cut-in; the rest keep the portrait chip
     const face = u.side === 'red' && FULL_ART.has(u.card.id) ? `<span class="pf face" style="background-image:url(assets/full/${u.card.id}.png)"></span>` : u.side === 'red' && PANEL_ART.has(u.card.id) ? `<span class="pf face panel-face" style="background-image:url(assets/full/${u.card.id}_panel.png)"></span>` : '';
-    el.innerHTML = face ? face + `<b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>` : (u.side === 'blue' && PANEL_ART.has(u.card.id) ? `<img class="panel" alt="" src="assets/full/${u.card.id}_panel.png">` : u.side === 'blue' && FULL_ART.has(u.card.id) ? `<img class="full" alt="" src="assets/full/${u.card.id}.png">` : `<span class="pf" style="background-image:url(${art(u.card)})"></span>`) + `<b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small>`;
+    el.innerHTML = face ? face + `<span class="ct"><b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small></span>` : (u.side === 'blue' && PANEL_ART.has(u.card.id) ? `<img class="panel" alt="" src="assets/full/${u.card.id}_panel.png">` : u.side === 'blue' && FULL_ART.has(u.card.id) && (!CUT_IMG[u.card.id] || CUT_IMG[u.card.id].naturalWidth) ? `<img class="full" alt="" src="assets/full/${u.card.id}.png">` : `<span class="pf" style="background-image:url(${art(u.card)})"></span>`) + `<span class="ct"><b>${esc(u.card.skill.name)}</b><small>${esc(u.card.name)}</small></span>`;
     $('stage').appendChild(el);
     pausedRemove(el);
   }
@@ -657,12 +678,12 @@
   const dmgRecent = []; // numbers still popping: a hit landing close to one merges into it (one counting number, not a stack)
   function dmgNum(x, y, n, side) {
     const box = $('labels'), now = performance.now();
-    for (const r of dmgRecent) if (r.side === side && now - r.t < 450 && Math.abs(r.x - x) < 48 && Math.abs(r.y - y) < 48 && r.el.isConnected) { r.n += n; r.el.textContent = '-' + r.n; r.el.classList.toggle('big', r.n >= 300); const an = r.el.getAnimations ? r.el.getAnimations()[0] : null; if (an) an.currentTime = 0; else { r.el.style.animation = 'none'; void r.el.offsetWidth; r.el.style.animation = ''; } r.t = now; return; }
+    for (const r of dmgRecent) if (r.side === side && now - r.t < 450 && Math.abs(r.x - x) < 72 && Math.abs(r.y - y) < 64 && r.el.isConnected) { r.n += n; r.el.textContent = '-' + r.n; r.el.classList.toggle('big', r.n >= 300); const an = r.el.getAnimations ? r.el.getAnimations()[0] : null; if (an) an.currentTime = 0; else { r.el.style.animation = 'none'; void r.el.offsetWidth; r.el.style.animation = ''; } r.t = now; return; }
     if (dmgLive >= 24) return;
     const el = dmgPool.pop() || document.createElement('span'); // nodes are reused (no DOM churn in big fights)
     el.className = 'dmgn ' + side + (n >= 300 ? ' big' : '');
     el.textContent = '-' + n;
-    el.style.left = (x + (Math.random() - 0.5) * 26) + 'px'; el.style.top = (y - (dmgLive % 3) * 12) + 'px'; // spread so quick hits never stack on one spot
+    el.style.left = (x + (Math.random() - 0.5) * 26) + 'px'; el.style.top = Math.max(60, y - (dmgLive % 3) * 12) + 'px'; el.style.left = Math.min(Math.max(parseFloat(el.style.left), 24), (box.clientWidth || 375) - 24) + 'px'; // spread so quick hits never stack on one spot
     box.appendChild(el);
     dmgLive++;
     const rec = { el, x, y, n, side, t: now }; dmgRecent.push(rec); if (dmgRecent.length > 12) dmgRecent.shift();
@@ -777,6 +798,7 @@
   function pause(on) {
     if (on && aim) { clearInterval(aim.timer); GAME.aimHide(); aim = null; $('skillBar').classList.remove('cancel'); } // pausing drops a skill aim
     if (on && GAME.G.phase !== 'play' && GAME.G.phase !== 'countdown') return;
+    if (on && GAME.G.opts && GAME.G.opts.preview) return; // (the deck popup's card preview is not a battle: nothing to pause)
     GAME.pause(on);
     $('stage').classList.toggle('paused', !!on && GAME.G.paused);
     SFX.pauseMusic(on);
@@ -841,14 +863,14 @@
       chestKey = key;
       row.innerHTML = (slots === 1 ? [0] : [0, 1, 2, 3]).map((i) => {
         const c = save.chests[i];
-        if (!c) return slots === 1 ? '<div class="chest empty all"><small>승리하면 보급 상자를 받습니다</small></div>' : '<div class="chest empty"><small>빈 슬롯</small></div>';
+        if (!c) return slots === 1 ? '<div class="chest empty all"><small>승리하면 보급 상자를 받습니다</small></div>' : '<div class="chest empty"><small>빈 칸</small></div>';
         return `<button class="chest ${c.k}" data-i="${i}"><i class="box"></i><b>${esc(CH[c.k].name)}</b><small></small></button>`;
       }).join('');
     }
     const unlocking = save.chests.some((c) => c.t0 && chestLeft(c) > 0);
     save.chests.forEach((c, i) => {
       const b = row.children[i], left = chestLeft(c);
-      const st = left === null ? (unlocking ? '대기' : '탭하여 해제') : left > 0 ? `${fmtT(left)} · ⚙${rushCost(left)}` : '열기!';
+      const st = left === null ? (unlocking ? '대기 중' : '해제') : left > 0 ? `${fmtT(left)} · ⚙${rushCost(left)}` : '열기!';
       const sm = b.querySelector('small');
       if (sm.textContent !== st) sm.textContent = st;
       b.classList.toggle('ready', left === 0);
@@ -918,14 +940,19 @@
     $('resHero').style.backgroundImage = `url(${IMG[FACTIONS[(win || draw ? G.sides.blue : G.sides.red).faction].banner]})`;
     $('resCrowns').innerHTML = `<div class="rc blue"><small>${FACTIONS[G.sides.blue.faction].name}</small><span>${[0, 1, 2].map((i) => `<i class="${i < b ? 'on' : ''}"></i>`).join('')}</span></div>
       <div class="rc red"><small>${esc(foe ? foe.name : FACTIONS[G.sides.red.faction].name)}</small><span>${[0, 1, 2].map((i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</span></div>`;
-    $('resTrophy').innerHTML = `<i class="tro"></i>${save.trophy} <em class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${delta}</em>`;
+    $('resTrophy').innerHTML = `<i class="tro"></i><span class="trn">${save.trophy - delta}</span> <em class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${delta}</em>`;
+    { // the trophy count runs up (or down) to the new total after the crowns have popped in
+      const el = $('resTrophy').querySelector('.trn'), a = save.trophy - delta, b = save.trophy, t0 = performance.now() + 700;
+      const run = (now) => { if (!el.isConnected) return; const f = Math.max(0, Math.min(1, (now - t0) / 700)); el.textContent = Math.round(a + (b - a) * f); if (f < 1) requestAnimationFrame(run); else { el.classList.add('done'); el.textContent = b; } };
+      requestAnimationFrame(run); setTimeout(() => { if (el.isConnected) el.textContent = b; }, 1800); // (and lands there even without animation frames)
+    }
     if (practice) $('resTrophy').innerHTML = '<span class="prac">연습전 · 트로피와 보상 변동 없음</span>';
     const s = stats.blue;
     $('resStats').innerHTML = `<div><b>${Math.round(s.dmg).toLocaleString()}</b><small>입힌 피해</small></div><div><b>${s.kills}</b><small>처치</small></div><div><b>${s.spent}</b><small>사용 에너지</small></div><div><b>${s.wasted.toFixed(1)}</b><small>낭비 에너지</small></div>`;
     $('resStats').hidden = !s.cards && !s.dmg; // a match won before a single card was played has no stats to show
     // how the battle went: tower falls, champion skills, energy phases
     const lg = stats.log || [];
-    $('resLog').hidden = !lg.length;
+    $('resLog').hidden = true; $('btnResLog').hidden = !lg.length; $('btnResLog').textContent = '전투 기록 보기'; // (the log waits behind a button: the rewards get the room)
     $('resLog').innerHTML = lg.map(([t, line, sd]) => `<div class="${sd}"><em>${t}</em>${esc(line)}</div>`).join('');
     const mvp = Object.entries(s.by || {}).sort((x, y) => y[1] - x[1])[0];
     { const mo = win && mvp && CARD[mvp[0]]; if (mo && GAME.voiced && GAME.voiced(mo)) setTimeout(() => SFX.voice('unit:' + mo.id + '_win', 0.95, 4), 1600); } // the battle's MVP has the last word
@@ -1071,6 +1098,9 @@
     // closing a deck card's details also drops the pick (the codex closes); a codex card's keeps it
     const closeCard = () => { if (deckSel && save.decks[save.faction].includes(deckSel)) slotSel = null; cardOpen = false; renderDeck(); };
     $('btnCardClose').onclick = closeCard;
+    $('btnCardX').onclick = closeCard;
+    $('btnCodex').onclick = (e) => { e.stopPropagation(); slotSel = -1; cardOpen = false; SFX.play('click'); renderDeck(); }; // (open the codex just to look through it) // (the corner X: always in reach, however tall the popup)
+    $('btnResLog').onclick = () => { const l = $('resLog'); l.hidden = !l.hidden; $('btnResLog').textContent = l.hidden ? '전투 기록 보기' : '전투 기록 닫기'; SFX.play('click'); };
     // the bond chip in the deck header opens the list of faction bonds
     $('deckAvg').addEventListener('click', (e) => { if (!e.target.closest('.syn')) return; SFX.play('click'); renderSyn(); $('synOv').hidden = false; });
     $('btnSynClose').onclick = () => { $('synOv').hidden = true; };

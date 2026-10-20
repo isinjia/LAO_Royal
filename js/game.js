@@ -269,8 +269,12 @@
     // ambient occlusion where the towers stand
     for (const sz of [-1, 1]) for (const [tx, tz, tr] of [[-BAL.tower.princess.x, BAL.tower.princess.z, 1.7], [BAL.tower.princess.x, BAL.tower.princess.z, 1.7], [0, BAL.tower.king.z, 2.2]]) {
       const cx = X(tx), cy = Y(sz * tz) + 0.25 * P, ao = g.createRadialGradient(cx, cy, tr * 0.35 * P, cx, cy, tr * P * 1.25);
-      ao.addColorStop(0, 'rgba(0,0,0,0.42)'); ao.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = ao; g.fillRect(cx - tr * 1.3 * P, cy - tr * 1.3 * P, tr * 2.6 * P, tr * 2.6 * P);
+      ao.addColorStop(0, 'rgba(0,0,0,0.6)'); ao.addColorStop(0.6, 'rgba(0,0,0,0.3)'); ao.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = ao; g.fillRect(cx - tr * 1.3 * P, cy - tr * 1.3 * P, tr * 2.6 * P, tr * 2.6 * P);
     }
+    // faint glowing seams down each lane centre (cyan on our half, red on theirs) give the deck depth
+    { g.save(); g.globalCompositeOperation = 'screen'; for (const s of [-1, 1]) for (const [z0, z1, c] of [[0.6, 15, '255,90,90'], [-15, -0.6, '60,220,255']]) { const lx = X(s * BAL.tower.princess.x), sg = g.createLinearGradient(0, Y(z1), 0, Y(z0)); sg.addColorStop(0, `rgba(${c},0)`); sg.addColorStop(0.5, `rgba(${c},0.22)`); sg.addColorStop(1, `rgba(${c},0)`); g.fillStyle = sg; g.fillRect(lx - 1.5, Math.min(Y(z0), Y(z1)), 3, Math.abs(Y(z1) - Y(z0))); } g.restore(); }
+    // fine grime and wear speckle over the plates (10-15%): the deck stops reading as one flat grey
+    { g.save(); let sd = 7; const R = () => ((sd = (sd * 16807) % 2147483647) / 2147483647); for (let i = 0; i < 900; i++) { const x = R() * cv.width, y = R() * cv.height, w = 2 + R() * 10, h = 1 + R() * 3; g.fillStyle = R() < 0.7 ? `rgba(0,0,0,${0.05 + R() * 0.08})` : `rgba(255,255,255,${0.03 + R() * 0.04})`; g.fillRect(x, y, w, h); } for (let i = 0; i < 26; i++) { const x = R() * cv.width, y = R() * cv.height, r = (0.6 + R() * 1.4) * P, sg = g.createRadialGradient(x, y, 0, x, y, r); sg.addColorStop(0, 'rgba(0,0,0,0.12)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sg; g.fillRect(x - r, y - r, 2 * r, 2 * r); } g.restore(); }
     // one key light from the upper left across the whole deck
     { const kl = g.createLinearGradient(0, 0, cv.width, cv.height); kl.addColorStop(0, 'rgba(255,255,255,0.06)'); kl.addColorStop(0.55, 'rgba(0,0,0,0)'); kl.addColorStop(1, 'rgba(0,0,0,0.14)'); g.fillStyle = kl; g.fillRect(0, 0, cv.width, cv.height); }
     // the side walls: pipes and a cable tray run the length of the arena outside the bulkheads (the arena reads as a room)
@@ -297,8 +301,11 @@
     }
     // soft vignette
     const vg = g.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * 0.3, cv.width / 2, cv.height / 2, cv.height * 0.75);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.58)');
     g.fillStyle = vg; g.fillRect(0, 0, cv.width, cv.height);
+    // a navy-steel cast over the whole deck (about 14% darker): light rigs (white hair, beige plating) no longer wash out on the plates
+    g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = '#b2bccd'; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = '#d4d8e2'; g.fillRect(0, 0, cv.width, Y(0)); g.restore();
+    { g.save(); g.globalCompositeOperation = 'screen'; const lp = g.createRadialGradient(cv.width / 2, cv.height / 2, 0, cv.width / 2, cv.height / 2, cv.height * 0.42); lp.addColorStop(0, 'rgba(160,190,230,0.24)'); lp.addColorStop(1, 'rgba(150,180,220,0)'); g.fillStyle = lp; g.fillRect(0, 0, cv.width, cv.height); g.restore(); } // a soft pool of light over the middle of the deck // (the far half's warmer plates a step darker again: both halves read alike)
     // the far edges melt into the backdrop art
     g.save(); g.globalCompositeOperation = 'destination-out';
     for (const [y0, y1] of [[cv.height, cv.height - 1.6 * P]]) { const fg = g.createLinearGradient(0, y0, 0, y1); fg.addColorStop(0, 'rgba(0,0,0,1)'); fg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = fg; g.fillRect(0, Math.min(y0, y1), cv.width, 1.6 * P); }
@@ -792,7 +799,7 @@
     const tkey = side + type + S.faction;
     const tc = towerTex[tkey] || (towerTex[tkey] = towerCanvas(type, side, false, emblems[S.faction], S.faction));
     t.stage = 0; t.texKey = tkey;
-    t.pad = FX.sprite({ x, y: z * TILT, size: (sp.r + 0.6) * 3.4, aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.16 : 0.3, tex: FX.tex.glow, order: L.GROUND + 3 }); // a slow team-coloured glow under a standing tower
+    t.pad = FX.sprite({ x, y: z * TILT, size: (sp.r + 0.6) * 3.4, aspect: TILT, color: teamHex(side), alpha: side === 'red' ? 0.24 : 0.3, tex: FX.tex.glow, order: L.GROUND + 3 }); // a slow team-coloured glow under a standing tower
     t.base = quad(tc.tex, 0xffffff, 1, false, 0);
     t.base.scale.set(tc.w, tc.h, 1);
     t.base.position.set(x, z * TILT + tc.cy, 0);
@@ -820,7 +827,7 @@
     if (e.sd) { if (e.pooled) SD.release(e.sd); else e.sd.dispose(); e.sd = null; }
     if (e.placeholder) { e.placeholder.material.dispose(); e.placeholder = null; } // the texture is cached per portrait
     scene.remove(e.holder);
-    [e.shadow, e.disc, e.aura, e.glow, e.halo, e.fireGlow, e.pad].forEach((p) => p && FX.kill(p));
+    [e.shadow, e.disc, e.aura, e.glow, e.halo, e.fireGlow, e.ruinGlow, e.pad].forEach((p) => p && FX.kill(p));
     if (e.base) { scene.remove(e.base); e.base.material.dispose(); }
     if (e.deadTex) e.deadTex.dispose();
     if (e.bar) { FX.kill(e.bar.bg); FX.kill(e.bar.fill); FX.kill(e.bar.ol); FX.kill(e.bar.lag); }
@@ -942,7 +949,7 @@
     t.hp -= amt;
     t.hitT = 0.1;
     if (t.kind === 'tower' && t.type !== 'bld') { t.dmgAcc = (t.dmgAcc || 0) + Math.min(amt, t.hp + amt); const so = G.sides[t.side].sup; if (so && !so.used) so.charge = Math.min(1, so.charge + amt / 2500); } // floating numbers (render); a battered side charges its support faster
-    else if (t.kind === 'troop' && amt >= 250 && G.time - (t.numT || -1) > 0.4) { t.numT = G.time; const q = toScreen(t.x + rnd(-0.2, 0.2), sy(t) + (t.bodyH || 1.5) + 0.2); UI.dmgNum(q[0], q[1], Math.round(amt), t.side); } // heavy blows on troops pop a number too
+    else if (t.kind === 'troop' && amt >= 120 && G.time - (t.numT || -1) > 0.4) { t.numT = G.time; const q = toScreen(t.x + rnd(-0.2, 0.2), sy(t) + (t.bodyH || 1.5) + 0.2); UI.dmgNum(q[0], q[1], Math.round(amt), t.side); } // heavy blows on troops pop a number too
     if (G.stats && src && src.side) {
       const st = G.stats[src.side], d = Math.min(amt, t.hp + amt);
       st.dmg += d;
@@ -974,6 +981,12 @@
       if (e.casting > 0 && !e.skillFired && e.card.skill) G.sides[e.side].elixir = Math.min(BAL.elixirMax, G.sides[e.side].elixir + skillCost(e));
       e.casting = 0;
       hideBar(e.bar);
+      { // a fall reads at a glance: a flash of the team colour and a puff of dust where it went down
+        const fy = sy(e) + (e.bodyH || 1.4) * 0.45;
+        FX.particle({ x: e.x, y: fy, life: 0.25, size: 0.4, size1: (e.bodyH || 1.4) * 1.3, color: teamHex(e.side), tex: FX.tex.glow, alpha: 0.7 });
+        FX.groundRing(e.x, e.z * TILT, 0.2, Math.max(0.8, e.r * 2.6), teamHex(e.side), 0.35, 0.7);
+        for (let k = 0; k < 6; k++) FX.particle({ x: e.x + rnd(-0.35, 0.35), y: e.z * TILT + rnd(0, 0.3), vx: rnd(-0.6, 0.6), vy: rnd(0.3, 0.9), life: rnd(0.5, 0.8), size: 0.35, size1: 1.1, color: 0x8a96a3, alpha: 0.45, normal: true, frames: FX.sheets.smoke, order: L.LOW });
+      }
       if (!e.air) scorch(e.x, e.z * TILT, e.r * 1.1); // a mark stays where it fell
       const y = sy(e) + e.bodyH * 0.35;
       if (isIron(e.card.rig)) {
@@ -1043,6 +1056,8 @@
       for (let i = 0; i < 4; i++) FX.later(i * 0.13, () => { const x = e.x + rnd(-1, 1), y = gy + rnd(-0.6, 0.8); if (!spawnStatic('simple_explosion', x, y, 0.28)) FX.explosion(x, y, 1.1, 0xff8a40, true); FX.explosion(x, y, 0.9, 0xffa040); });
       FX.groundRing(e.x, e.z * TILT, 0.5, 4.5, 0xffa040, 0.7);
       scorch(e.x, e.z * TILT, 2.6);
+      e.ruinGlow = FX.sprite({ x: e.x, y: e.z * TILT + 0.3, size: e.r * 3.2, aspect: TILT, color: 0xff5020, alpha: 0.28, tex: FX.tex.glow, order: L.GROUND + 4 }); FX.later(6, () => { if (e.ruinGlow) { FX.kill(e.ruinGlow); e.ruinGlow = null; } }); // the ruin smoulders red for a while
+      for (let i = 0; i < 24; i++) FX.later(0.6 + i * 0.22, () => { if (G.phase !== 'play') return; const x = e.x + rnd(-1, 1), y = e.z * TILT + rnd(0.2, 1.2); FX.particle({ x, y, vy: rnd(0.5, 1.1), life: rnd(0.6, 1), size: rnd(0.28, 0.42), size1: 0.04, color: Math.random() < 0.5 ? 0xff8a30 : 0xffc060, tex: FX.tex.glow, alpha: 0.9 }); if (i % 3 === 0) FX.particle({ x, y: y + 0.3, vx: rnd(-0.2, 0.2), vy: 0.5, life: 1.4, size: 0.4, size1: 1.2, color: 0x4a4e54, frames: FX.sheets.smoke, alpha: 0.35, normal: true, drag: 0.6 }); }); // embers and a smoke wisp keep the ruin alive for a few seconds
       crater(e.x, e.z * TILT, 4.2, isIron(e.rig || '') ? 'crack_red' : 'crack');
       // the bunker breaks apart: chunks thrown up that fall back, and a dust wave rolling out
       for (let i = 0; i < 16; i++) {
@@ -1189,6 +1204,7 @@
         if (real) {
           if (a.fx === 'cannon' || a.splash) FX.shake(0.08);
           hitFx(e, a, tx, ty);
+          if (t.kind === 'tower' || t.type === 'bld') { t.wobT = 0.14; G.hitStop = Math.max(G.hitStop || 0, 0.025); const ang = Math.atan2(sy(e) + 0.6 - ty, e.x - tx); for (let k = 0; k < 6; k++) { const aa = ang + rnd(-0.5, 0.5), v = rnd(4, 7); FX.particle({ x: tx, y: ty, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, drag: 5, grav: 6, life: rnd(0.16, 0.28), size: 0.12, size1: 0.04, color: k % 2 ? 0xffe0a0 : 0xffa040, tex: FX.tex.dot }); } } // a blow on a structure: a beat of hit-stop, sparks kicked back at the striker, the tower shudders
           hit(e, a, t, t.x, t.z, dmg);
           splashFx(t.x, t.z, a);
         }
@@ -1209,7 +1225,7 @@
     if (!heavy) { FX.particle({ x, y, life: 0.1, size: 0.25, size1: 0.55, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.75 }); FX.sparks(x, y, a.color, 2, 3, 0.14, 0.22); return; } // between full bursts, sustained fire still flickers and sprays
     e.hfxT = G.time;
     FX.sparks(x, y, a.color, Math.round(5 + big * 4), 3.5 + big * 1.8, 0.2, 0.36); // a spray of sparks sells every blow
-    FX.sparks(x, y, 0xffffff, 3, 2.5, 0.12, 0.2);
+    FX.sparks(x, y, e.side === 'blue' ? 0x4fe3ff : 0xff7a3a, 3, 2.5, 0.12, 0.2); // (team-tinted sparks read on the light deck where white ones vanished)
     FX.particle({ x, y, life: 0.1, size: 0.18, size1: 0.38 * big, color: 0xfff4d0, tex: FX.tex.cross, rot: Math.random() * 3, alpha: 0.85 }); // a short star flash (small: faces stay visible)
     FX.particle({ x, y, life: 0.12, size: 0.25 * big, size1: 0.45 * big, color: a.color, tex: FX.tex.glow, alpha: 0.4 }); // a tinted pop behind the star
     FX.ring(x, y, 0.1, 0.75 * big, a.color, 0.2, 0.85);
@@ -1462,6 +1478,13 @@
     spawnStatic('simple_explosion', p.tx, y + 0.5, 0.3);
     FX.explosion(p.tx, y + 0.3, c.radius * 0.5, c.color, true);
     FX.groundRing(p.tx, y, 0.3, c.radius, c.color, 0.45);
+    // the blast reads at a glance: a white-hot core, a shock ring racing past the radius, sparks and chunks thrown out
+    FX.particle({ x: p.tx, y: y + 0.4, life: 0.1, size: c.radius * 0.3, size1: c.radius * 0.8, color: 0xfff4d0, tex: FX.tex.glow, alpha: 0.85 });
+    FX.groundRing(p.tx, y, 0.2, c.radius * 1.25, 0xffffff, 0.3, 0.9);
+    FX.groundGlow(p.tx, y, c.radius * 0.9, c.color, 0.6, 0.55);
+    FX.sparks(p.tx, y + 0.3, 0xffd080, 18, 7, 0.25, 0.5);
+    for (let k = 0; k < 10; k++) { const a = rnd(0.2, Math.PI - 0.2), v = rnd(3, 6.5); FX.particle({ x: p.tx, y: y + 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, grav: 11, life: rnd(0.45, 0.75), size: 0.18, size1: 0.12, color: 0x3a2e24, tex: FX.tex.dot, normal: true }); }
+    FX.flash(c.color, 0.12);
     scorch(p.tx, y, c.radius * 0.6);
     crater(p.tx, y, c.radius * 1.3);
     FX.shake(0.35);
@@ -1512,7 +1535,7 @@
       u.sd.time = a.w0;
       u.sd.speed = u.castSpeed = clamp(a.len / 0.9, 0.8, 2.5);
     }
-    UI.skillCut(u);
+    UI.skillCut(u, toScreen(u.x, u.z * TILT)[1] / (view.h || 1)); // (the banner keeps clear of where the skill goes off)
     logEvent(`${u.card.name} · ${sk.name}`, u.side, 'skill');
     // where it will land (barrage aims now and keeps that spot); the enemy's gets a red warning ring
     const tg = u.target && u.target.alive ? u.target : null;
@@ -1522,7 +1545,7 @@
     if (spot && AIMABLE[sk.kind]) u.skillSpot = aimedSpot(u, spot.x, spot.z); // the player dragged the skill onto the field
     telegraph(u, sk);
     FX.groundRing(u.x, u.z * TILT, 0.3, 2.2, sk.color, 0.5);
-    FX.particle({ x: u.x, y: sy(u) + u.bodyH * 0.5, life: 0.5, size: 0.5, size1: 3, color: sk.color, tex: FX.tex.glow, alpha: 0.8 });
+    FX.particle({ x: u.x, y: sy(u) + u.bodyH * 0.5, life: 0.5, size: 0.5, size1: 1.8, color: sk.color, tex: FX.tex.glow, alpha: 0.45 }); // (soft: under bloom a bigger one washed the champion out)
     SFX.play('charge', 0.7);
     G.stats[u.side].skills++;
     return true;
@@ -1653,10 +1676,17 @@
     if (own && sk.kind !== 'dash' && sk.kind !== 'laser') { const t = u.target && u.target.alive ? u.target : null, sp = sk.kind === 'barrage' && u.skillSpot; spawnStatic(own, sp ? sp[0] : t ? t.x : u.x, (sp ? sp[1] : t ? t.z : u.z) * TILT + 0.4, skillFxK(u), u.face); }
     switch (sk.kind) {
       case 'nova': {
-        spawnStatic(sk.freeze ? 'Titania_skill1_Ground_ice' : SKILL_FX.nova, u.x, y0 + (sk.freeze ? 0 : 0.5), sk.freeze ? 0.3 : 0.5);
+        if (sk.freeze || !own) spawnStatic(sk.freeze ? 'Titania_skill1_Ground_ice' : SKILL_FX.nova, u.x, y0 + (sk.freeze ? 0 : 0.5), sk.freeze ? 0.3 : 0.42); // (a champion's own skill art already marks the blast: stacked on it, the generic one whited out the units under the bloom)
         FX.groundRing(u.x, y0, 0.3, sk.radius, sk.color, 0.6);
-        FX.groundGlow(u.x, y0, sk.radius, sk.color, 0.5, 0.6);
-        if (sk.freeze) FX.frost(u.x, y0 + 0.4, sk.radius, sk.color); else FX.explosion(u.x, y0 + 0.4, sk.radius * 0.5, sk.color, true);
+        G.hitStop = Math.max(G.hitStop || 0, 0.05); // the signature blow lands with a beat
+        FX.groundRing(u.x, y0, 0.2, sk.radius * 1.15, 0xfff0c0, 0.6, 0.75); // a shock ring racing out past the area, held long enough to read
+        FX.groundRing(u.x, y0, sk.radius * 0.95, sk.radius, sk.color, 0.9, 0.55); // and the area itself, outlined for most of a second
+        FX.sparks(u.x, y0 + 0.5, sk.color, 16, 6.5, 0.22, 0.45);
+        FX.particle({ x: u.x, y: y0 + 0.5, life: 0.09, size: sk.radius * 0.2, size1: sk.radius * 0.5, color: 0xffb04a, tex: FX.tex.glow, alpha: 0.7 }); // an amber core, not a white disc
+        for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + rnd(-0.2, 0.2), v = rnd(7, 10); FX.particle({ x: u.x, y: y0 + 0.4, vx: Math.cos(a) * v, vy: Math.sin(a) * v * TILT, drag: 7, life: 0.3, size: 0.5, size1: 0.12, aspect: 5, rot: Math.atan2(Math.sin(a) * TILT, Math.cos(a)) - Math.PI / 2, color: 0xffe08a, tex: FX.tex.beam, alpha: 1 }); } // radial streaks
+        scorch(u.x, y0, sk.radius * 0.55);
+        FX.groundGlow(u.x, y0, sk.radius, sk.color, 0.5, 0.3);
+        if (sk.freeze) FX.frost(u.x, y0 + 0.4, sk.radius, sk.color); else FX.explosion(u.x, y0 + 0.4, sk.radius * 0.38, sk.color, false); // (a tighter blast: the bloom no longer whites out the units it hits)
         hitArea(u.x, u.z, sk.radius, sk.dmg, { stun: sk.stun, freeze: sk.freeze });
         impact(u, u.x, u.z, sk.color);
         SFX.play(sk.freeze ? 'ice' : 'expM');
@@ -1929,7 +1959,7 @@
           const a = Math.random() * Math.PI * 2, r = 1.1 + Math.random() * 0.6;
           FX.particle({ x: u.x + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.8, vx: -Math.cos(a) * r / 0.28, vy: -Math.sin(a) * r * 0.8 / 0.28, life: 0.28, size: 0.12, size1: 0.3, color: sk.color, tex: FX.tex.dot, alpha: 0.9 });
         }
-        if (Math.random() < dt * 20) FX.particle({ x: u.x, y: cy, life: 0.12, size: 0.3 + f * 0.9, size1: 0.2 + f * 1.1, color: sk.color, tex: FX.tex.glow, alpha: 0.35 + f * 0.4 });
+        if (Math.random() < dt * 20) FX.particle({ x: u.x, y: cy, life: 0.12, size: 0.25 + f * 0.6, size1: 0.2 + f * 0.7, color: sk.color, tex: FX.tex.glow, alpha: 0.22 + f * 0.25 }); // (kept below the bloom's white point: the champion stays visible while charging)
       }
       if (!u.skillFired && u.casting <= 0.5) { u.skillFired = true; skillEffect(u); }
       if (u.casting <= 0) { u.casting = 0; if (u.sd) u.sd.speed = 1; u.state = 'idle'; }
@@ -2494,7 +2524,7 @@
         const fall = e.dropT > 0 ? 1 - e.elev / 3 : 1;
         e.shadow.sz = Math.max(1.3, e.r * 3.8) * (0.5 + 0.5 * fall);
         if (e.alive) {
-          const show = e.deployT > 0 || e.hp < e.max;
+          const show = (e.deployT > 0 || e.hp < e.max) && !(G.opts && G.opts.preview); // (the card preview shows the fight, not health bars)
           if (show) {
             const by = y + e.bodyH * (e.air ? 0.9 : 1.05) + 0.15;
             if (e.deployT > 0) setBar(e.bar, 1 - e.deployT / e.deploy0, e.x, by, 0xcfd6dd);
@@ -2513,10 +2543,14 @@
             e.readyT = 0.7;
             FX.groundRing(e.x, e.z * TILT, 0.3, 1.0, e.card.skill.color, 0.6, 0.55);
           }
+          if (e.stunT > 0 && e.freezeT <= 0) { // stunned: two sparks circle over the head while it lasts
+            for (let k = 0; k < 2; k++) { const a = amb.t * 9 + k * Math.PI; FX.particle({ x: e.x + Math.cos(a) * 0.32, y: y + e.bodyH + 0.22 + Math.sin(a) * 0.1, life: 0.09, size: 0.26, size1: 0.18, color: 0xffe060, tex: FX.tex.cross, alpha: 1, order: L.FX + 2 }); }
+          }
           if (e.freezeT > 0 && Math.random() < 0.15) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: y + rnd(0, e.bodyH), vy: -0.4, life: 0.5, size: 0.22, size1: 0, color: 0xdff8ff, tex: FX.tex.snow });
         }
       } else {
-        e.holder.position.set(e.x, e.z * TILT + TOWER_E[e.type] * 0.92, 0);
+        e.wobT = Math.max(0, (e.wobT || 0) - dt);
+        e.holder.position.set(e.x + (e.wobT > 0 ? Math.sin(e.wobT * 110) * 0.06 * e.wobT / 0.14 : 0), e.z * TILT + TOWER_E[e.type] * 0.92, 0);
         e.holder.scale.x = e.face * e.natural;
         e.base.renderOrder = L.UNIT - (e.z - e.r * 0.2) * TILT * 10;
         if (e.sd) {
@@ -2548,7 +2582,8 @@
           if (e.alive && Math.random() < 0.25) FX.particle({ x: e.x + rnd(-0.4, 0.4), y: e.z * TILT + TOWER_E[e.type] + rnd(0, 0.3), vy: rnd(0.4, 0.9), life: 0.5, size: 0.3, size1: 0, color: 0xff9040, tex: FX.tex.dot }); // embers
         }
         e.dmgT = (e.dmgT || 0) - dt;
-        if (e.dmgAcc >= 1 && e.dmgT <= 0) {
+        if (e.dmgAcc >= 1 && e.dmgT <= 0 && (!e.alive || e.dmgAcc < 20)) { e.dmgAcc = 0; e.dmgT = 0.6; } // (no chip number on a fallen tower, nor a stray -1)
+        if (e.dmgAcc >= 20 && e.dmgT <= 0) {
           e.dmgT = 0.6; // hits are summed into one number about twice a second
           const q = toScreen(e.x + rnd(-0.6, 0.6), e.z * TILT + TOWER_E[e.type] + 1.2);
           UI.dmgNum(q[0], q[1], Math.round(e.dmgAcc), e.side);
@@ -2556,7 +2591,7 @@
         }
         if (e.aura) e.aura.alpha = (!e.alive ? 0 : !e.active ? 0.06 : (e.target ? 0.26 : 0.14) + Math.sin(amb.t * 3 + e.x) * 0.05) * (e.side === 'red' ? 0.6 : 1); // a soft pool, not a slab
         // the player's plates sit on the front wall of each tower (as in Clash Royale); the opponent's float above
-        const p = e.side === 'blue' ? toScreen(e.x, (e.z - e.r * 0.85) * TILT + TOWER_E[e.type] * 0.42) : toScreen(e.x, e.z * TILT + TOWER_E[e.type] + e.bodyH + (e.type === 'king' ? 0.45 : 0.35));
+        const p = toScreen(e.x, (e.z - e.r * 0.85) * TILT + TOWER_E[e.type] * (e.side === 'blue' ? 0.42 : 0.72)); // both sides' plates sit on the tower's front wall (the opponent's no longer run under the top HUD, nor hang into its lane)
         const lt = `translate(${Math.round(p[0])}px,${Math.round(p[1])}px)`;
         if (e.labelT !== lt) { e.labelT = lt; e.label.style.transform = lt; } // written only when it moves (shake)
         if (e.alive) {
@@ -2654,7 +2689,7 @@
     FX.setBudget(q.parts);
     if (bloom) bloom.strength = q.bloom || 0;
     resize(true);
-    if (!quiet) UI.toast(`그래픽 품질: ${q.name}`);
+    if (!quiet && G.phase !== 'play' && G.phase !== 'countdown') UI.toast(`그래픽 품질: ${q.name}`); // (the governor's own steps stay silent mid-fight)
   }
   // the screen's own refresh rate (rAF cadence with no game work): decides whether long frames mean "fill-bound" or "a 30 Hz screen".
   // Measured at boot and again whenever the page comes back (power-saving modes can change it); our own frames can only confirm 60 Hz.
@@ -3386,6 +3421,7 @@
 
   function pause(on) {
     if (G.phase !== 'play' && G.phase !== 'countdown') return;
+    if (G.opts && G.opts.preview) return; // (a card preview never pauses)
     if (mp) return; // an online match never stops (the menu still opens)
     G.paused = on;
     last = 0;
