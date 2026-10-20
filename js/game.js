@@ -918,14 +918,15 @@
   // ── commander support (owner-approved): one call per match, charged over time and by the damage your towers take ──
   const SUPPORT_TIME = 75; // seconds of play to charge it without taking damage
   const SUPPORT = {
-    orca: { name: '긴급 치료', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
-    iron: { name: '부식 살포', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
-    lemonade: { name: '감마 투입', desc: '아군 진영 중앙에 레모네이드 감마 소환' },
-    cmd: { name: '렘파리온 강림', desc: '아군 진영 중앙에 렘파리온 소환' },
+    orca: { name: '긴급 치료', icon: 'c_DS_Azazel_N', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
+    iron: { name: '부식 살포', icon: 'e_PuppHead_N', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
+    lemonade: { name: '감마 투입', icon: 'c_PECS_LemonadeGamma_N', summon: true, desc: '아군 진영 중앙에 레모네이드 감마 소환 (끌어서 좌우 위치 지정)' },
+    cmd: { name: '렘파리온 강림', icon: 'c_AGS_Rampart_NS1', summon: true, desc: '아군 진영 중앙에 렘파리온 소환 (끌어서 좌우 위치 지정)' },
   };
   const supOut = {}, skOut = {};
   const supportReady = (S) => !!(S && S.sup && !S.sup.used && S.sup.charge >= 1);
-  function useSupport(side) {
+  const SUP_X = 2.5; // a summon can be set this far left or right of the middle (to pick its lane)
+  function useSupport(side, sx) {
     const S = G.sides && G.sides[side];
     if (G.phase !== 'play' || !supportReady(S)) return false;
     S.sup.used = true;
@@ -944,11 +945,11 @@
       FX.flash(0x7a2aff, 0.12);
       SFX.play('elec', 0.6);
     } else if (S.faction === 'lemonade' || S.faction === 'cmd') { // a champion drops in at the middle of our half
-      const tc = CARD[S.faction === 'cmd' ? 'rampalion' : 'lemonadegamma'], zc = SGN[side] * 7;
-      FX.groundRing(0, zc * TILT, 0.3, 3.2, S.faction === 'cmd' ? 0xffc27a : 0xffd34d, 0.8, 0.9);
-      for (let k = 0; k < 6; k++) FX.later(k * 0.05, () => FX.particle({ x: rnd(-0.3, 0.3), y: zc * TILT + 7 - k * 1.1, vy: -18, life: 0.25, size: 0.5, size1: 0.15, color: 0xfff0c0, tex: FX.tex.glow, alpha: 0.8 }));
-      spawnTroop(side, tc, 0, zc, 0.35, S.lvl || LEVEL.min);
-      FX.later(0.4, () => { FX.flash(0xfff0c0, 0.1); FX.shake(0.2); FX.groundRing(0, zc * TILT, 0.3, 4, 0xffffff, 0.5, 0.6); for (let k = 0; k < 10; k++) { const a = rnd(0, 6.28); FX.particle({ x: 0, y: zc * TILT, vx: Math.cos(a) * 3, vy: Math.sin(a) * 1.4, life: 0.6, size: 0.4, size1: 1, color: 0x8a8070, frames: FX.sheets.smoke, alpha: 0.5, normal: true, drag: 2 }); } });
+      const tc = CARD[S.faction === 'cmd' ? 'rampalion' : 'lemonadegamma'], zc = SGN[side] * 7, x0 = clamp(+sx || 0, -SUP_X, SUP_X);
+      FX.groundRing(x0, zc * TILT, 0.3, 3.2, S.faction === 'cmd' ? 0xffc27a : 0xffd34d, 0.8, 0.9);
+      for (let k = 0; k < 6; k++) FX.later(k * 0.05, () => FX.particle({ x: x0 + rnd(-0.3, 0.3), y: zc * TILT + 7 - k * 1.1, vy: -18, life: 0.25, size: 0.5, size1: 0.15, color: 0xfff0c0, tex: FX.tex.glow, alpha: 0.8 }));
+      spawnTroop(side, tc, x0, zc, 0.35, S.lvl || LEVEL.min);
+      FX.later(0.4, () => { FX.flash(0xfff0c0, 0.1); FX.shake(0.2); FX.groundRing(x0, zc * TILT, 0.3, 4, 0xffffff, 0.5, 0.6); for (let k = 0; k < 10; k++) { const a = rnd(0, 6.28); FX.particle({ x: x0, y: zc * TILT, vx: Math.cos(a) * 3, vy: Math.sin(a) * 1.4, life: 0.6, size: 0.4, size1: 1, color: 0x8a8070, frames: FX.sheets.smoke, alpha: 0.5, normal: true, drag: 2 }); } });
       SFX.play('missile', 0.6);
     } else if (false) {
       // a target mark first, then each drone streaks down onto it with a dust puff
@@ -2305,7 +2306,7 @@
     const S = G.sides[side];
     if (c.k === 'c') { if (S.hand[c.i] === c.id) playCard(side, c.i, c.x * m, c.z * m); }
     else if (c.k === 's') { const u = G.ents.find((e) => e.id === c.u && e.side === side && e.alive); if (u) useSkillNow(u, c.sp ? { x: c.sp[0] * m, z: c.sp[1] * m } : undefined); }
-    else if (c.k === 'p') useSupport(side);
+    else if (c.k === 'p') useSupport(side, (c.x || 0) * m);
   }
   // after a tick: the host sends its correction; the guest applies the one for this tick
   function mpAfter(t) {
@@ -3546,13 +3547,15 @@
     get cameraZoom() { return camera ? camera.zoom : 1; },
     get cameraPos() { return camera ? [camera.position.x, camera.position.y] : [0, 0]; },
     get perf() { return perf; }, QUALITY, autoLevel: MOBILE ? 1 : 0,
-    useSupport: () => (mp ? (supportReady(G.sides.blue) && !mp.mine.some((c) => c.k === 'p') ? mpLocal({ k: 'p' }) : false) : useSupport('blue')),
+    useSupport: (x) => (mp ? (supportReady(G.sides.blue) && !mp.mine.some((c) => c.k === 'p') ? mpLocal({ k: 'p', x: +x || 0 }) : false) : useSupport('blue', x)),
+    // dragging a summon support: where on our half's middle line it would land (a ring marks it); null = off the field
+    supportAim: (cx, cy) => { const r = renderer.domElement.getBoundingClientRect(); if (cy < r.top || cy > r.bottom - 4) return null; const f = toField(cx - r.left, cy - r.top), x = clamp(Math.round(f.x * 2) / 2, -SUP_X, SUP_X); FX.groundRing(x, SGN.blue * 7 * TILT, 0.2, 1.4, 0xffd34d, 0.12, 0.8); return x; },
     // online match: messages from the other device, and the local emote going out
     mpMessage: (m) => mpMessage(m),
     mpEmote: (i) => { if (mp && !mp.done) mp.send({ em: i }); },
     get online() { return !!mp; },
     // per-frame readers fill one reused object per side / per call (no garbage at 60 fps); read the fields right away
-    supportOf: (side) => { const S = G.sides && G.sides[side]; if (!S || !S.sup) return null; const o = supOut[side] || (supOut[side] = {}); o.ready = supportReady(S); o.faction = S.faction; o.charge = S.sup.charge; o.used = S.sup.used; o.name = SUPPORT[S.faction].name; o.desc = SUPPORT[S.faction].desc; return o; },
+    supportOf: (side) => { const S = G.sides && G.sides[side]; if (!S || !S.sup) return null; const o = supOut[side] || (supOut[side] = {}); o.ready = supportReady(S); o.faction = S.faction; o.charge = S.sup.charge; o.used = S.sup.used; o.name = SUPPORT[S.faction].name; o.desc = SUPPORT[S.faction].desc; o.icon = SUPPORT[S.faction].icon; o.summon = !!SUPPORT[S.faction].summon; return o; },
     _useSupport: (side) => useSupport(side), // (smoke test)
     _perfTick: (interval, work) => perfTick(interval, work),
     _frame: (ms) => frameBody(Math.min(0.1, ms / 1000), ms), // (smoke test: one real frame, error guard included) // (smoke test: drives the auto-quality governor with synthetic frame times)

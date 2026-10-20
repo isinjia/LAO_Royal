@@ -62,6 +62,31 @@
   </section>
 
   <!-- deck builder -->
+  <!-- missions and the trophy road: their own tabs -->
+  <section id="missions" class="screen">
+    <header class="dhead"><h3>작전 임무</h3></header>
+    <div class="tabpage"><p class="pagenote">임무를 완료하고 부품을 받으세요. 받으면 새 임무가 주어집니다.</p>
+      <div id="missionList"></div></div>
+  </section>
+  <section id="road" class="screen">
+    <header class="dhead"><h3>트로피 로드</h3><button class="btn y sm" id="btnRoadClaim">모두 받기</button></header>
+    <div class="tabpage"><p class="pagenote">트로피가 오를수록 보상이 열립니다. 500마다 상자!</p>
+      <div id="roadList" class="roadlist"></div></div>
+  </section>
+
+  <!-- shop (its own tab): crates for parts, master cards for tuna -->
+  <section id="shop" class="screen">
+    <header class="dhead"><h3>상점</h3></header>
+    <div class="shoppage">
+      <div class="shopwallet"><span><i class="gold-i"></i><b id="shopGold">0</b></span><span><i class="tuna-i"></i><b id="shopTuna">0</b></span></div>
+      <div class="lbl">보급 상자 <small>부품으로 구매 · 바로 열림</small></div>
+      <div id="shopCrates" class="shopgrid"></div>
+      <div class="lbl">마스터 카드 <small>참치로 구매 · 같은 등급 카드 아무거나에 1장씩 추가</small></div>
+      <div id="shopMasters" class="shopgrid m4"></div>
+      <p class="shopnote">최대 레벨까지 필요한 카드를 다 모은 카드는 상자에서 더 나오지 않습니다.</p>
+    </div>
+  </section>
+
   <section id="deck" class="screen">
     <header class="dhead"><h3 id="deckTitle">덱 편성</h3><span id="deckAvg"></span></header>
     <!-- the faction this deck plays, one row on top (tap -> faction popup) -->
@@ -91,7 +116,7 @@
       <div class="bl"><div id="crBlue" class="crowns blue"></div></div>
       <div id="emotePanel" hidden></div>
       <div id="skillBar"></div>
-      <button id="supBtn" class="supbtn" hidden aria-label="지휘관 지원"><span class="ring"></span><b>지원</b><small></small></button>
+      <button id="supBtn" class="supbtn" hidden aria-label="지휘관 지원"><span class="ring"></span><span class="sicon"></span><b>지원</b><small></small></button>
       <div id="cardTip" hidden></div>
       <div id="banner" class="banner"></div>
       <div id="countdown"></div>
@@ -145,17 +170,6 @@
       <div class="tbtns"><button class="btn d" id="btnCardClose">닫기</button></div></div>
   </div>
 
-  <div id="shopOv" class="ov" hidden>
-    <div class="dlg shopdlg"><h4>상점</h4>
-      <div class="shopwallet"><span><i class="gold-i"></i><b id="shopGold">0</b></span><span><i class="tuna-i"></i><b id="shopTuna">0</b></span></div>
-      <div class="lbl">보급 상자 <small>부품으로 구매 · 바로 열림</small></div>
-      <div id="shopCrates" class="shopgrid"></div>
-      <div class="lbl">마스터 카드 <small>참치로 구매 · 같은 등급 카드 아무거나에 1장씩 추가</small></div>
-      <div id="shopMasters" class="shopgrid m4"></div>
-      <p class="shopnote">최대 레벨까지 필요한 카드를 다 모은 카드는 상자에서 더 나오지 않습니다.</p>
-      <div class="tbtns"><button class="btn d" id="btnShopClose">닫기</button></div></div>
-  </div>
-
   <div id="factionOv" class="ov" hidden>
     <div class="dlg facdlg"><h4>진영 설정</h4>
       <div id="factionSel" class="factions">
@@ -180,18 +194,6 @@
       <label class="row">그래픽<select id="setQuality"><option value="auto">자동</option><option value="0">높음</option><option value="1">보통</option><option value="2">낮음</option></select></label>
       <p class="setinfo" id="setInfo"></p>
       <div class="tbtns"><button class="btn d sm" id="btnReset">진행 초기화</button><button class="btn y" id="btnSetClose">닫기</button></div></div>
-  </div>
-
-  <div id="roadOv" class="ov" hidden>
-    <div class="dlg"><h4>트로피 로드</h4><p>트로피가 오를수록 보상이 열립니다. 500마다 상자!</p>
-      <div id="roadList" class="roadlist"></div>
-      <div class="tbtns"><button class="btn d" id="btnRoadClose">닫기</button><button class="btn y" id="btnRoadClaim">모두 받기</button></div></div>
-  </div>
-
-  <div id="missionOv" class="ov" hidden>
-    <div class="dlg"><h4>작전 임무</h4><p>임무를 완료하고 부품을 받으세요. 받으면 새 임무가 주어집니다.</p>
-      <div id="missionList"></div>
-      <div class="tbtns"><button class="btn y" id="btnMClose">닫기</button></div></div>
   </div>
 
   <div id="chestOv" class="ov" hidden>

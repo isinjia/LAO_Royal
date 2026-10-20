@@ -109,7 +109,7 @@
     const top = Math.max(...DATA.ROAD.filter((r) => r.trophy <= 620).map((r) => r.trophy));
     ok(UI.save.road === top && UI.save.gold > g0, `road claim pays everything up to ${top} (got ${UI.save.road})`);
     ok(UI.save.chests.length === 0, 'road crates open on the spot (none left waiting)');
-    document.getElementById('roadOv').hidden = true; document.getElementById('chestOv').hidden = true;
+    document.getElementById('chestOv').hidden = true;
     UI.save.chests = [];
     // 3. in a battle: heal, every champion skill of both factions, the AI punish path, a 30-unit load
     Object.assign(UI.save, { faction: 'orca', mode: 0, trophy: 2600, diff: 2 });

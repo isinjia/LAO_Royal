@@ -1278,3 +1278,29 @@ button:disabled { cursor: default; }
 #cardAct #btnMaster small { font-size: 10px; opacity: .8; }
 .shopdlg .lbl { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
 .shopdlg .lbl small { margin-left: 0; }
+
+/* the shop as its own page */
+#shop { background: var(--bg); overflow-y: auto; touch-action: pan-y; overflow-x: hidden; }
+#shop .shoppage { padding: 8px 14px 96px; }
+#shop .shoppage .lbl { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin: 14px 0 8px; font-weight: 800; }
+#shop .shoppage .lbl small { font-weight: 500; font-size: 11px; color: var(--dim); }
+#shop .shopwallet { margin-top: 4px; }
+#shop .shopit { padding: 12px 4px; }
+#shop .shopit .chest-i { width: 64px; height: 52px; }
+#shop .shopit .mcard { width: 46px; height: 60px; }
+
+/* missions and the trophy road as pages */
+#missions, #road { background: var(--bg); overflow-y: auto; touch-action: pan-y; overflow-x: hidden; }
+.tabpage { padding: 8px 14px 96px; }
+.pagenote { font-size: 12px; color: var(--dim); margin: 2px 0 10px; }
+#road .dhead { display: flex; align-items: center; justify-content: space-between; }
+#road .roadlist { max-height: none; }
+#shop > .tabbar, #missions > .tabbar, #road > .tabbar { position: sticky; bottom: 0; z-index: 5; margin-top: auto; }
+#shop .shoppage, #missions .tabpage, #road .tabpage { padding-bottom: 16px; }
+
+/* support button: the faction's character portrait inside the charge ring */
+.supbtn { overflow: visible; touch-action: none; }
+.supbtn .sicon { position: absolute; inset: 3px; border-radius: 50%; background: center 18% / cover no-repeat; opacity: .45; filter: grayscale(.7); pointer-events: none; }
+.supbtn.ready .sicon { opacity: 1; filter: none; }
+.supbtn b, .supbtn small { position: relative; z-index: 1; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.supbtn b { margin-top: 22px; }

@@ -39,7 +39,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.58'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.59'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -234,8 +234,8 @@
 
   // ── screens ───────────────────────────────────────────
   function show(id) {
-    ['title', 'deck', 'battle'].forEach((s) => $(s).classList.toggle('on', s === id));
-    if (id !== 'battle') { const tb = document.querySelector('.tabbar'); $(id).appendChild(tb); tb.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (id === 'deck' ? 'deck' : 'battle'))); }
+    ['title', 'deck', 'shop', 'missions', 'road', 'battle'].forEach((s) => $(s).classList.toggle('on', s === id));
+    if (id !== 'battle') { const tb = document.querySelector('.tabbar'); $(id).appendChild(tb); tb.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (['deck', 'shop', 'missions', 'road'].includes(id) ? id : 'battle'))); }
     if (id === 'battle') requestAnimationFrame(() => GAME.resize(true));
   }
 
@@ -540,6 +540,7 @@
     b.hidden = sp.used;
     b.classList.toggle('ready', sp.ready);
     b.classList.toggle('iron', sp.faction === 'iron');
+    { const ic = b.querySelector('.sicon'), u = sp.icon && IMG[sp.icon]; if (ic && ic._u !== u) { ic._u = u; ic.style.backgroundImage = u ? `url(${u})` : ''; } } // the faction's support, as a character portrait
     b.style.setProperty('--p', Math.round(sp.charge * 100) + '%');
     b.querySelector('small').textContent = sp.ready ? sp.name : ''; // charging: the ring says it (players don't reason in percent)
     b.title = `${sp.name}: ${sp.desc}`;
@@ -1177,8 +1178,7 @@
     $('btnFactionClose').onclick = () => { $('factionOv').hidden = true; };
     $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; deckSel = null; slotSel = null; cardOpen = false; persist(); SFX.play('click'); $('factionOv').hidden = true; renderTitle(); if ($('deck').classList.contains('on')) renderDeck(); });
     document.querySelectorAll('#factionSel button').forEach((b) => { b.querySelector('.fp').style.backgroundImage = `url(${IMG[FACTIONS[b.dataset.f].banner]})`; });
-    $('btnShopClose').onclick = () => { SFX.play('click'); $('shopOv').hidden = true; renderTitle(); };
-    $('shopOv').addEventListener('click', (e) => {
+    $('shop').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-buy]'); if (!b) return;
       const [kind, i] = b.dataset.buy.split(':');
       if (kind === 'crate') {
@@ -1240,9 +1240,9 @@
       const cur = $('roadList').querySelector('.ready, .lock');
       if (cur) cur.scrollIntoView({ block: 'center' });
     };
-    $('arenaName').onclick = $('roadNext').onclick = () => { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); }; // shown first: scrollIntoView needs layout
-    $('btnRoadClose').onclick = () => { $('roadOv').hidden = true; renderTitle(); };
-    $('roadBtn').onclick = () => { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); };
+    const openRoad = () => { SFX.play('click'); show('road'); renderRoad(); }; // shown first: scrollIntoView needs layout
+    $('arenaName').onclick = $('roadNext').onclick = openRoad;
+    $('roadBtn').onclick = openRoad;
     $('btnRoadClaim').onclick = () => {
       const road = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
       let gold = 0, crates = 0;
@@ -1260,7 +1260,7 @@
       renderRoad();
       if (crates) openChest(save.chests.length - 1); // the road's crate opens on the spot
     };
-    $('btnMissions').onclick = () => { SFX.play('click'); renderMissions(); $('missionOv').hidden = false; };
+    $('btnMissions').onclick = () => { SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderMissions(); show('missions'); };
     $('btnSearchCancel').onclick = () => { $('searchOv').dataset.how = 'cancel'; NET.cancel(); };
 
     $('btnMode').onclick = () => { SFX.play('click'); $('modeOv').hidden = false; };
@@ -1269,13 +1269,12 @@
     document.querySelector('.tabbar').addEventListener('click', (e) => { // (the bar moves between home and deck: one listener)
       const b = e.target.closest('[data-tab]'); if (!b) return;
       const t = b.dataset.tab;
-      if (t === 'shop') { SFX.play('click'); renderShop(); $('shopOv').hidden = false; }
+      if (t === 'shop') { if (!$('shop').classList.contains('on')) SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderShop(); show('shop'); }
       else if (t === 'deck') { if (!$('deck').classList.contains('on')) $('btnDeck').click(); }
       else if (t === 'battle') { if (!$('title').classList.contains('on')) SFX.play('click'); cardOpen = false; slotSel = null; $('cardOv').hidden = true; cardPreview(null); renderTitle(); show('title'); }
-      else if (t === 'road') { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); }
+      else if (t === 'road') { cardOpen = false; $('cardOv').hidden = true; cardPreview(null); openRoad(); }
       // (missions: its own handler above; battle: this screen)
     });
-    $('btnMClose').onclick = () => { $('missionOv').hidden = true; renderTitle(); };
     $('missionList').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b || b.disabled) return;
       const m = save.missions[+b.dataset.i];
@@ -1315,7 +1314,14 @@
     };
     $('tutSkip').onclick = () => { $('tutOv').hidden = true; if (!save.tutorial) { save.tutorial = true; persist(); startBattle(); } };
     $('btnPause').onclick = () => pause(true);
-    $('supBtn').onclick = () => { if (GAME.useSupport()) { SFX.play('click', 0.5); supKey = ''; } };
+    // the support button: a tap calls it (a summon lands in the middle); a summon can also be dragged a little left or right to pick its lane
+    { const sb = $('supBtn'); let sd = null;
+      const fire = (x) => { if (GAME.useSupport(x)) { SFX.play('click', 0.5); supKey = ''; } };
+      sb.addEventListener('pointerdown', (e) => { const sp = GAME.supportOf('blue'); if (!sp || !sp.ready) return; e.preventDefault(); sd = { id: e.pointerId, x0: e.clientX, y0: e.clientY, moved: false, summon: sp.summon, x: 0 }; });
+      window.addEventListener('pointermove', (e) => { if (!sd || e.pointerId !== sd.id || !sd.summon) return; if (Math.hypot(e.clientX - sd.x0, e.clientY - sd.y0) > 12) sd.moved = true; if (sd.moved) { const x = GAME.supportAim(e.clientX, e.clientY); sd.x = x == null ? null : x; } });
+      window.addEventListener('pointerup', (e) => { if (!sd || e.pointerId !== sd.id) return; const d = sd; sd = null; if (!d.moved) fire(0); else if (d.x != null) fire(d.x); });
+      window.addEventListener('pointercancel', () => { sd = null; });
+    }
     $('btnResume').onclick = () => pause(false);
     $('btnPauseSet').onclick = () => openSettings();
     $('btnSurrender').onclick = () => {
