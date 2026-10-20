@@ -787,3 +787,21 @@ button:disabled { cursor: default; }
 #title.cr #avgCost b { display: block; font-size: 11px; color: #fff; }
 /* skill names fit their button (three champions in a row) */
 #skillBar .skb b { max-width: 58px; overflow: hidden; text-overflow: ellipsis; font-size: 8.5px; padding: 2px 4px; }
+/* deck screen, Clash Royale style: the average under the deck on the left, the faction slot on the right */
+.deckfoot { display: flex; align-items: center; gap: 10px; margin: 10px 14px 2px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.08); }
+.deckfoot .sp { flex: 1; }
+.davg { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px 6px 8px; border-radius: 20px; background: rgba(0,0,0,.35); font: 900 italic 22px var(--en-font); color: #fff; }
+.drop-i { display: inline-block; width: 22px; height: 26px; background: radial-gradient(circle at 40% 35%, #f3a6ff, var(--en) 55%, #6b1e86); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.facslot { position: relative; width: 92px; height: 112px; padding: 0; border-radius: 10px; overflow: hidden; border: 3px solid #3aa8ff; background: #10161d; box-shadow: 0 4px 12px rgba(0,0,0,.5); display: flex; flex-direction: column; justify-content: flex-end; }
+.facslot.f-iron { border-color: #ff4a5a; }
+.facslot .fsp { position: absolute; inset: 0; background: center 12% / cover; }
+.facslot b { position: relative; display: block; padding: 3px 0 0; font-size: 13px; color: #fff; background: rgba(0,0,0,.65); text-shadow: 0 1px 2px #000; }
+.facslot small { position: relative; display: block; padding: 0 0 4px; font-size: 9.5px; color: #ffd84a; background: rgba(0,0,0,.65); }
+.facdlg .factions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0; }
+.facdlg .factions button { height: 120px; flex-direction: column; justify-content: flex-end; }
+.facdlg .factions .fp { width: 100%; opacity: .8; }
+.facdlg .factions button.on .fp { opacity: 1; }
+.facdlg .factions b, .facdlg .factions small { position: relative; display: block; background: rgba(0,0,0,.6); }
+.facdlg .facnote { font-size: 11px; margin: 4px 0 0; }
+#title.cr .profile { cursor: pointer; }
+.facdlg .factions button { display: flex; padding: 0; text-align: center; }

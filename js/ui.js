@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.24'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.25'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -232,7 +232,9 @@
   function renderDeck() {
     const f = save.faction, deck = save.decks[f];
     $('deckTitle').textContent = `덱 편성 · ${FACTIONS[f].name}`;
-    $('deckAvg').innerHTML = `평균 에너지 <b>${avg(deck)}</b> · <i class="gold-i"></i>${save.gold} · ${synChip(deck)}`;
+    $('deckAvg').innerHTML = `<i class="gold-i"></i>${save.gold} · ${synChip(deck)}`;
+    $('deckAvg2').innerHTML = `<i class="drop-i"></i><b>${avg(deck)}</b>`; // (Clash Royale: the average under the deck)
+    $('facPf').style.backgroundImage = `url(${IMG[FACTIONS[f].banner]})`; $('facName').textContent = FACTIONS[f].name; $('btnFaction').className = 'facslot f-' + f;
     const slots = $('deckSlots');
     slots.innerHTML = '';
     deck.forEach((id, i) => {
@@ -953,7 +955,10 @@
     syncCollection();
     applyAudio();
     if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${new URL(IMG.bg_title, location.href).href})`); // absolute: the stylesheet would resolve a relative one under css/
-    $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; persist(); SFX.play('click'); renderTitle(); });
+    $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; deckSel = null; persist(); SFX.play('click'); $('factionOv').hidden = true; renderTitle(); if ($('deck').classList.contains('on')) renderDeck(); });
+    $('btnFaction').onclick = () => { SFX.play('click'); document.querySelectorAll('#factionSel button').forEach((b) => b.classList.toggle('on', b.dataset.f === save.faction)); $('factionOv').hidden = false; };
+    $('btnFactionClose').onclick = () => { $('factionOv').hidden = true; };
+    document.querySelector('#title .profile').onclick = () => $('btnFaction').onclick(); // (the home banner opens the same faction picker)
     $('diffSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.diff = +b.dataset.d; persist(); SFX.play('click'); renderTitle(); });
     $('pfoeBox').addEventListener('click', (e) => { const b = e.target.closest('[data-p]'); if (!b) return; save.practiceFoe = b.dataset.p; persist(); SFX.play('click'); renderTitle(); });
     $('modeSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.mode = +b.dataset.m; persist(); SFX.play('click'); renderTitle(); toast(save.mode === 3 ? `오늘의 작전: ${DATA.mutatorOf().name} — ${DATA.mutatorOf().desc}` : BAL.modes[save.mode].desc); });
