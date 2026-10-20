@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.30'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.31'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -167,7 +167,19 @@
     if (opt.isNew) h += '<span class="newb">NEW</span>';
     if (opt.locked) h += `<span class="lock"><i></i>${esc(ARENAS[c.arena].name)}</span>`;
     el.innerHTML = h;
-    return el;
+    if (!opt.tile) return el;
+    // deck / collection tile (Clash Royale card list): the level band on the card, the copies bar under it
+    el.title = c.name;
+    el.insertAdjacentHTML('beforeend', `<span class="lvband">레벨 ${opt.lv || 1}</span>`);
+    const o = save.cards[c.id], t = document.createElement('div');
+    t.className = 'tile';
+    t.appendChild(el);
+    if (o && o.lv >= LEVEL.max) t.insertAdjacentHTML('beforeend', '<div class="cbar max"><b>최대 레벨</b></div>');
+    else if (o) {
+      const k = upCost(c, o.lv).n, full = o.n >= k;
+      t.insertAdjacentHTML('beforeend', `<div class="cbar${full ? ' full' : ''}"><span class="fill" style="width:${Math.min(100, o.n / k * 100)}%"></span><i class="arw"></i><b>${o.n}/${k}</b></div>`);
+    }
+    return t;
   }
 
   // ── screens ───────────────────────────────────────────
@@ -246,7 +258,7 @@
     const slots = $('deckSlots');
     slots.innerHTML = '';
     deck.forEach((id, i) => {
-      const el = cardEl(CARD[id], (deckSel === id ? 'sel' : '') + (swapMode ? ' swap' : ''), { lv: levelOf(id), rank: true });
+      const el = cardEl(CARD[id], (deckSel === id ? 'sel' : '') + (swapMode ? ' swap' : ''), { lv: levelOf(id), rank: true, tile: true });
       el.onclick = () => {
         if (swapMode && deckSel && !deck.includes(deckSel)) { deck[i] = deckSel; swapMode = false; persist(); SFX.play('click'); }
         else { deckSel = id; swapMode = false; cardOpen = true; }
@@ -255,7 +267,7 @@
       slots.appendChild(el);
     });
     for (let i = deck.length; i < 8; i++) { // empty places of an unfinished deck
-      const el = document.createElement('div'); el.className = 'card emptyslot'; el.innerHTML = '<span>빈 칸</span>';
+      const el = document.createElement('div'); el.className = 'tile'; el.innerHTML = '<div class="card emptyslot"><span>빈 칸</span></div>';
       slots.appendChild(el);
     }
     $('collSort').innerHTML = Object.entries(CSORT).map(([k, n]) => `<button data-s="${k}" class="${(save.collSort || 'faction') === k ? 'on' : ''}">${n}</button>`).join('');
@@ -265,8 +277,7 @@
     list.forEach((c) => {
       const o = save.cards[c.id];
       const locked = !unlocked(c) || !o;
-      const prog = o && o.lv < LEVEL.max ? o.n / upCost(c, o.lv).n : null;
-      const el = cardEl(c, (deck.includes(c.id) ? 'used' : '') + (deckSel === c.id ? ' sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, progress: locked ? null : prog, isNew: !locked && save.newCards && save.newCards[c.id], rank: true });
+      const el = cardEl(c, (deck.includes(c.id) ? 'used' : '') + (deckSel === c.id ? ' sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, isNew: !locked && save.newCards && save.newCards[c.id], rank: true, tile: true });
       el.onclick = () => { deckSel = c.id; swapMode = false; cardOpen = true; if (save.newCards && save.newCards[c.id]) { delete save.newCards[c.id]; persist(); } renderDeck(); };
       col.appendChild(el);
     });
