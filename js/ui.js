@@ -30,7 +30,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.33'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.34'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   const unlocked = () => true; // free deck building: every card is open from the start (arenas still set the scene and the opponent's level)
@@ -238,7 +238,20 @@
   }
 
   // deck builder
-  let deckSel = null, swapMode = false, cardOpen = false; // cardOpen: the card popup is up
+  let deckSel = null, swapMode = false, cardOpen = false, pvId = null; // cardOpen: the card popup is up; pvId: the card its preview shows
+  // the popup's preview: the card fighting in a small scene (the poster is the card art until the first frame)
+  function cardPreview(c) {
+    if (!c) { if (pvId) { pvId = null; GAME.previewStop(); } return; }
+    if (pvId === c.id) return;
+    pvId = c.id;
+    const box = $('cardPvBox'), cv = $('cardPv'), k = Math.min(2, window.devicePixelRatio || 1);
+    box.classList.remove('live');
+    box.style.backgroundImage = `url(${art(c)})`;
+    cv.width = Math.round((box.clientWidth || 320) * k); cv.height = Math.round(cv.width * 9 / 16);
+    cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+    const id = c.id;
+    Promise.resolve(GAME.ready ? GAME.preview(id, cv) : false).then((ok) => { if (ok && pvId === id) box.classList.add('live'); }).catch(() => {});
+  }
   // collection order (saved): the commander's faction first / energy / grade / level / name
   const CSORT = { faction: '진영', cost: '에너지', rarity: '등급', level: '레벨' };
   // tapping the active order again flips it (ascending / descending); ties fall back to energy, then the name
@@ -253,7 +266,7 @@
     const f = save.faction, deck = save.decks[f];
     $('deckTitle').textContent = `덱 편성 · ${FACTIONS[f].name}`;
     $('deckAvg').innerHTML = `<i class="gold-i"></i>${save.gold} · ${synChip(deck)}`;
-    $('deckAvg2').innerHTML = `<i class="drop-i"></i><b>${avg(deck)}</b>`; // (Clash Royale: the average under the deck)
+    $('facPf').style.backgroundImage = `url(${IMG[FACTIONS[f].banner]})`; $('facName').textContent = FACTIONS[f].name; $('btnFaction').className = 'facslot f-' + f;
     $('deckHint').textContent = swapMode ? '덱에서 바꿀 카드를 누르세요' : deck.length < 8 ? `${8 - deck.length}장을 더 넣으세요` : '';
     $('deckTabs').innerHTML = save.deckSlots[f].map((d, i) => `<button data-i="${i}" class="${i === save.deckSlot[f] ? 'on' : ''}">덱 ${i + 1}</button>`).join('');
     const slots = $('deckSlots');
@@ -286,6 +299,7 @@
     const info = $('cardInfo');
     const c = cardOpen && deckSel && CARD[deckSel];
     $('cardOv').hidden = !c;
+    cardPreview(c || null);
     if (!c) return; // (the details live in a popup: only while a card is tapped)
     const o = save.cards[c.id], lv = o ? o.lv : 1, m = LEVEL.mult(lv);
     const st = [];
@@ -321,10 +335,9 @@
       act += inDeck ? ' <button class="btn d sm" id="btnOut">덱에서 빼기</button>' : ' <button class="btn y sm" id="btnUse">덱에 넣기</button>';
     }
     const skill = c.skill ? `<div class="skillinfo"><b>챔피언 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
-    info.innerHTML = `<div class="ci-head"></div><div class="ci-body"><h4>${rankIc(c)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
+    info.innerHTML = `<div class="ci-body"><h4>${rankIc(c)}${esc(c.name)} <small>Lv.${lv}</small></h4><p>${esc(c.desc)}</p>${skill}
       <dl>${st.map(([k2, v]) => `<div><dt>${k2}</dt><dd>${v}</dd></div>`).join('')}</dl></div>`;
     $('cardAct').innerHTML = act;
-    info.querySelector('.ci-head').appendChild(cardEl(c, '', { lv: o && o.lv, locked: !o || !unlocked(c), rank: true }));
     const b = $('btnUse');
     if (b) b.onclick = () => { // a free place takes it at once; a full deck: a deck slot is tapped next
       if (deck.length < 8) { deck.push(c.id); persist(); } else swapMode = true;
@@ -992,6 +1005,11 @@
     $('btnBattle').onclick = startBattle;
     $('btnDeck').onclick = () => { SFX.play('click'); deckSel = null; swapMode = false; cardOpen = false; renderDeck(); show('deck'); };
     $('btnCardClose').onclick = () => { cardOpen = false; renderDeck(); };
+    // the faction card under the deck opens the faction picker
+    $('btnFaction').onclick = () => { SFX.play('click'); document.querySelectorAll('#factionSel button').forEach((b) => b.classList.toggle('on', b.dataset.f === save.faction)); $('factionOv').hidden = false; };
+    $('btnFactionClose').onclick = () => { $('factionOv').hidden = true; };
+    $('factionSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.faction = b.dataset.f; deckSel = null; swapMode = false; cardOpen = false; persist(); SFX.play('click'); $('factionOv').hidden = true; renderTitle(); if ($('deck').classList.contains('on')) renderDeck(); });
+    document.querySelectorAll('#factionSel button').forEach((b) => { b.querySelector('.fp').style.backgroundImage = `url(${IMG[FACTIONS[b.dataset.f].banner]})`; });
     $('btnShopClose').onclick = () => { SFX.play('click'); $('shopOv').hidden = true; };
     $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; if (save.collSort === b.dataset.s) save.collDesc = !save.collDesc; else { save.collSort = b.dataset.s; save.collDesc = false; } persist(); SFX.play('click'); renderDeck(); });
     $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') { cardOpen = false; renderDeck(); } }); // a tap outside the popup closes it
@@ -1067,7 +1085,7 @@
       const t = b.dataset.tab;
       if (t === 'shop') { SFX.play('click'); $('shopOv').hidden = false; } // (not built yet)
       else if (t === 'deck') { if (!$('deck').classList.contains('on')) $('btnDeck').click(); }
-      else if (t === 'battle') { if (!$('title').classList.contains('on')) SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; renderTitle(); show('title'); }
+      else if (t === 'battle') { if (!$('title').classList.contains('on')) SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderTitle(); show('title'); }
       else if (t === 'road') { SFX.play('click'); $('roadOv').hidden = false; renderRoad(); }
       // (missions: its own handler above; battle: this screen)
     });

@@ -1826,6 +1826,7 @@
       if (u.casting <= 0) { u.casting = 0; if (u.sd) u.sd.speed = 1; u.state = 'idle'; }
       return false;
     }
+    if (u.hold) { setClip(u, 'idle', 1); if (u.sd) u.sd.update(dt); return false; } // a card preview's target stands and takes the hits
     // healers mend every friendly troop around them on a timer
     if (u.card.heal) {
       u.healT = (u.healT == null ? 1 : u.healT) - dt;
@@ -2871,6 +2872,7 @@
 
   // opts: { faction, deck, diff, mode, levels, arena, foe }
   async function start(opts) {
+    previewStop();
     clearBattle();
     G.opts = opts;
     if (window.SFX && SFX.warm) {
@@ -2972,6 +2974,128 @@
   // ── loop ──────────────────────────────────────────────
   let last = 0, acc = 0;
   const DT = 1 / 60;
+  // ── card preview (the deck popup): a short staged fight with the real units, skills and effects ──
+  // The card's own units (or its spell / building) against a few enemies that stand still and take the hits; the scene
+  // repeats every few seconds. It is simulated and drawn by the battle engine with a small camera on the action, and
+  // each frame is copied into the popup's canvas (the battle canvas itself stays hidden).
+  let pv = null, pvAcc = 0;
+  const PV_FOES = { iron: { ground: 'phalangites', air: 'drone', ally: 'nightchick' }, orca: { ground: 'gnome', air: 'harpy', ally: 'brownie' } };
+  async function preview(id, cv) {
+    const c = CARD[id];
+    if (!booted || !c || !cv || ['loading', 'countdown'].includes(G.phase) || (G.phase === 'play' && !pv) || G.phase === 'ended') return false;
+    previewStop();
+    const fac = c.faction || 'orca', foe = fac === 'iron' ? 'orca' : 'iron', F = PV_FOES[foe];
+    const air = c.type !== 'spell' && c.hits !== 'ground' && !c.heal; // a unit that can shoot up also gets a flying target
+    const slots = [{ id: F.ground, x: -1.4, z: -2.4 }, { id: F.ground, x: 1.4, z: -2.2 }, { id: air ? F.air : F.ground, x: 0.1, z: -1.4 }];
+    const me = { c, cv, ctx: cv.getContext('2d'), fac, foe, slots, ready: false, t: 0, len: c.skill ? 9 : 7, tower: c.aim === 'buildings',
+      ally: c.spell === 'rage' ? PV_FOES[fac].ally : null };
+    pv = me; pvAcc = 0;
+    // what it needs: its rigs (units, summons, spawns), the targets, its effects
+    const rigs = new Set(), fxs = new Set(['simple_explosion', 'skill_hit_simple']);
+    const need = (k) => { const x = CARD[k]; if (!x) return; if (x.rig) rigs.add(x.rig); fxNamesFor(x).forEach((n) => fxs.add(n)); };
+    need(id); slots.forEach((s) => need(s.id)); if (me.ally) need(me.ally);
+    if (c.guard) rigs.add(c.guard.rig);
+    if (c.spawn) need(c.spawn.card);
+    if (c.skill && c.skill.kind === 'summon') need(c.skill.card);
+    if (me.tower) rigs.add(FACTIONS[foe].princess.rig);
+    // browsing many cards must not pile up GPU memory on a phone: what earlier previews loaded and this one does not use goes
+    if (SD.loaded().length + rigs.size > (MOBILE ? 14 : 40)) SD.loaded().forEach((r) => { if (!rigs.has(r)) SD.evict(r); });
+    if (MOBILE || FXB.loaded().length > 60) FXB.loaded().forEach((n) => { if (!fxs.has(n)) FXB.evict(n); });
+    const within = (p, ms) => Promise.race([p.catch(() => null), new Promise((r) => setTimeout(() => r(null), ms))]);
+    await Promise.all([...rigs].map((r) => within(SD.prepare(r), 15000).then((t) => { if (t && renderer.initTexture) renderer.initTexture(t.atlas.tex); })).concat([...fxs].filter(fxOk).map((n) => within(FXB.prepare(n), 15000))));
+    if (pv !== me || ['loading', 'countdown'].includes(G.phase)) return false; // closed (or a battle began) while loading
+    G.opts = { mode: 0, preview: true, faction: fac }; G.mut = null; G.arena = 0;
+    G.ironHalves = { home: fac === 'iron', far: foe === 'iron' };
+    setArena(0);
+    G.phase = 'play'; G.paused = false;
+    previewStage(me);
+    me.ready = true;
+    return true;
+  }
+  function previewStage(p) {
+    clearBattle();
+    G.nextId = 1; G.time = 0; G.clock = 999; G.mult = 1; G.overtime = false; G.result = null; G.log = null;
+    const st0 = () => ({ dmg: 0, kills: 0, spent: 0, wasted: 0, skills: 0, cards: 0, by: {} });
+    G.stats = { blue: st0(), red: st0() };
+    G.sides = { blue: makeSide('blue', p.fac, [p.c.id], null, null, 1), red: makeSide('red', p.foe, [p.slots[0].id], null, null, 1) };
+    p.t = 0; p.skilled = false; p.nextCast = 0.9;
+    if (p.tower) { const t = makeTower('red', 'princess', 0, -1.4); t.atk.dmg = 0; t.label.hidden = true; }
+    p.slots.forEach((s) => { s.u = previewFoe(s); s.wait = 0; });
+    if (p.ally) [-0.8, 0.8].forEach((x) => spawnTroop('blue', CARD[p.ally], x, -5.0, 0, 1));
+    if (p.c.type !== 'spell') { pvHand(); playCard('blue', 0, 0, p.c.type === 'building' ? -5.0 : -5.2); }
+  }
+  // a full hand of the one card (the battle HUD's hand stays valid), energy to play it
+  function pvHand() { const S = G.sides.blue, id = pv.c.id; S.elixir = BAL.elixirMax; S.hand = [id, id, id, id]; S.queue = [id]; }
+  function previewFoe(s) {
+    const u = spawnTroop('red', CARD[s.id], s.x, s.z, 0, 1);
+    u.hold = true; u.atk = Object.assign({}, u.atk, { dmg: 0 }); u.face = -1;
+    return u;
+  }
+  function previewStep(dt) {
+    const p = pv;
+    p.t += dt; G.time += dt;
+    for (let i = G.ents.length - 1; i >= 0; i--) {
+      const e = G.ents[i];
+      if (e.type === 'bld') { e.hitT = Math.max(0, e.hitT - dt); if (updateBuilding(e, dt)) { disposeEnt(e); G.ents.splice(i, 1); } continue; }
+      if (e.kind === 'tower') { e.hitT = Math.max(0, e.hitT - dt); if (e.sd) e.sd.update(dt); continue; } // (the target tower does not shoot)
+      if (e.alive) e.hitT = Math.max(0, e.hitT - dt);
+      if (updateTroop(e, dt)) { disposeEnt(e); G.ents.splice(i, 1); }
+    }
+    separate();
+    updateProjs(dt);
+    updateZones(dt);
+    // a spell is cast on the group again and again; a champion uses its skill once per showing
+    if (p.c.type === 'spell' && p.t >= p.nextCast) {
+      p.nextCast += 3.2;
+      pvHand();
+      if (p.ally) playCard('blue', 0, 0, -4.9); else playCard('blue', 0, 0, -2.1);
+    }
+    if (p.c.skill && !p.skilled && p.t >= 3.4) {
+      const h = G.ents.find((e) => e.kind === 'troop' && e.side === 'blue' && e.alive && e.card === p.c && e.deployT <= 0);
+      if (h) { p.skilled = true; h.skillCd = 0; G.sides.blue.elixir = BAL.elixirMax; useSkillNow(h); }
+    }
+    // the targets come back a moment after they fall
+    for (const s of p.slots) if (!s.u || !s.u.alive) { s.wait += dt; if (s.wait > 1.3) { s.u = previewFoe(s); s.wait = 0; } }
+    if (p.t >= p.len) previewStage(p);
+  }
+  // the camera on the action: a 10-wide window over the attacker and its targets, in the canvas's shape
+  function previewView(p) {
+    const cw = p.cv.width, ch = p.cv.height;
+    if (renderer.domElement.width !== cw || renderer.domElement.height !== ch || p.sized !== cw + 'x' + ch) {
+      p.sized = cw + 'x' + ch;
+      const pr = renderer.getPixelRatio();
+      renderer.setSize(cw / pr, ch / pr, false);
+      if (composer) composer.setSize(cw / pr, ch / pr);
+      view.w = cw / pr; view.h = ch / pr;
+      lastSize = ''; // the battle sizes itself again when it is shown
+    }
+    const w = 12, h = w * ch / cw, cy = -1.3; // (attacker's feet at the bottom, the targets' heads at the top)
+    camera.left = -w / 2; camera.right = w / 2; camera.top = cy + h / 2; camera.bottom = cy - h / 2;
+    camera.updateProjectionMatrix();
+  }
+  function previewFrame(dt) {
+    const p = pv;
+    try {
+      if (p.ready) {
+        pvAcc += dt;
+        let n = 0;
+        while (pvAcc >= DT && n < 4) { previewStep(DT); pvAcc -= DT; n++; }
+        if (n === 4) pvAcc = 0;
+      }
+      FX.update(dt);
+      if (p.ready && pv === p) {
+        previewView(p);
+        render(dt);
+        p.ctx.drawImage(renderer.domElement, 0, 0, p.cv.width, p.cv.height);
+      }
+    } catch (err) { console.error('preview', err); previewStop(); }
+  }
+  function previewStop() {
+    if (!pv) return;
+    pv = null;
+    if (G.opts && G.opts.preview) { clearBattle(); G.opts = null; G.phase = 'title'; lastSize = ''; }
+  }
+
   function frame(now) {
     requestAnimationFrame(frame);
     const interval = last ? now - last : 16.7;
@@ -3010,6 +3134,7 @@
   }
   function frameBody(dt, interval) {
     if (!renderer || G.paused || G.lost) return;
+    if (pv) { previewFrame(dt); return; } // (the deck popup's card preview)
     if (G.hitStop > 0) { G.hitStop -= dt; dt *= 0.06; } else if (G.slowmo > 0) { G.slowmo -= dt; dt *= 0.35; }
     const t0 = performance.now();
     let bad = false; // each stage is guarded on its own: a failing simulation must not also freeze the effects and the drawing
@@ -3168,6 +3293,7 @@
   function leave() { mpClose(); G.opts = null; clearBattle(); G.phase = 'title'; G.paused = false; SFX.music('title'); }
 
   window.GAME = {
+    preview, previewStop,
     get ready() { return booted; },
     G, boot, start, select, deselect, cardDown, pause, surrender, leave, resize, useSkill, champions, setQuality, buildDeck,
     get cameraZoom() { return camera ? camera.zoom : 1; },

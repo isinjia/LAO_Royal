@@ -867,3 +867,31 @@ button:disabled { cursor: default; }
 .dtabs button.on { background: linear-gradient(#ffd34d, #e8a412); color: #1b1300; }
 .csort button { border-radius: 0; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); border: none; background: #22303f; }
 .csort button.on { background: #2ee6ff; color: #04141f; }
+
+/* card popup: the preview scene on top */
+.pvbox { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 0 0 10px; overflow: hidden; background: #0b121a center 20% / cover no-repeat; border: 1px solid #4f6a82;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+.pvbox canvas { display: block; width: 100%; height: 100%; }
+.pvbox .pvload { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px; font-size: 11px; color: #9fd8ea; background: linear-gradient(transparent, rgba(4,10,16,.85)); }
+.pvbox.live { background-image: none !important; }
+.pvbox.live .pvload { display: none; }
+
+/* under the deck: the hint, and the faction as a card in the last column (Last Origin colours) */
+.deckfoot { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: center; margin: 4px 14px 2px; padding: 8px 0 0; }
+.deckfoot .dhint { grid-column: 1 / 4; text-align: left; }
+.facslot { grid-column: 4; position: relative; width: 100%; aspect-ratio: 4 / 5; padding: 0; overflow: hidden; border: 2px solid #2ee6ff; border-radius: 7px; background: #0b121a;
+  box-shadow: 0 0 10px rgba(46,230,255,.35), 0 3px 0 rgba(0,0,0,.5); display: flex; flex-direction: column; justify-content: flex-end; }
+.facslot.f-iron { border-color: #ff4a5a; box-shadow: 0 0 10px rgba(255,74,90,.35), 0 3px 0 rgba(0,0,0,.5); }
+.facslot .fsp { position: absolute; inset: 0; background: center 12% / cover; }
+.facslot b { position: relative; display: block; padding: 2px 0 0; font-size: 12px; color: #fff; background: rgba(6,14,22,.82); text-shadow: 0 1px 2px #000; }
+.facslot small { position: relative; display: block; padding: 0 0 3px; font-size: 9.5px; color: #2ee6ff; background: rgba(6,14,22,.82); }
+.facslot.f-iron small { color: #ff8a94; }
+.facdlg .factions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0; }
+.facdlg .factions button { position: relative; display: flex; flex-direction: column; justify-content: flex-end; height: 130px; padding: 0; overflow: hidden; border: 2px solid #4f6a82; background: #0b121a; text-align: center;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+.facdlg .factions button.on, .facdlg .factions button.on[data-f] { border-color: #ffd34d; box-shadow: inset 0 0 0 2px #ffd34d; }
+.facdlg .factions .fp { position: absolute; inset: 0; width: auto; background: center 12% / cover; opacity: .7; }
+.facdlg .factions button.on .fp { opacity: 1; }
+.facdlg .factions b, .facdlg .factions small { position: relative; display: block; background: rgba(6,14,22,.8); }
+.facdlg .factions small { color: #9fb3c4; font-size: 11px; padding-bottom: 4px; }
+.facdlg .facnote { font-size: 11px; margin: 4px 0 0; color: var(--dim); }
