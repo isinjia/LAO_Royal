@@ -28,11 +28,6 @@
       <button class="ibtn" id="btnHelp" aria-label="도움말"><span class="q">?</span></button>
       <button class="ibtn" id="btnSettings" aria-label="설정"><span class="gear"></span></button>
     </div>
-    <!-- profile banner: the commander, the faction switch -->
-    <div class="profile">
-      <span class="pav" id="profAv"></span>
-      <div class="pname"><b>사령관</b><small id="vsLine" class="vs"></small></div>
-    </div>
     <div class="logo">
       <small>LAST ORIGIN</small>
       <h1>LAST ROYAL</h1>
@@ -55,6 +50,7 @@
       <button class="btn d actside" id="btnMode" aria-label="모드 선택"><span class="mdicon"></span><small id="modeLabel"></small></button>
     </div>
     <nav class="tabbar">
+      <button data-tab="shop"><i class="t-shop"></i><span>상점</span></button>
       <button data-tab="deck"><i class="t-cards"></i><span>카드</span></button>
       <button data-tab="battle" class="on"><i class="t-battle"></i><span>전투</span></button>
       <button data-tab="missions" id="btnMissions"><i class="t-mission"></i><span>임무</span><em id="mBadge" hidden>0</em></button>
@@ -70,7 +66,7 @@
     <div id="deckSlots" class="slots"></div>
     <!-- under the deck: its average energy -->
     <div class="deckfoot"><span class="davg" id="deckAvg2"></span><span class="sp"></span><span class="dhint" id="deckHint"></span></div>
-    <div class="lbl pad">카드 컬렉션</div>
+    <div class="lbl pad">카드 컬렉션<span class="csort" id="collSort"></span></div>
     <div id="collection" class="coll"></div>
   </section>
 
@@ -135,7 +131,13 @@
   <!-- deck builder: the tapped card's details -->
   <div id="cardOv" class="ov" hidden>
     <div class="dlg carddlg"><div id="cardInfo" class="cinfo"></div>
+      <div id="cardAct" class="cardact"></div><!-- upgrade (left), put in / take out (right) -->
       <div class="tbtns"><button class="btn d" id="btnCardClose">닫기</button></div></div>
+  </div>
+
+  <div id="shopOv" class="ov" hidden>
+    <div class="dlg"><h4>상점</h4><p>아직 공사 중입니다.</p>
+      <div class="tbtns"><button class="btn y" id="btnShopClose">확인</button></div></div>
   </div>
 
   <div id="pauseOv" class="ov" hidden>
