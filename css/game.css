@@ -1304,3 +1304,5 @@ button:disabled { cursor: default; }
 .supbtn.ready .sicon { opacity: 1; filter: none; }
 .supbtn b, .supbtn small { position: relative; z-index: 1; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
 .supbtn b { margin-top: 22px; }
+/* the faction skill sits clear above the emote button (which rides on top of NEXT) */
+.supbtn { bottom: 34px; }
