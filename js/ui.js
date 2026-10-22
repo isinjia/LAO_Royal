@@ -5,7 +5,7 @@
   const KEY = 'lastroyal.v2';
 
   // ── save ──────────────────────────────────────────────
-  const REMATCH_MS = 10 * 60 * 1000; // an online opponent's device cannot be met again for 10 minutes
+  const REMATCH_MS = 5 * 60 * 1000; // an online opponent's device cannot be met again for 5 minutes
   const save = (() => {
     let s = {};
     const fresh = !localStorage.getItem(KEY) && !localStorage.getItem('lastroyal.v1'); // (a commander starting now)
@@ -22,9 +22,9 @@
     if (!(s.diff >= 0 && s.diff <= 2)) s.diff = 1;
     if (!(s.mode >= 0 && s.mode < BAL.modes.length) || (s.mode >= 1 && s.mode <= 3)) s.mode = 0; // (only 일반전 and 연습전 are left)
     s.nick = typeof s.nick === 'string' ? s.nick.trim().slice(0, 10) : '';
-    // this device's own player id (kept for good: the 10-minute rematch block goes by it)
+    // this device's own player id (kept for good: the 5-minute rematch block goes by it)
     if (typeof s.pid !== 'string' || !/^[a-z0-9]{12}$/.test(s.pid)) s.pid = Array.from({ length: 12 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
-    // online opponents met in the last 10 minutes (no rematch with them: no trading wins between friends)
+    // online opponents met in the last 5 minutes (no rematch with them: no trading wins between friends)
     s.recentFoes = Array.isArray(s.recentFoes) ? s.recentFoes.filter((r) => r && typeof r.t === 'number' && Date.now() - r.t < REMATCH_MS).slice(-30) : [];
     if (s.practiceFoe === 'iron') s.practiceFoe = 'orca'; // (decks are shared now)
     if (!['ai', 'orca'].includes(s.practiceFoe)) s.practiceFoe = 'ai';
@@ -1163,7 +1163,7 @@
     const f = m.foe, cs = DATA.COMMANDERS[f.faction] || DATA.COMMANDERS.iron;
     const foeNick = typeof f.nick === 'string' ? f.nick.replace(/\s+/g, ' ').trim().slice(0, 10) : ''; // (the other player's own nickname; an older build sends none)
     const foeC = Object.assign({}, cs[0], { name: foeNick || '온라인 사령관', style: 'balanced' });
-    save.recentFoes.push({ n: foeNick, id: typeof f.pid === 'string' ? f.pid : '', t: Date.now() }); persist(); // (no rematch with them for 10 minutes)
+    save.recentFoes.push({ n: foeNick, id: typeof f.pid === 'string' ? f.pid : '', t: Date.now() }); persist(); // (no rematch with them for 5 minutes)
     m.listen((msg) => GAME.mpMessage(msg));
     GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: 1, mode: 0, mut: null, levels, arena: m.guest ? (f.arena | 0) : arena(),
       foe: foeC, foeDeck: f.deck, foeFaction: f.faction, foeLevels: f.levels || {},
@@ -1185,7 +1185,7 @@
       const WAIT = 10000 + Math.random() * 10000; // nobody in 10-20 s: the AI takes the seat (no countdown shown)
       $('searchSec').textContent = '';
       const now = Date.now(), recent = save.recentFoes.filter((r) => now - r.t < REMATCH_MS);
-      const blocked = (p) => !!p && typeof p.pid === 'string' && recent.some((r) => r.id && p.pid === r.id); // (met in the last 10 minutes: passed over; by device, not by nickname: nicknames are not unique)
+      const blocked = (p) => !!p && typeof p.pid === 'string' && recent.some((r) => r.id && p.pid === r.id); // (met in the last 5 minutes: passed over; by device, not by nickname: nicknames are not unique)
       const m = await NET.find(profile, WAIT, blocked);
       searching = false;
       const how = $('searchOv').dataset.how || ''; $('searchOv').dataset.how = ''; $('searchOv').hidden = true;
