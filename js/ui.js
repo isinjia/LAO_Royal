@@ -43,7 +43,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.70'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.71'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -250,12 +250,12 @@
     $('trophy').textContent = save.trophy;
     $('gold').textContent = save.gold; renderMailBadge();
     $('record').textContent = `${save.wins}승 ${save.losses}패`;
-    $('arenaName').textContent = `ARENA ${a + 1}`; // (the emblem below names it)
+    $('arenaName').textContent = `전장 ${a + 1}`; // (the emblem below names it)
     document.querySelector('.arena-box').style.backgroundImage = `linear-gradient(180deg, rgba(10,14,20,.15) 40%, rgba(10,14,20,.88)), url(${A.bg})`;
     const f0 = A.trophy, f1 = nx ? nx.trophy : A.trophy + 1;
     $('arenaBar').style.width = (nx ? Math.min(100, (save.trophy - f0) / (f1 - f0) * 100) : 100) + '%';
     $('arenaEmb').innerHTML = `<b>${a + 1}</b><span>${esc(A.name)}</span>`; // the arena's emblem in the middle of its picture
-    $('arenaNext').innerHTML = nx ? `<span>${save.trophy} / ${nx.trophy}</span><span>다음: ${esc(nx.name)}</span>` : '<span>최고 아레나 도달!</span>';
+    $('arenaNext').innerHTML = nx ? `<span>${save.trophy} / ${nx.trophy}</span><span>다음: ${esc(nx.name)}</span>` : '<span>최고 전장 도달!</span>';
     // the deck this commander takes into battle, as a strip on the arena picture
     $('arenaDeck').innerHTML = save.decks[save.faction].map((id) => CARD[id] ? `<i class="r${CARD[id].rarity}" style="background-image:url(${art(CARD[id])})"><b>${CARD[id].cost}</b></i>` : '').join('');
     const nextCards = []; // (every card is already open: nothing to preview)
@@ -277,7 +277,7 @@
     // trophy road: rewards reached but not claimed yet
     const road = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
     $('roadBtn').hidden = !road.length;
-    $('roadBtn').textContent = `★ 트로피 로드 보상 ${road.length}개 받기`;
+    $('roadBtn').textContent = `★ 전공 보상 ${road.length}개 받기`;
     const nextR = DATA.ROAD.find((r) => r.trophy > save.trophy);
     $('roadNext').textContent = nextR ? `다음 보상 ${nextR.trophy}: ${nextR.chest ? CH[nextR.chest].name : '부품 ' + nextR.gold}` : '';
     if (save.pendingReveal != null) setTimeout(() => { if ($('title').classList.contains('on')) revealArena(); }, 300);
@@ -809,7 +809,7 @@
     if (G.phase !== 'play' || G.paused) return; // the match ended or paused under the finger: nothing to say
     SFX.play('fail', 0.3);
     if (u.alive && u.skillCd > 0) SFX.voice('ann:notready', 0.8, 1);
-    toast(!u.alive ? '챔피언이 쓰러졌습니다' : u.stunT > 0 || u.freezeT > 0 ? '기절·빙결 중에는 스킬을 쓸 수 없습니다' : u.casting > 0 ? '스킬 시전 중입니다' : u.deployT > 0 ? '배치가 끝나면 쓸 수 있습니다'
+    toast(!u.alive ? '영웅이 쓰러졌습니다' : u.stunT > 0 || u.freezeT > 0 ? '기절·빙결 중에는 스킬을 쓸 수 없습니다' : u.casting > 0 ? '스킬 시전 중입니다' : u.deployT > 0 ? '배치가 끝나면 쓸 수 있습니다'
       : u.skillCd > 0 ? '스킬 재사용 대기 중' : '에너지가 부족합니다');
   }
   // where the aim would land: null when the pointer is off the field or back over the skill bar (= cancel)
@@ -880,7 +880,7 @@
       $('vsMe').style.backgroundImage = `url(${IMG[FACTIONS[opts.faction].banner]})`;
       $('vsFoe').style.backgroundImage = `url(${IMG[foe.img]})`;
       $('vsMeName').textContent = save.nick || '사령관';
-      $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 트로피 ${save.trophy}`;
+      $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 전공 ${save.trophy}`;
       $('vsFoeName').textContent = foe.name;
       const rl = GAME.G.sides && GAME.G.sides.red.lvl;
       $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? (opts.mut || DATA.mutatorOf()).name : BAL.modes[opts.mode].name}`;
@@ -994,7 +994,7 @@
     save.pendingReveal = null;
     persist();
     const A = ARENAS[a];
-    $('chestName').textContent = `ARENA ${a + 1} · ${A.name}`;
+    $('chestName').textContent = `전장 ${a + 1} · ${A.name}`;
     $('chestBox').className = 'bigbox arena';
     $('chestBox').style.backgroundImage = `url(${A.bg})`;
     const cards = []; // (every card is open from the start: a new arena is a new battlefield, not new cards)
@@ -1042,7 +1042,7 @@
     const el = $('result');
     el.className = 'screen on ' + (win ? 'win' : draw ? 'draw' : 'lose');
     $('resTitle').textContent = win ? '승리!' : draw ? '무승부' : '패배';
-    const REASON = { king: '킹 타워 파괴', crowns: '크라운 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
+    const REASON = { king: '중앙 타워 파괴', crowns: '별 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
     $('resReason').textContent = (practice ? '연습전 · ' : '') + (REASON[reason] || '');
     // the winning side's original cut-scene art behind the result
     const wf0 = (win || draw ? G.sides.blue : G.sides.red).faction, wf = WIN_ART[wf0] ? wf0 : wf0 === 'iron' ? 'iron' : 'orca'; // (Lemonade / the commander borrow the orca art)
@@ -1056,7 +1056,7 @@
       const run = (now) => { if (!el.isConnected) return; const f = Math.max(0, Math.min(1, (now - t0) / 700)); el.textContent = Math.round(a + (b - a) * f); if (f < 1) requestAnimationFrame(run); else { el.classList.add('done'); el.textContent = b; } };
       requestAnimationFrame(run); setTimeout(() => { if (el.isConnected) el.textContent = b; }, 1800); // (and lands there even without animation frames)
     }
-    if (practice) $('resTrophy').innerHTML = '<span class="prac">연습전 · 트로피와 보상 변동 없음</span>';
+    if (practice) $('resTrophy').innerHTML = '<span class="prac">연습전 · 전공과 보상 변동 없음</span>';
     const s = stats.blue;
     $('resStats').innerHTML = `<div><b>${Math.round(s.dmg).toLocaleString()}</b><small>입힌 피해</small></div><div><b>${s.kills}</b><small>처치</small></div><div><b>${s.spent}</b><small>사용 에너지</small></div><div><b>${s.wasted.toFixed(1)}</b><small>낭비 에너지</small></div>`;
     $('resStats').hidden = !s.cards && !s.dmg; // a match won before a single card was played has no stats to show
@@ -1079,7 +1079,7 @@
     const mDone = practice ? 0 : progressMissions(win, b, s, G.opts);
     const notes = [];
     if (a1 > a0) save.pendingReveal = a1;
-    if (a1 > a0) { notes.push(`<b>새 아레나 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => { SFX.play('rankUpSS', 0.6); SFX.voice('ann:stageclear', 1, 5); }, 900); }
+    if (a1 > a0) { notes.push(`<b>새 전장 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => { SFX.play('rankUpSS', 0.6); SFX.voice('ann:stageclear', 1, 5); }, 900); }
     if (mDone) notes.push(`<b>임무 완료 ${mDone}개!</b> 메인 화면에서 보상을 받으세요`);
     if (win && !practice && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
     // the day's first win pays a bonus (parts and a handful of cards)
@@ -1128,9 +1128,9 @@
   const TUT = [
     ['c_BR_Brownie_N', '카드 배치', '아래 카드를 전장으로 드래그하거나, 카드를 누른 뒤 아군 진영을 누르면 유닛이 출격합니다. 카드마다 에너지가 필요합니다.'],
     ['c_BR_Leprechaun_N', '에너지', '에너지는 2.8초마다 1씩 차고 최대 10까지 모입니다. 가득 찬 채로 두면 낭비! 남은 1분은 2배로 찹니다.'],
-    ['c_PECS_Empress_N', '타워 공략', '적 프린세스 타워를 부수면 크라운 1개. 킹 타워를 부수면 즉시 승리합니다. 건물만 노리는 유닛으로 압박하세요.'],
+    ['c_PECS_Empress_N', '타워 공략', '적 측면 타워를 부수면 별 1개. 중앙 타워를 부수면 즉시 승리합니다. 건물만 노리는 유닛으로 압박하세요.'],
     ['c_BR_Leprechaun_N', '건물과 주문', '건물은 아군 진영에만 지을 수 있고 시간이 지나면 무너집니다. 포탑·방벽은 건물만 노리는 적을 끌어당기고, 기지는 유닛을 계속 보냅니다. 주문은 전장 어디에나 쓸 수 있습니다.'],
-    ['c_3P_Labiata_N', '챔피언 스킬', 'SS 등급 챔피언이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요! 포격·레이저·돌진 스킬은 버튼을 전장으로 끌어 직접 조준할 수 있습니다.'],
+    ['c_3P_Labiata_N', '영웅 스킬', 'SS 등급 영웅이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요! 포격·레이저·돌진 스킬은 버튼을 전장으로 끌어 직접 조준할 수 있습니다.'],
   ];
   let tutI = 0;
   function showTut(i) {
@@ -1320,7 +1320,7 @@
       save.gold += gold;
       persist();
       SFX.play('pickSS', 0.6);
-      toast(`트로피 로드 보상: ${gold ? '부품 +' + gold : ''}${gold && crates ? ' · ' : ''}${crates ? '상자 ' + crates + '개' : ''}`);
+      toast(`전공 보상: ${gold ? '부품 +' + gold : ''}${gold && crates ? ' · ' : ''}${crates ? '상자 ' + crates + '개' : ''}`);
       renderRoad();
       if (crates) openChest(save.chests.length - 1); // the road's crate opens on the spot
     };
@@ -1366,7 +1366,7 @@
       persist();
     };
     $('btnReset').onclick = () => {
-      if (!confirm('모든 진행(트로피·카드·골드)을 초기화할까요?')) return;
+      if (!confirm('모든 진행(전공·카드·부품)을 초기화할까요?')) return;
       try { localStorage.removeItem(KEY); localStorage.removeItem('lastroyal.v1'); } catch (e) { /* ignore */ }
       location.reload();
     };

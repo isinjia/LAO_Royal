@@ -103,7 +103,7 @@
     S('napalm', { cr: '지진', name: '화염 지대', icon: 'napalm', cost: 3, rarity: 1, arena: 1, spell: 'zone', radius: 3.5, dmg: 76, dur: 3, slow: 0.5, towerK: 0.65, bldK: 4.5, color: 0xff6a2a, sfx: 'spray', desc: '3초 동안 거세게 타오르는 지대. 초당 피해 + 50% 둔화, 설치한 건물에는 4.5배 피해.' }),
     S('missile', { cr: '로켓', name: '순항 미사일', icon: 'missile', cost: 6, rarity: 2, arena: 2, spell: 'fireball', radius: 2, dmg: 1349, towerK: 0.25, knock: 1, color: 0xffc040, sfx: 'expB', desc: '좁은 범위에 막대한 피해. 사수 처리와 마무리용.' }),
     S('poison', { cr: '독', name: '부식 독가스', icon: 'poison', cost: 4, rarity: 2, arena: 1, spell: 'zone', gas: true, radius: 3.5, dmg: 83, dur: 8, slow: 0.15, towerK: 0.3, color: 0x8aff5a, sfx: 'spray', desc: '8초 동안 독가스가 퍼진 지대. 초당 피해 + 15% 둔화. 오래 머무는 무리를 녹입니다.' }),
-    S('clone', { cr: '복제', name: '홀로그램 복제', icon: 'clone', cost: 3, rarity: 2, arena: 2, spell: 'clone', radius: 3, color: 0x5ad8ff, sfx: 'reinforce', desc: '범위 안 아군 유닛마다 체력 1의 복제체를 하나씩 불러냅니다. 챔피언은 복제되지 않습니다.' }),
+    S('clone', { cr: '복제', name: '홀로그램 복제', icon: 'clone', cost: 3, rarity: 2, arena: 2, spell: 'clone', radius: 3, color: 0x5ad8ff, sfx: 'reinforce', desc: '범위 안 아군 유닛마다 체력 1의 복제체를 하나씩 불러냅니다. 영웅은 복제되지 않습니다.' }),
     S('volley', { cr: '화살', name: '탄막 사격', icon: 'volley', cost: 3, rarity: 0, spell: 'volley', radius: 4, dmg: 333, waves: 3, towerK: 0.3, color: 0xffe07a, sfx: 'mg', desc: '넓은 범위에 세 차례 탄막이 쏟아집니다. 체력이 낮은 무리를 쓸어냅니다.' }),
     S('thunder', { cr: '번개', name: '낙뢰 포격', icon: 'thunder', cost: 6, rarity: 2, arena: 2, spell: 'lightning', radius: 3.5, dmg: 960, n: 3, stun: 0.5, towerK: 0.3, color: 0xbfe0ff, sfx: 'elec', desc: '범위 안에서 체력이 가장 높은 대상 셋에 낙뢰. 맞은 대상은 잠시 기절합니다.' }),
     S('repair', { cr: '치유', name: '긴급 수리', icon: 'repair', cost: 1, rarity: 1, spell: 'heal', radius: 3, heal: 400, color: 0x7dffb0, sfx: 'reinforce', desc: '범위 안 아군 유닛의 체력을 400 회복합니다.' }),
@@ -222,7 +222,7 @@
       { key: 'rush', name: '에너지 폭주', desc: '처음부터 에너지 2배 · 연장전 3배' },
       { key: 'draft', name: '무작위 덱', desc: '양측 모두 해금 카드로 만든 무작위 덱' },
       { key: 'daily', name: '오늘의 작전', desc: '날마다 바뀌는 특수 규칙' },
-      { key: 'practice', name: '연습전', desc: '상대 덱을 골라 연습 · 트로피/보상 없음' },
+      { key: 'practice', name: '연습전', desc: '상대 덱을 골라 연습 · 전공/보상 없음' },
     ],
   };
 
@@ -273,12 +273,12 @@
   // daily operation: one rule twist per day (index = days since epoch)
   const MUTATORS = [
     { key: 'mirror', name: '거울 작전', desc: '상대가 내 덱과 똑같은 카드로 싸웁니다.', mirror: true },
-    { key: 'champs', name: '영웅의 날', desc: '챔피언 스킬 에너지 -1, 재사용 시간 40% 단축.', skillCost: -1, skillCd: 0.6 },
+    { key: 'champs', name: '영웅의 날', desc: '영웅 스킬 에너지 -1, 재사용 시간 40% 단축.', skillCost: -1, skillCd: 0.6 },
     { key: 'swift', name: '전격전', desc: '모든 유닛 이동 속도 +35%, 에너지 회복 +50%.', speed: 1.35, elixir: 1.5 },
     { key: 'titans', name: '거인의 전장', desc: '모든 유닛·건물 체력 +60% (공격력은 그대로). 오래 버티는 쪽이 이깁니다.', hp: 1.6 },
     { key: 'sudden', name: '단기 결전', desc: '경기 시간 90초, 처음부터 에너지 2배.', time: 90, rush: true },
     // combined rules
-    { key: 'heroblitz', name: '영웅 전격전', desc: '전격전 + 영웅의 날: 이동 속도 +35%, 챔피언 스킬 에너지 -1·재사용 40% 단축.', speed: 1.35, skillCost: -1, skillCd: 0.6 },
+    { key: 'heroblitz', name: '영웅 전격전', desc: '전격전 + 영웅의 날: 이동 속도 +35%, 영웅 스킬 에너지 -1·재사용 40% 단축.', speed: 1.35, skillCost: -1, skillCd: 0.6 },
     { key: 'titanmirror', name: '거인 거울전', desc: '거울 작전 + 거인의 전장: 같은 덱, 모든 체력 +60%.', mirror: true, hp: 1.6 },
   ];
   // the day turns at midnight Korean time (UTC+9)
@@ -292,9 +292,9 @@
   // rotating objectives (three active at a time); progress comes from each battle's stats
   const MISSIONS = [
     { k: 'win', name: '전투 승리', goal: 3, gold: 90 },
-    { k: 'crowns', name: '크라운 획득', goal: 6, gold: 70 },
-    { k: 'three', name: '3크라운 승리', goal: 1, gold: 120 },
-    { k: 'skills', name: '챔피언 스킬 사용', goal: 5, gold: 70 },
+    { k: 'crowns', name: '별 획득', goal: 6, gold: 70 },
+    { k: 'three', name: '별 3개 승리', goal: 1, gold: 120 },
+    { k: 'skills', name: '영웅 스킬 사용', goal: 5, gold: 70 },
     { k: 'cards', name: '카드 배치', goal: 40, gold: 50 },
     { k: 'kills', name: '적 유닛 처치', goal: 60, gold: 60 },
     { k: 'dmg', name: '누적 피해', goal: 100000, gold: 80 },
@@ -328,15 +328,16 @@
   ];
   // patch notes shown in their own tab (newest first)
   const NOTES = [
+    { ver: 'V0.71', date: '2026.10.22', items: ['용어 변경: 킹 타워 → 중앙 타워, 프린세스 타워 → 측면 타워, 크라운 → 별, 트로피 → 전공, 트로피 로드 → 전공 보상, 아레나 → 전장, 챔피언 → 영웅'] },
     { ver: 'V0.70', date: '2026.10.22', items: ['도감 정렬: 가진 카드가 위, 아직 없는 카드는 아래에 따로 (각각 정렬 버튼 순서대로)'] },
     { ver: 'V0.69', date: '2026.10.22', items: ['보급 상자에서 부품이 나오던 것을 삭제 (상자는 카드만)', '대체코어 사용 창에 카드 탭처럼 캐릭터마다 현재 카드 수를 표시'] },
-    { ver: 'V0.68', date: '2026.10.22', items: ['우편함 추가: 패치 보상을 우편으로 받습니다 (도움말은 설정 안으로 이동)', '시작 자원이 부품 1000 · 참치 100으로 늘었습니다. 먼저 시작한 지휘관께는 우편으로 같은 만큼 지급', '트로피 로드를 임무 안으로 옮기고, 그 자리에 패치노트 탭 추가', '오르카·철충 지원 스킬 버튼에 캐릭터 얼굴 대신 효과 아이콘(회복, 독가스)', '카드 밸런스와 역할을 클래시로얄 같은 레벨 기준으로 다시 정리', '감정 표현을 원작 캐릭터 스티커 20종으로 교체'] },
+    { ver: 'V0.68', date: '2026.10.22', items: ['우편함 추가: 패치 보상을 우편으로 받습니다 (도움말은 설정 안으로 이동)', '시작 자원이 부품 1000 · 참치 100으로 늘었습니다. 먼저 시작한 지휘관께는 우편으로 같은 만큼 지급', '전공 보상을 임무 안으로 옮기고, 그 자리에 패치노트 탭 추가', '오르카·철충 지원 스킬 버튼에 캐릭터 얼굴 대신 효과 아이콘(회복, 독가스)', '카드 밸런스와 역할을 같은 레벨 기준으로 다시 정리', '감정 표현을 원작 캐릭터 스티커 20종으로 교체'] },
     { ver: 'V0.67', date: '2026.10.22', items: ['대체코어를 누르면 같은 등급의 내 캐릭터 목록이 뜨고, 고르면 바로 적용되며 참치 차감', '매칭 화면의 상대 정보 문구 삭제'] },
     { ver: 'V0.66', date: '2026.10.22', items: ['마스터 카드를 대체코어로 이름 변경, 원작 대체코어 아이콘 사용'] },
     { ver: 'V0.65', date: '2026.10.22', items: ['진영 지원 버튼이 감정 표현 버튼과 겹치던 문제 수정'] },
     { ver: 'V0.64', date: '2026.10.21', items: ['슬레이프니르 카드 삭제 (덱에 있었다면 가진 다른 카드로 자동 교체)'] },
     { ver: 'V0.61 ~ V0.63', date: '2026.10.21', items: ['범위 공격과 투사체가 바뀐 캐릭터들의 공격 이펙트를 새로 제작 (둠 이터, 님프, 하르페, 피닉스, 디스트로이어, 센츄리온)'] },
-    { ver: 'V0.60', date: '2026.10.21', items: ['타워와 카드 수치를 클래시로얄 10레벨 기준으로 다시 맞춤', '타워 공격 투사체가 더 잘 보이도록 변경'] },
+    { ver: 'V0.60', date: '2026.10.21', items: ['타워와 카드 수치를 10레벨 기준으로 다시 맞춤', '타워 공격 투사체가 더 잘 보이도록 변경'] },
   ];
   window.DATA = {
     NOTES, MAIL, EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,

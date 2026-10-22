@@ -1014,7 +1014,7 @@
     FX.ring(k.x, k.z * TILT + 1, 0.5, 3.4, teamHex(k.side), 0.6);
     FX.groundRing(k.x, k.z * TILT, 0.5, 3.4, teamHex(k.side), 0.7);
     SFX.play('charge', 0.6);
-    if (k.side === 'blue') UI.toast('킹 타워 가동!');
+    if (k.side === 'blue') UI.toast('중앙 타워 가동!');
   }
 
   function kill(e, src) {
@@ -1066,7 +1066,7 @@
     FX.flash(0xffd0a0, 0.35);
     SFX.play('expB'); FX.later(0.25, () => SFX.play('quake', 0.6));
     UI.crownFly(e, other(e.side));
-    logEvent((e.side === 'red' ? '적 ' : '아군 ') + (e.type === 'king' ? '킹 타워' : '프린세스 타워') + ' 파괴', other(e.side));
+    logEvent((e.side === 'red' ? '적 ' : '아군 ') + (e.type === 'king' ? '중앙 타워' : '측면 타워') + ' 파괴', other(e.side));
     if (e.type === 'king') {
       foe.crowns = 3;
       let k = 1;
