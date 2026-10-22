@@ -328,7 +328,7 @@
   ];
   // patch notes shown in their own tab (newest first)
   const NOTES = [
-    { ver: 'V0.72', date: '2026.10.22', items: ['임시 오픈'] },
+    { ver: 'V0.82', date: '2026.10.22', items: ['임시 오픈'] },
   ];
   window.DATA = {
     NOTES, MAIL, EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
