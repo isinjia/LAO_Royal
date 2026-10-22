@@ -910,7 +910,7 @@
     let wx = tx, wz = tz;
     if (!u.air && !u.card.jump) { const w = waypoint(u, tx, tz); if (w) { wx = w[0]; wz = w[1]; } }
     const dx = wx - u.x, dz = wz - u.z, L2 = Math.hypot(dx, dz);
-    const step = Math.min(L2, u.card.speed * (G.mut && G.mut.speed || 1) * u.slowK * (u.hasteT > 0 ? u.hasteK || 1 : 1) * dt);
+    const step = Math.min(L2, u.card.speed * (u.chargeOn ? 2 : 1) * (G.mut && G.mut.speed || 1) * u.slowK * (u.hasteT > 0 ? u.hasteK || 1 : 1) * dt);
     if (L2 > 1e-4) { u.x += dx / L2 * step; u.z += dz / L2 * step; }
     if (Math.abs(dx) > 0.15) u.face = dx > 0 ? 1 : -1;
   }
@@ -1162,10 +1162,13 @@
     e.holder.scale.x = e.face * e.natural;
     const [mx, my] = muzzle(e, fireN);
     let dmg = real ? a.dmg * (e.dmgK || 1) : 0;
+    if (real && e.chargeOn) { dmg = Math.max(dmg, a.dmg) * 2; e.chargeOn = false; FX.shake(0.1); } // a charge lands double the card's listed blow (whatever the clip's pace)
+    if (real) e.runD = 0;
     if (a.ramp) { // the longer it stays on one target, the harder it hits (x1 -> x3.5 -> x12 after 2 s and 4 s)
       if (e.rampTgt !== t) { e.rampTgt = t; e.rampT = 0; }
-      e.rampSt = e.rampT >= 4 ? 2 : e.rampT >= 2 ? 1 : 0;
-      if (real) { dmg *= RAMP[e.rampSt]; e.rampT += a.rate; }
+      const at = a.rampAt || [2, 4];
+      e.rampSt = e.rampT >= at[1] ? 2 : e.rampT >= at[0] ? 1 : 0;
+      if (real) { dmg *= (Array.isArray(a.ramp) ? a.ramp : RAMP)[e.rampSt]; e.rampT += a.rate * (e.dmgK || 1); } // (a card may carry its own stages; the clock is the real time between blows)
     }
     const rk = a.ramp ? 1 + (e.rampSt || 0) * 0.8 : 1; // (its beam / cut grows with each stage)
     if (real && a.sfx) SFX.play(a.sfx, e.kind === 'tower' ? 0.3 : 0.5);
@@ -1219,6 +1222,7 @@
         const pts = [{ x: mx, y: my }, ...list.map((q) => ({ x: q.x, y: aimY(q) }))];
         FX.lightning(pts, a.color, real ? 0.2 : 0.12, 0.2);
         if (real) list.forEach((q) => { hit(e, a, q, q.x, q.z, dmg); FX.hit(q.x, aimY(q), a.color, 0.7); }); // every link of the chain flashes on its target
+        if (real && a.kamikaze && e.kind === 'troop' && e.alive) kill(e); // a one-shot discharge spends the unit
         break;
       }
       case 'laser': {
@@ -1303,6 +1307,7 @@
   }
   function stun(o, d) {
     o.stunT = Math.max(o.stunT, d);
+    o.chargeOn = false; o.runD = 0; // a stun breaks a charge
     o.target = null;
     if (o.kind === 'troop') o.state = 'stun';
   }
@@ -1394,7 +1399,7 @@
     } else if (c.spell === 'zone') {
       // a burning field (or a poison cloud): ticks every half second (see updateZones)
       const y = z * TILT;
-      G.zones.push({ kind: c.gas ? 'gas' : 'fire', side, x, z, r: c.radius, dps: cc.dmg, t: c.dur, tick: 0, slow: c.slow, towerK: c.towerK, card: cc });
+      G.zones.push({ kind: c.gas ? 'gas' : 'fire', side, x, z, r: c.radius, dps: cc.dmg, t: c.dur, tick: 0, slow: c.slow, towerK: c.towerK, bldK: c.bldK, card: cc });
       if (c.gas) { FX.groundGlow(x, y, c.radius, c.color, c.dur, 0.5, 0.3); FX.particle({ x, y, life: c.dur, size: c.radius * 2.1, size1: c.radius * 2.2, aspect: TILT, color: 0x2f6a1f, alpha: 0.42, tex: FX.tex.dot, normal: true, order: L.GROUND, fadeIn: 0.3 }); FX.groundRing(x, y, 0.3, c.radius, c.color, 0.6); SFX.play('spray', 0.7); return; } // a green stain that holds as long as the gas
       FX.groundGlow(x, y, c.radius, c.color, c.dur, 0.45, 0.3);
       FX.groundRing(x, y, 0.3, c.radius, c.color, 0.5);
@@ -1505,14 +1510,14 @@
       if (zn.kind === 'gas') { // green clouds rolling over the area, bubbles rising
         if (Math.random() < 0.55) { const a = Math.random() * 6.28, r = zn.r * Math.sqrt(Math.random()) * 0.9; FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT + 0.2, vx: rnd(-0.3, 0.3), vy: rnd(0.2, 0.6), life: rnd(1.2, 1.8), size: 0.8, size1: 2, color: 0x6fd84a, alpha: 0.45, normal: true, frames: FX.sheets.smoke, spin: rnd(-1, 1), order: L.LOW }); }
         if (Math.random() < 0.4) { const a = Math.random() * 6.28, r = zn.r * Math.sqrt(Math.random()) * 0.8; FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT, vy: rnd(0.6, 1.4), life: 0.7, size: 0.12, size1: 0.22, color: 0xb8ff7a, tex: FX.tex.ring, alpha: 0.9 }); }
-        if (zn.tick <= 0 && zn.t > 0) { zn.tick = 0.5; spellHit(zn.side, { radius: zn.r, dmg: zn.dps * 0.5, towerK: zn.towerK, slow: zn.slow }, zn.x, zn.z, { side: zn.side, card: zn.card }); }
+        if (zn.tick <= 0 && zn.t > 0) { zn.tick = 0.5; spellHit(zn.side, { radius: zn.r, dmg: zn.dps * 0.5, towerK: zn.towerK, bldK: zn.bldK, slow: zn.slow }, zn.x, zn.z, { side: zn.side, card: zn.card }); }
         if (zn.t <= 0) G.zones.splice(i, 1);
         continue;
       }
       // a wall of flame along the rim, embers rising inside
       if (Math.random() < 0.7) { const a = Math.random() * 6.28, r = zn.r * rnd(0.8, 1); FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT, vy: rnd(0.8, 1.6), life: 0.55, size: 0.4, size1: 0.9, color: Math.random() < 0.5 ? 0xff6a2a : 0xffc040, frames: FX.sheets.fire, alpha: 0.85 }); }
       if (Math.random() < 0.6) { const a = Math.random() * 6.28, r = zn.r * Math.sqrt(Math.random()) * 0.8; FX.particle({ x: zn.x + Math.cos(a) * r, y: (zn.z + Math.sin(a) * r) * TILT, vx: rnd(-0.3, 0.3), vy: rnd(1, 2.4), life: rnd(0.6, 1.1), size: 0.1, size1: 0, color: 0xffb040, tex: FX.tex.dot }); }
-      if (zn.tick <= 0 && zn.t > 0) { zn.tick = 0.5; spellHit(zn.side, { radius: zn.r, dmg: zn.dps * 0.5, towerK: zn.towerK, slow: zn.slow }, zn.x, zn.z, { side: zn.side, card: zn.card }); }
+      if (zn.tick <= 0 && zn.t > 0) { zn.tick = 0.5; spellHit(zn.side, { radius: zn.r, dmg: zn.dps * 0.5, towerK: zn.towerK, bldK: zn.bldK, slow: zn.slow }, zn.x, zn.z, { side: zn.side, card: zn.card }); }
       if (zn.t <= 0) G.zones.splice(i, 1);
     }
   }
@@ -1541,7 +1546,7 @@
       if (o.side === side || !o.alive) continue;
       const d = Math.hypot(o.x - x, o.z - z);
       if (d > c.radius + o.r * 0.6) continue;
-      damage(o, c.dmg * (o.kind === 'tower' && o.type !== 'bld' ? (c.towerK || 0.35) : 1), src);
+      damage(o, c.dmg * (o.kind !== 'tower' ? 1 : o.type === 'bld' ? c.bldK || 1 : c.towerK || 0.35), src);
       if (!o.alive) continue;
       if (c.stun) stun(o, c.stun);
       if (c.freeze) { o.freezeT = Math.max(o.freezeT, c.freeze); if (o.kind === 'troop') o.target = null; }
@@ -1969,15 +1974,21 @@
       b.spawnT -= dt * (b.hasteT > 0 ? b.hasteK || 1 : 1);
       if (b.spawnT <= 0) {
         b.spawnT = b.card.spawn.every;
-        const tc = CARD[b.card.spawn.card], s = SGN[b.side];
-        const tr = spawnTroop(b.side, tc, clamp(b.x + srnd(-0.4, 0.4) * MIR(), -8.6, 8.6), b.z - s * (b.r + 0.4), 0, b.lv);
-        tr.deployT = tr.deploy0 = 0.3; tr.elev = 0; tr.dropT = 0;
-        FX.groundRing(tr.x, tr.z * TILT, 0.2, 0.9, teamHex(b.side), 0.35);
+        spawnSquad(b.side, CARD[b.card.spawn.card], b.x + srnd(-0.4, 0.4) * MIR(), b.z - SGN[b.side] * (b.r + 0.4), b.card.spawn.n || 1, b.lv);
         if (b.sd) b.sd.play('atk', () => {}, false); // onEnd: back to idle after one cycle
       }
     }
     updateTower(b, dt);
     return false;
+  }
+  // a spawner's troops (a building's or a troop's): n of them in the card's formation, walking out at once
+  function spawnSquad(side, tc, x, z, n, lv) {
+    const f = FORM[n] || FORM[1];
+    for (let i = 0; i < n; i++) {
+      const tr = spawnTroop(side, tc, clamp(x + f[i][0] * 0.7 * MIR(), -8.6, 8.6), clamp(z - SGN[side] * f[i][1] * 0.7, -15.5, 15.5), 0, lv);
+      tr.deployT = tr.deploy0 = 0.3; tr.elev = 0; tr.dropT = 0;
+      FX.groundRing(tr.x, tr.z * TILT, 0.2, 0.9, teamHex(side), 0.35);
+    }
   }
   function removeBuilding(b) {
     FX.explosion(b.x, b.z * TILT + 0.5, 0.9, 0xffa040);
@@ -2076,6 +2087,10 @@
         if (n) { FX.groundRing(u.x, u.z * TILT, 0.4, h.radius, 0x7dffb0, 0.6, 0.6); SFX.play('reinforce', 0.25); }
       }
     }
+    if (u.card.spawn) { // a summoner calls its own troops in on a timer
+      u.spawnT = (u.spawnT == null ? 1 : u.spawnT) - dt * (u.hasteT > 0 ? u.hasteK || 1 : 1);
+      if (u.spawnT <= 0) { u.spawnT = u.card.spawn.every; spawnSquad(u.side, CARD[u.card.spawn.card], u.x, u.z + SGN[u.side] * 0.8, u.card.spawn.n || 1, u.lv); }
+    }
     u.retarget -= dt;
     const t = u.target;
     const attacking = u.state === 'attack' && t && t.alive;
@@ -2083,13 +2098,14 @@
     const tg = u.target;
     if (!tg) { setClip(u, 'idle', 1); if (u.sd) u.sd.update(dt); u.state = 'idle'; return false; }
     const d = dist(u, tg) - tg.r - u.r;
-    const reach = u.card.range + (u.state === 'attack' ? 0.35 : 0) + (tg.kind === 'troop' && u.card.range < 1.5 ? 0.4 : 0); // melee squares off at arm's length instead of stacking onto its target
+    const reach = u.card.range + (u.state === 'attack' ? 0.35 : 0) + (tg.kind === 'troop' && u.card.range < 2 ? 0.4 : 0); // melee squares off at arm's length instead of stacking onto its target
     if (d <= reach) {
       u.state = 'attack';
       if (Math.abs(tg.x - u.x) > 0.1) u.face = tg.x > u.x ? 1 : -1;
       attackTick(u, dt);
     } else {
       u.state = 'move';
+      if (u.card.charge && !u.chargeOn) { u.runD = (u.runD || 0) + u.card.speed * u.slowK * dt; if (u.runD >= (u.card.charge > 1 ? u.card.charge : 2.5)) { u.chargeOn = true; FX.groundRing(u.x, u.z * TILT, 0.2, 1.2, u.card.color, 0.5, 0.5); } }
       moveToward(u, tg.x, tg.z, dt);
       setClip(u, 'move', u.slowK * clamp(u.card.speed / 1.05, 0.8, 1.6) * (u.hasteT > 0 ? u.hasteK || 1 : 1) * (G.mut && G.mut.speed || 1));
       if (u.sd) u.sd.update(dt);
@@ -3567,6 +3583,7 @@
     _fx: (n, x, y, k) => spawnStatic(n, x, y, k),
     _toScreen: (x, y) => toScreen(x, y),
     _damage: (t, amt) => damage(t, amt, null), // (tests)
+    _spawnCard: (side, id, x, z) => { const c = CARD[id], f = FORM[c.count] || FORM[1]; return f.map(([ox, oz]) => spawnTroop(side, c, x + ox, z - oz * SGN[side], 0)); }, // (tests: a troop anywhere)
     voiced: (c) => voiced(c),
     autoSpot(u) { const sk = u.card.skill, tg = u.target && u.target.alive ? u.target : null; const a = sk.kind === 'barrage' ? bestSpot(u, sk.reach, sk.radius * 1.5) : (sk.kind === 'laser' ? tg || nearestTower(u) : dashTarget(u)); return a ? (Array.isArray(a) ? { x: a[0], z: a[1] } : { x: a.x, z: a.z }) : null; },
     clientToField(cx, cy) { const r = stageEl.getBoundingClientRect(); if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null; return toField(cx - r.left, cy - r.top); },
