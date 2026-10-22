@@ -33,7 +33,7 @@
     T('raven', { rig: 'raven', img: 'c_BR_Raven_N', cr: '아기 드래곤', name: '레이븐', cost: 4, rarity: 1, air: true, hp: 1051, dmg: 146, rate: 1.5, range: 3.5, splash: 1.2, speed: SPD.fast, fx: 'grenade', color: 0xfff2b0, sfx: 'cannon', desc: '하늘의 전방 관측병. 디스크 런처로 공중·지상의 무리를 범위 폭격합니다.' }), // (original: flying spotter, disc launcher)
     T('harpy', { rig: 'harpy', img: 'c_BR_Harpy_N', cr: '일렉트로 드래곤', hitFx: 'Kunoichi_skill2_after_Lighting', name: '하르페', cost: 5, rarity: 1, air: true, hp: 867, dmg: 175, rate: 2.1, range: 3.5, splash: 0, chain: 3, stun: 0.5, speed: SPD.mid, radius: 0.55, mass: 5, fx: 'lightning', color: 0xb98bff, sfx: 'elec', desc: '번지는 전격 미사일로 세 대상까지 연쇄 타격하고 잠시 멈춥니다.' }),
     T('banshee', { rig: 'banshee', img: 'c_BR_Banshee_N', cr: '미니언', name: '밴시', cost: 3, rarity: 1, arena: 1, air: true, hp: 209, dmg: 107, rate: 1.0, range: 1.6, splash: 0, count: 3, speed: SPD.fast, fx: 'bullet', color: 0x7affd4, sfx: 'cannon', desc: '급강하 폭격기 3기. 37mm 기관포로 공중·지상을 휩씁니다.' }), // (original: flying dive bomber, 37mm autocannon + aerial bomb)
-    T('sylphid', { rig: 'sylphid', img: 'c_BR_Sylphid_N', cr: '박쥐', name: '실피드', cost: 2, rarity: 1, arena: 1, air: true, hp: 74, dmg: 74, rate: 1.3, range: 1.2, count: 5, speed: SPD.vfast, fx: 'bullet', color: 0xd78bff, sfx: 'mg', k: 0.9, desc: '고속 추격기 5기. 빠르고 약해서 타워 한 방에 떨어집니다(박쥐).' }), // (original: flying anti-air pursuer, LMG + homing missile)
+    T('sylphid', { rig: 'sylphid', img: 'c_BR_Sylphid_N', cr: '박쥐', name: '실피드', cost: 2, rarity: 1, arena: 1, air: true, hp: 74, dmg: 74, rate: 1.3, range: 1.2, count: 5, speed: SPD.vfast, fx: 'bullet', color: 0xd78bff, sfx: 'mg', k: 0.9, desc: '고속 추격기 5기. 빠르고 약해서 타워 한 방에 떨어집니다.' }), // (original: flying anti-air pursuer, LMG + homing missile)
     T('undine', { rig: 'undine', img: 'c_BR_Undine_N', cr: '비행 기계', name: '운디네', cost: 4, rarity: 1, arena: 1, air: true, hp: 559, dmg: 156, rate: 1.1, range: 6.0, speed: SPD.fast, fx: 'bullet', color: 0x9feaff, sfx: 'cannon', k: 0.9, desc: '비행 수비기. 30mm 리볼버 캐논으로 버티며 적을 붙잡아 둡니다.' }), // (original: flying defender, 30mm revolver cannon + missile)
     T('nymph', { rig: 'nymph', img: 'c_BR_Nymph_N', cr: '폭죽 병사', name: '님프', cost: 3, rarity: 1, arena: 1, hp: 277, dmg: 58, rate: 3.0, range: 6.0, splash: 1.2, speed: SPD.fast, fx: 'bullet', color: 0x9fffc8, sfx: 'mg', desc: '크리스 MG80 경기관총의 제압 사격. 좁은 범위의 무리를 한꺼번에 묶어 둡니다.' }), // (original: attacker, Kriss MG80 LMG with a suppressing barrage)
     // ── S ──
@@ -328,16 +328,7 @@
   ];
   // patch notes shown in their own tab (newest first)
   const NOTES = [
-    { ver: 'V0.71', date: '2026.10.22', items: ['용어 변경: 킹 타워 → 중앙 타워, 프린세스 타워 → 측면 타워, 크라운 → 별, 트로피 → 전공, 트로피 로드 → 전공 보상, 아레나 → 전장, 챔피언 → 영웅'] },
-    { ver: 'V0.70', date: '2026.10.22', items: ['도감 정렬: 가진 카드가 위, 아직 없는 카드는 아래에 따로 (각각 정렬 버튼 순서대로)'] },
-    { ver: 'V0.69', date: '2026.10.22', items: ['보급 상자에서 부품이 나오던 것을 삭제 (상자는 카드만)', '대체코어 사용 창에 카드 탭처럼 캐릭터마다 현재 카드 수를 표시'] },
-    { ver: 'V0.68', date: '2026.10.22', items: ['우편함 추가: 패치 보상을 우편으로 받습니다 (도움말은 설정 안으로 이동)', '시작 자원이 부품 1000 · 참치 100으로 늘었습니다. 먼저 시작한 지휘관께는 우편으로 같은 만큼 지급', '전공 보상을 임무 안으로 옮기고, 그 자리에 패치노트 탭 추가', '오르카·철충 지원 스킬 버튼에 캐릭터 얼굴 대신 효과 아이콘(회복, 독가스)', '카드 밸런스와 역할을 같은 레벨 기준으로 다시 정리', '감정 표현을 원작 캐릭터 스티커 20종으로 교체'] },
-    { ver: 'V0.67', date: '2026.10.22', items: ['대체코어를 누르면 같은 등급의 내 캐릭터 목록이 뜨고, 고르면 바로 적용되며 참치 차감', '매칭 화면의 상대 정보 문구 삭제'] },
-    { ver: 'V0.66', date: '2026.10.22', items: ['마스터 카드를 대체코어로 이름 변경, 원작 대체코어 아이콘 사용'] },
-    { ver: 'V0.65', date: '2026.10.22', items: ['진영 지원 버튼이 감정 표현 버튼과 겹치던 문제 수정'] },
-    { ver: 'V0.64', date: '2026.10.21', items: ['슬레이프니르 카드 삭제 (덱에 있었다면 가진 다른 카드로 자동 교체)'] },
-    { ver: 'V0.61 ~ V0.63', date: '2026.10.21', items: ['범위 공격과 투사체가 바뀐 캐릭터들의 공격 이펙트를 새로 제작 (둠 이터, 님프, 하르페, 피닉스, 디스트로이어, 센츄리온)'] },
-    { ver: 'V0.60', date: '2026.10.21', items: ['타워와 카드 수치를 10레벨 기준으로 다시 맞춤', '타워 공격 투사체가 더 잘 보이도록 변경'] },
+    { ver: 'V0.72', date: '2026.10.22', items: ['임시 오픈'] },
   ];
   window.DATA = {
     NOTES, MAIL, EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
