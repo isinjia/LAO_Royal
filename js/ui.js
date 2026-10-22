@@ -43,7 +43,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.77'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.78'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -916,7 +916,7 @@
   // card copies of unlocked cards of the played faction (rarer cards come in smaller stacks)
   function rollCards(n, bonus, ss) {
     const a = arena();
-    const pool = DATA.CARDS.filter((c) => save.cards[c.id] && copiesLeft(c) > 0); // owned cards that can still use copies (a card with all it needs for the max level drops no more)
+    const pool = DATA.CARDS.filter((c) => (save.cards[c.id] ? copiesLeft(c) > 0 : (c.arena || 0) <= a)); // owned cards that can still use copies (a card with all it needs for the max level drops no more), and the cards not found yet up to this battlefield
     const picks = new Map();
     for (let i = 0; i < n && pool.length; i++) {
       const r = Math.random();
@@ -928,9 +928,10 @@
       const c = cand[Math.floor(Math.random() * cand.length)];
       const cnt = Math.ceil([3 + Math.random() * 5, 2 + Math.random() * 2, 1 + (Math.random() < 0.3 ? 1 : 0), 1][c.rarity] * (1 + Math.floor(a / 2)) * (bonus || 1));
       picks.set(c, (picks.get(c) || 0) + cnt);
+      if (!save.cards[c.id]) for (let j = pool.length - 1; j >= 0; j--) if (!save.cards[pool[j].id] && pool[j] !== c) pool.splice(j, 1); // (one new card per crate at most)
     }
     const out = [...picks.entries()];
-    out.forEach(([c, k]) => { save.cards[c.id].n += k; });
+    out.forEach(([c, k]) => { if (!save.cards[c.id]) { save.cards[c.id] = { lv: LEVEL.min, n: 0 }; (save.newCards || (save.newCards = {}))[c.id] = 1; out.fresh = (out.fresh || []).concat(c.id); } save.cards[c.id].n += k; }); // (a card not found yet joins the collection)
     return out;
   }
   // battle rewards: parts, a supply crate on a win (or loose cards when every crate slot is full)
@@ -947,9 +948,7 @@
         save.chests.push({ k: chest.key, t0: null });
       } // (a battle pays no card copies: those come from crates and spare cores)
     }
-    // a win opens one card the commander does not have yet
-    let fresh = null;
-    if (win) { const locked = DATA.CARDS.filter((c) => !save.cards[c.id]); if (locked.length) { fresh = locked[Math.floor(Math.random() * locked.length)]; save.cards[fresh.id] = { lv: LEVEL.min, n: 0 }; (save.newCards || (save.newCards = {}))[fresh.id] = 1; } }
+    const fresh = null; // (a win opens no card: new cards come out of crates)
     return { gold, picks, chest, fresh };
   }
 
@@ -1016,7 +1015,7 @@
     $('chestName').textContent = d.name;
     $('chestBox').className = 'bigbox ' + c.k;
     const list = $('chestList');
-    list.innerHTML = picks.map(([cd, n]) => `<div class="rw"><span class="pf r${cd.rarity}" style="background-image:url(${art(cd)})"></span><b>${esc(cd.name)}</b><em>x${n}</em></div>`).join('');
+    list.innerHTML = picks.map(([cd, n]) => `<div class="rw${(picks.fresh || []).includes(cd.id) ? ' fresh' : ''}"><span class="pf r${cd.rarity}" style="background-image:url(${art(cd)})"></span>${(picks.fresh || []).includes(cd.id) ? '<i class="newb">NEW</i>' : ''}<b>${esc(cd.name)}</b><em>x${n}</em></div>`).join('');
     list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.7 + k * 0.22) + 's'; setTimeout(() => SFX.play('genB', 0.4), 700 + k * 220); });
     ov.hidden = false;
     renderTitle();
@@ -1079,7 +1078,7 @@
     const mDone = practice ? 0 : progressMissions(win, b, s, G.opts);
     const notes = [];
     if (a1 > a0) save.pendingReveal = a1;
-    if (a1 > a0) { notes.push(`<b>새 전장 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => { SFX.play('rankUpSS', 0.6); SFX.voice('ann:stageclear', 1, 5); }, 900); }
+    if (a1 > a0) { notes.push(`<b>새 전장 해금!</b> ${esc(ARENAS[a1].name)}`); setTimeout(() => { SFX.play('rankUpSS', 0.6); SFX.voice('ann:stageclear', 1, 5); }, 900); }
     if (mDone) notes.push(`<b>임무 완료 ${mDone}개!</b> 메인 화면에서 보상을 받으세요`);
     if (win && !practice && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
     // the day's first win pays a bonus (parts and a handful of cards)

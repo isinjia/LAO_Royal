@@ -1367,3 +1367,6 @@ button:disabled { cursor: default; }
 #title .ttop .ibtn { flex: none; }
 #title .ttop .sp { display: none; }
 .nickcol #record { margin: 0 0 0 6px; font-size: 10.5px; line-height: 1; color: var(--dim); white-space: nowrap; }
+/* a card found for the first time in a crate: a NEW tag on its portrait */
+#chestList .rw { position: relative; }
+#chestList .rw .newb { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); z-index: 2; font: 900 italic 10px var(--en-font); font-style: italic; color: #111; background: #6ee36e; padding: 1px 6px; border-radius: 4px; box-shadow: 0 0 8px #6ee36e; }
