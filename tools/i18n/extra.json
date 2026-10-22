@@ -70,5 +70,68 @@
   "pt": "Removido o botão de cancelar durante a busca de partida",
   "es": "Se eliminó el botón de cancelar durante el emparejamiento",
   "ru": "Убрана кнопка отмены во время подбора"
+ },
+ "전공": {
+  "ja": "戦功",
+  "en": "Merit",
+  "zh-Hans": "战功",
+  "zh-Hant": "戰功",
+  "pt": "Mérito",
+  "es": "Mérito",
+  "ru": "Заслуги"
+ },
+ "연결 끊김": {
+  "ja": "接続切れ",
+  "en": "Disconnected",
+  "zh-Hans": "连接中断",
+  "zh-Hant": "連線中斷",
+  "pt": "Desconectado",
+  "es": "Desconectado",
+  "ru": "Обрыв связи"
+ },
+ "상대의 연결이 끊겨 대기 중입니다": {
+  "ja": "相手の接続が切れたため待機中です",
+  "en": "Opponent disconnected. Waiting…",
+  "zh-Hans": "对手连接中断，等待中",
+  "zh-Hant": "對手連線中斷，等待中",
+  "pt": "O oponente desconectou. Aguardando…",
+  "es": "El rival se desconectó. Esperando…",
+  "ru": "Соперник отключился. Ожидание…"
+ },
+ "상대의 연결이 끊겼습니다. 5초 안에 돌아오지 않으면 승리합니다": {
+  "ja": "相手の接続が切れました。5秒以内に戻らなければ勝利です",
+  "en": "Opponent disconnected. You win if they are not back within 5 seconds",
+  "zh-Hans": "对手连接中断。5秒内未返回则你获胜",
+  "zh-Hant": "對手連線中斷。5秒內未返回則你獲勝",
+  "pt": "O oponente desconectou. Se não voltar em 5 segundos, você vence",
+  "es": "El rival se desconectó. Si no vuelve en 5 segundos, ganas",
+  "ru": "Соперник отключился. Если он не вернётся за 5 секунд, вы победите"
+ },
+ "{0}초 안에 돌아오지 않으면 승리 · 끊김 {1}/{2}": {
+  "ja": "{0}秒以内に戻らなければ勝利 · 切断 {1}/{2}",
+  "en": "Win if not back in {0}s · Drops {1}/{2}",
+  "zh-Hans": "{0}秒内未返回则获胜 · 断线 {1}/{2}",
+  "zh-Hant": "{0}秒內未返回則獲勝 · 斷線 {1}/{2}",
+  "pt": "Vitória se não voltar em {0}s · Quedas {1}/{2}",
+  "es": "Victoria si no vuelve en {0}s · Caídas {1}/{2}",
+  "ru": "Победа, если не вернётся за {0} с · Обрывы {1}/{2}"
+ },
+ "연결 끊김 {0}/{1} · {2}번 끊기거나 5초를 넘기면 패배합니다": {
+  "ja": "切断 {0}/{1} · {2}回切れるか5秒を超えると敗北です",
+  "en": "Disconnected {0}/{1} · You lose after {2} drops or 5 seconds away",
+  "zh-Hans": "断线 {0}/{1} · 断线{2}次或超过5秒则失败",
+  "zh-Hant": "斷線 {0}/{1} · 斷線{2}次或超過5秒則落敗",
+  "pt": "Desconectado {0}/{1} · Você perde após {2} quedas ou 5 segundos fora",
+  "es": "Desconectado {0}/{1} · Pierdes tras {2} caídas o 5 segundos fuera",
+  "ru": "Обрыв {0}/{1} · Поражение после {2} обрывов или 5 секунд отсутствия"
+ },
+ "버그 수정": {
+  "ja": "バグ修正",
+  "en": "Bug fixes",
+  "zh-Hans": "错误修复",
+  "zh-Hant": "錯誤修正",
+  "pt": "Correções de bugs",
+  "es": "Corrección de errores",
+  "ru": "Исправление ошибок"
  }
 }

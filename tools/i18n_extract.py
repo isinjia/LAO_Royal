@@ -80,6 +80,7 @@ def main():
     for f in JS:
         s = strip_comments(io.open(os.path.join(ROOT, f), encoding='utf-8').read())
         s = re.sub(r"cr: '[^']*',?", '', s)  # (a card's reference name is never shown)
+        s = re.sub(r'const BOT_NICKS = \[.*?\];', '', s, flags=re.S)  # (the AI's nicknames are names, never translated)
         for lit in literals(s):
             for p in pieces(lit): keys.setdefault(p, f)
     html = io.open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()

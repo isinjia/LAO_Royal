@@ -234,6 +234,8 @@
     siege: { name: '공성형', attack: 0, tanks: true },
     balanced: { name: '균형형', attack: -0.6, counter: true },
   };
+  // nicknames for the AI in normal battles (they look like other players, not like a character)
+  const BOT_NICKS = ['오르카호선장', '바이오로이드덕후', '철충잡는사람', '라오고인물', '커피한잔', '퇴근하고싶다', '밤샘지휘관', '무과금지휘관', '일일퀘전사', '뽑기망함', '확률의노예', '연구실장', '부품부자', '참치러버', '오늘도출격', '칼퇴지휘관', '대충사는사람', '졸린곰', '감자튀김', '라면한그릇', '새벽세시', '고양이집사', '냥냥펀치', '콜라중독', '민트초코파', '반숙계란', '두부조림', '떡볶이장인', '김밥한줄', '귤까먹는중', '비오는날', '겨울잠', '산책러', '주말출근', '월요병환자', '야근요정', '브라우니분대장', '레프리콘팬', '그렘린정비반', '님프보호협회', '임펫조련사', '레이븐관측소', '하르페이아짱', '노움포병', '발키리의방패', '운디네물놀이', '실피드편대', '티타니아만세', '라비아타팬', '콘챠사랑', '아자젤신도', '엠프리스의종', '철충사냥꾼', '펍헤드키우기', '나이트칙농장', '전투원A', '함장실청소부', '정비창막내', '수복실단골', '보급관', '포탑장인', '방벽세우기', '러시는싫어', '덱연구중', '2X타임맨', 'Orca_07', 'lastcmdr', 'ironbug99', 'BioroidLab', 'nightowl', 'kkm0427', 'sora2077', 'minu_k', 'R3D_FOX', 'ddoong', 'Kaiser22', 'mellow', 'jin_s', 'hwan7', 'tuna4u', 'deckmaster', 'plz_win', 'noob_cmdr', 'hyun0912', 'zzang9', 'Aurora_ss', 'sleepy_cat', 'choco_mint', 'ㅇㅇ', 'ㅇㅇz', 'ㄱㄱ', 'ㅎㅎㅎ', 'ㅋㅋㅋㅋ', 'ㄷㄷ', '오늘만산다', '한판만더', '이기고싶다', '져도괜찮아', '멘탈갑', '침착맨아님', '슬픈지휘관', '행복한지휘관', '최애는브라우니', '아침형인간', '올빼미족', '고구마', '사이다', '눈팅족'];
   const COMMANDERS = {
     iron: [
       { img: 'e_LemonadeOmega_N', name: '레모네이드 오메가', style: 'control' },
@@ -328,11 +330,12 @@
   ];
   // patch notes shown in their own tab (newest first)
   const NOTES = [
+    { ver: 'V0.85', date: '2026.10.22', items: ['버그 수정'] },
     { ver: 'V0.84', date: '2026.10.22', items: ['온라인 대전에서 상대 닉네임이 표시됩니다', '상대의 연결이 끊기면 대기 안내와 남은 시간이 표시되고, 5초 안에 돌아오지 않으면 승리합니다', '경기 중 연결이 3번 끊기면 끊긴 쪽이 패배합니다', '홈 버튼으로 나갔다 돌아오면 양쪽 모두 승리하던 문제를 고쳤습니다', '한 번 만난 상대와는 5분 동안 다시 매칭되지 않습니다', '매칭 중 취소 버튼을 없앴습니다'] },
     { ver: 'V0.82', date: '2026.10.22', items: ['임시 오픈'] },
   ];
   window.DATA = {
-    NOTES, MAIL, EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
+    BOT_NICKS, NOTES, MAIL, EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
     card: Object.fromEntries(CARDS.concat(TOKENS).map((c) => [c.id, c])),
     byFaction: (f) => CARDS.filter((c) => c.anyFaction || c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (spells belong to every faction) // (Lemonade and the commander play from the orca cards)
   };

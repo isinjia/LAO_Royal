@@ -48,7 +48,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.84'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.85'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -884,20 +884,20 @@
       const vd = $('vsDeck'); vd.innerHTML = ''; myDeck.forEach((id) => vd.appendChild(cardEl(CARD[id], 'mini', { lv: levelOf(id) })));
       $('vsMe').style.backgroundImage = `url(${IMG[FACTIONS[opts.faction].banner]})`;
       $('vsFoe').style.backgroundImage = `url(${IMG[foe.img]})`;
-      $('vsMeName').textContent = save.nick || '사령관';
+      $('vsMeName').textContent = save.nick || (window.I18N ? I18N.t('사령관') : '사령관');
       $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 전공 ${save.trophy}`;
-      $('vsFoeName').textContent = foe.name;
+      $('vsFoeName').textContent = foe.name; $('vsFoeName').setAttribute('translate', foe.nick ? 'no' : 'yes'); // (a nickname stays as written; a character's name is translated)
       const rl = GAME.G.sides && GAME.G.sides.red.lvl;
-      $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? (opts.mut || DATA.mutatorOf()).name : BAL.modes[opts.mode].name}`;
+      $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · ${opts.mode === 4 ? BAL.diffs[opts.diff].name + ' · ' : foe.trophy != null ? '전공 ' + foe.trophy + ' · ' : ''}${opts.mode === 3 ? (opts.mut || DATA.mutatorOf()).name : BAL.modes[opts.mode].name}`;
       $('vsArena').textContent = ARENAS[opts.arena].name;
       $('vsHint').hidden = true; // (no hint about the opponent's deck on the matching screen)
       const mr = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null; // today's rule, explained before the fight
       $('vsRule').hidden = !mr; if (mr) $('vsRule').innerHTML = `<b>오늘의 작전 · ${esc(mr.name)}</b>${esc(mr.desc)}`;
       el.style.backgroundImage = `radial-gradient(ellipse at center, rgba(12,18,28,.55), rgba(5,7,10,.95) 75%), url(${ARENAS[opts.arena].bg})`;
-      $('foeName').textContent = foe.name;
+      $('foeName').textContent = foe.name; $('foeName').setAttribute('translate', foe.nick ? 'no' : 'yes');
       $('foeName').className = 'fname f-' + ff;
       $('foeAv').style.backgroundImage = `url(${IMG[foe.img]})`;
-      $('foeLv').textContent = st.name;
+      $('foeLv').textContent = ''; $('foeLv').hidden = true; // (no play-style tag under the name)
       const mu = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null; // today's operation rule stays visible during the battle
       $('mutTag').hidden = !mu; $('mutTag').textContent = mu ? mu.name : ''; $('mutTag').title = mu ? mu.desc : '';
     }
@@ -1053,7 +1053,7 @@
     el.style.backgroundImage = `linear-gradient(rgba(4,6,10,.5), rgba(4,6,10,.88)), url(assets/bg/${WIN_ART[wf][Math.floor(Math.random() * WIN_ART[wf].length)]}.jpg)`;
     $('resHero').style.backgroundImage = `url(${IMG[FACTIONS[(win || draw ? G.sides.blue : G.sides.red).faction].banner]})`;
     $('resCrowns').innerHTML = `<div class="rc blue"><small>${FACTIONS[G.sides.blue.faction].name}</small><span>${[0, 1, 2].map((i) => `<i class="${i < b ? 'on' : ''}"></i>`).join('')}</span></div>
-      <div class="rc red"><small>${esc(foe ? foe.name : FACTIONS[G.sides.red.faction].name)}</small><span>${[0, 1, 2].map((i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</span></div>`;
+      <div class="rc red"><small translate="${foe && foe.nick ? 'no' : 'yes'}">${esc(foe ? foe.name : FACTIONS[G.sides.red.faction].name)}</small><span>${[0, 1, 2].map((i) => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</span></div>`;
     $('resTrophy').innerHTML = `<i class="tro"></i><span class="trn">${save.trophy - delta}</span> <em class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${delta}</em>`;
     { // the trophy count runs up (or down) to the new total after the crowns have popped in
       const el = $('resTrophy').querySelector('.trn'), a = save.trophy - delta, b = save.trophy, t0 = performance.now() + 700;
@@ -1162,7 +1162,7 @@
     const levels = {}; save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
     const f = m.foe, cs = DATA.COMMANDERS[f.faction] || DATA.COMMANDERS.iron;
     const foeNick = typeof f.nick === 'string' ? f.nick.replace(/\s+/g, ' ').trim().slice(0, 10) : ''; // (the other player's own nickname; an older build sends none)
-    const foeC = Object.assign({}, cs[0], { name: foeNick || '온라인 사령관', style: 'balanced' });
+    const foeC = Object.assign({}, cs[0], { name: foeNick || '온라인 사령관', nick: !!foeNick, style: 'balanced' });
     save.recentFoes.push({ n: foeNick, id: typeof f.pid === 'string' ? f.pid : '', t: Date.now() }); persist(); // (no rematch with them for 5 minutes)
     m.listen((msg) => GAME.mpMessage(msg));
     GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: 1, mode: 0, mut: null, levels, arena: m.guest ? (f.arena | 0) : arena(),
@@ -1200,12 +1200,14 @@
     const po = practiceOpts();
     if (!po.foeFaction) po.foeFaction = randomFoe();
     const ff = foeFaction(Object.assign({ faction: save.faction, mode: save.mode, mut }, po)), cs = DATA.COMMANDERS[ff] || DATA.COMMANDERS.orca;
-    GAME.start(Object.assign({ faction: save.faction, deck: save.decks[save.faction], diff: save.mode === 4 ? save.diff : 1, mode: save.mode, mut, levels, arena: arena(), foe: cs[Math.floor(Math.random() * cs.length)] }, po));
+    let foe = cs[Math.floor(Math.random() * cs.length)];
+    if (save.mode !== 4) { const nk = DATA.BOT_NICKS; foe = Object.assign({}, foe, { nick: true, name: nk[Math.floor(Math.random() * nk.length)], trophy: Math.max(0, save.trophy + Math.round((Math.random() - 0.5) * 120)) }); } // (a normal battle's AI goes by a player-like nickname; practice keeps the character)
+    GAME.start(Object.assign({ faction: save.faction, deck: save.decks[save.faction], diff: save.mode === 4 ? save.diff : 1, mode: save.mode, mut, levels, arena: arena(), foe }, po));
   }
   // nickname: asked once on the very first start (then the tutorial), changed from the chip on the battle tab
   // names kept for the team (개발자 / DEV / 운영자 / GM ...): nobody can newly pick one; whoever already has one keeps it
   const RESERVED_NICK = /개발자|개발|운영자|운영|관리자|dev|gm|admin|staff|moderator/i;
-  function renderNick() { $('nickName').textContent = save.nick || '닉네임 설정'; $('btnNick').classList.toggle('unset', !save.nick); }
+  function renderNick() { $('nickName').textContent = save.nick || (window.I18N ? I18N.t('닉네임 설정') : '닉네임 설정'); $('btnNick').classList.toggle('unset', !save.nick); }
   function askNick(first) {
     $('nickInput').value = save.nick || ''; $('nickOv').hidden = false; $('nickOv').dataset.first = first ? '1' : '';
     setTimeout(() => $('nickInput').focus(), 50);

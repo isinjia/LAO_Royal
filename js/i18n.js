@@ -65,6 +65,7 @@
   function node(n) {
     const v = n.nodeValue;
     if (!v || done.get(n) === v || !HANGUL.test(v)) return;
+    if (n.parentElement && n.parentElement.closest('[translate="no"]')) return; // (nicknames stay as written)
     const o = t(v); done.set(n, o); if (o !== v) n.nodeValue = o;
   }
   function attrs(el) {
