@@ -925,7 +925,7 @@
     orca: { name: '긴급 치료', icon: 'spell:repair', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
     iron: { name: '부식 살포', icon: 'spell:poison', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
     lemonade: { name: '감마 투입', icon: 'c_PECS_LemonadeGamma_N', summon: true, desc: '아군 진영 중앙에 레모네이드 감마 소환 (끌어서 좌우 위치 지정)' },
-    cmd: { name: '렘파리온 강림', icon: 'c_AGS_Rampart_NS1', summon: true, desc: '아군 진영 중앙에 렘파리온 소환 (끌어서 좌우 위치 지정)' },
+    cmd: { name: '램파리온 강림', icon: 'c_AGS_Rampart_NS1', summon: true, desc: '아군 진영 중앙에 램파리온 소환 (끌어서 좌우 위치 지정)' },
   };
   const supOut = {}, skOut = {};
   const supportReady = (S) => !!(S && S.sup && !S.sup.used && S.sup.charge >= 1);

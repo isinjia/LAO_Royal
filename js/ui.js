@@ -43,7 +43,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.75'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.77'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -945,8 +945,8 @@
         let r = Math.random() * tot;
         chest = DATA.CHESTS.find((c) => (r -= c.weight) < 0) || DATA.CHESTS[0];
         save.chests.push({ k: chest.key, t0: null });
-      } else picks = rollCards(3);
-    } else if (crownsN > 0) picks = rollCards(1);
+      } // (a battle pays no card copies: those come from crates and spare cores)
+    }
     // a win opens one card the commander does not have yet
     let fresh = null;
     if (win) { const locked = DATA.CARDS.filter((c) => !save.cards[c.id]); if (locked.length) { fresh = locked[Math.floor(Math.random() * locked.length)]; save.cards[fresh.id] = { lv: LEVEL.min, n: 0 }; (save.newCards || (save.newCards = {}))[fresh.id] = 1; } }
@@ -1088,8 +1088,7 @@
       save.firstWin = today;
       const bg = 80 + arena() * 30;
       save.gold += bg;
-      const bp = rollCards(3, 1.5);
-      notes.push(`<b>오늘의 첫 승리 보너스!</b> 부품 +${bg} · ${bp.map(([c, n]) => `${esc(c.name)} x${n}`).join(', ')}`);
+      notes.push(`<b>오늘의 첫 승리 보너스!</b> 부품 +${bg}`);
       setTimeout(() => SFX.play('pickSS', 0.6), 1200);
     }
     // the daily operation: its first clear of the day pays a crate, and clearing on consecutive days grows the parts bonus

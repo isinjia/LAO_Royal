@@ -136,7 +136,7 @@
   // units only a commander's support call brings (never in a deck, the codex or the shop)
   const TOKENS = [
     T('lemonadegamma', { rig: 'lemonadegamma', img: 'c_PECS_LemonadeGamma_N', name: '레모네이드 감마', faction: 'lemonade', token: true, cost: 0, rarity: 2, hp: 2600, dmg: 230, rate: 1.4, range: 1.2, hits: 'ground', splash: 0.8, speed: SPD.mid, radius: 0.6, mass: 12, fx: 'slash', color: 0xffd34d, sfx: 'swing', desc: '레모네이드 지원으로 투입되는 근접 전투원.' }),
-    T('rampalion', { rig: 'rampalion', img: 'c_AGS_Rampart_NS1', name: '렘파리온', faction: 'cmd', token: true, cost: 0, rarity: 3, k: 0.5, hp: 3400, dmg: 170, rate: 0.9, range: 5, speed: SPD.mid, radius: 0.7, mass: 16, fx: 'bullet', color: 0xffc27a, sfx: 'mg', desc: '사령관의 부름에 강림하는 수호자.',
+    T('rampalion', { rig: 'rampalion', img: 'c_AGS_Rampart_NS1', name: '램파리온', faction: 'cmd', token: true, cost: 0, rarity: 3, k: 0.5, hp: 3400, dmg: 170, rate: 0.9, range: 5, speed: SPD.mid, radius: 0.7, mass: 16, fx: 'bullet', color: 0xffc27a, sfx: 'mg', desc: '사령관의 부름에 강림하는 수호자.',
       skill: { name: '헤븐 앤 헬', cost: 2, cd: 12, kind: 'dash', heavenhell: true, castT: 1.9, dist: 8, dmg: 1150, radius: 1.6, color: 0xffc27a, desc: '전자기 회오리로 적을 묶고 불사자를 내달린 뒤, 빛이 되어 일직선으로 돌진합니다.' } }),
   ];
   const CARDS = [...ORCA, ...IRON, ...BUILDINGS,
