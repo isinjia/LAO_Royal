@@ -1306,3 +1306,8 @@ button:disabled { cursor: default; }
 .supbtn b { margin-top: 22px; }
 /* the faction skill sits clear above the emote button (which rides on top of NEXT) */
 .supbtn { bottom: 34px; }
+/* the master card is the original 대체코어 (substitute core) item: blue for B/A, the gold special core for S/SS, the grade on a badge */
+#shop .shopit .mcard { width: 56px; height: 56px; }
+.shopit .mcard { width: 56px; height: 56px; position: relative; display: block; border-radius: 10px; background: url(../assets/ui/core_n.webp) center / cover no-repeat; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.shopit .mcard.sp, .shopit.r3 .mcard.sp { background: url(../assets/ui/core_s.webp) center / cover no-repeat; }
+.shopit .mcard b { position: absolute; right: -4px; bottom: -4px; min-width: 22px; padding: 1px 4px; border-radius: 6px; background: #0b0f14; border: 1.5px solid currentColor; font: 900 italic 12px var(--en-font, sans-serif); line-height: 1.2; text-align: center; }

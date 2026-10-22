@@ -40,7 +40,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.65'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.66'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -288,7 +288,7 @@
   function renderShop() {
     $('shopGold').textContent = save.gold; $('shopTuna').textContent = save.tuna;
     $('shopCrates').innerHTML = DATA.SHOP.crates.map((it, i) => { const ch = DATA.CHESTS.find((x) => x.key === it.key); return `<button class="shopit" data-buy="crate:${i}"><i class="chest-i ${it.key}"></i><b>${esc(ch.name)}</b><small>카드 ${ch.cards}장</small><em><i class="gold-i"></i>${it.price}</em></button>`; }).join('');
-    $('shopMasters').innerHTML = DATA.SHOP.masters.map((it, i) => `<button class="shopit master r${it.r}" data-buy="master:${i}"><span class="mcard"><b>${RARITY[it.r].name}</b><small>MASTER</small></span><b>${RARITY[it.r].name} 마스터 x${it.n}</b><small>보유 ${save.master[it.r]}</small><em><i class="tuna-i"></i>${it.price}</em></button>`).join('');
+    $('shopMasters').innerHTML = DATA.SHOP.masters.map((it, i) => `<button class="shopit master r${it.r}" data-buy="master:${i}"><span class="mcard ${it.r >= 2 ? 'sp' : ''}"><b>${RARITY[it.r].name}</b></span><b>${RARITY[it.r].name} 대체코어 x${it.n}</b><small>보유 ${save.master[it.r]}</small><em><i class="tuna-i"></i>${it.price}</em></button>`).join('');
   }
   function copiesLeft(c) {
     const o = save.cards[c.id]; if (!o) return 0;
@@ -424,7 +424,7 @@
         act += `<button class="btn ${canUpgrade(c) ? 'g' : 'd'} sm" id="btnUp" ${canUpgrade(c) ? '' : 'disabled'}>강화 Lv.${lv + 1} · 카드 ${o.n}/${k.n} · <i class="gold-i"></i>${k.gold}</button>`;
       } else act += '<span class="hint">최대 레벨</span>';
       const left = copiesLeft(c), ms = save.master[c.rarity] || 0;
-      if (ms > 0 && left > 0) act += ` <button class="btn g sm" id="btnMaster">${RARITY[c.rarity].name} 마스터 카드 사용 +${Math.min(ms, left)} <small>(보유 ${ms})</small></button>`;
+      if (ms > 0 && left > 0) act += ` <button class="btn g sm" id="btnMaster">${RARITY[c.rarity].name} 대체코어 사용 +${Math.min(ms, left)} <small>(보유 ${ms})</small></button>`;
       act += inDeck ? ' <button class="btn d sm out" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel >= 0 && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
     }
     const skill = c.skill ? `<div class="heronote">영웅: 덱에 1장만, 전장에는 1기만 나옵니다 (나와 있는 동안 카드가 손에 들어오지 않음)</div><div class="skillinfo"><b>영웅 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
@@ -1189,7 +1189,7 @@
       } else {
         const it = DATA.SHOP.masters[+i];
         if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
-        save.tuna -= it.price; save.master[it.r] += it.n; persist(); SFX.play('purchase', 0.6); toast(`${RARITY[it.r].name} 마스터 카드 +${it.n}`);
+        save.tuna -= it.price; save.master[it.r] += it.n; persist(); SFX.play('purchase', 0.6); toast(`${RARITY[it.r].name} 대체코어 +${it.n}`);
       }
       renderShop();
     });
