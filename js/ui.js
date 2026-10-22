@@ -43,7 +43,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.68'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.69'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -304,8 +304,8 @@
     cards.forEach((c) => {
       const left = copiesLeft(c), add = Math.min(it.n, left), w = document.createElement('button');
       w.className = 'corec' + (add ? '' : ' full');
-      w.appendChild(cardEl(c, 'mini', { lv: levelOf(c.id) }));
-      w.insertAdjacentHTML('beforeend', `<b>${esc(c.name)}</b><em>${add ? '카드 +' + add : '최대'}</em>`);
+      w.appendChild(cardEl(c, 'mini', { lv: levelOf(c.id), tile: true })); // (the card tab's tile: the copies bar under it)
+      w.insertAdjacentHTML('beforeend', `<b>${esc(c.name)}</b>`);
       w.onclick = () => {
         if (!add) { toast('더 모을 카드가 없는 캐릭터입니다'); SFX.play('fail', 0.4); return; }
         if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
@@ -1006,8 +1006,7 @@
     $('chestBox').style.backgroundImage = '';
     const c = save.chests[i], d = CH[c.k];
     save.chests.splice(i, 1);
-    const gold = Math.round(d.gold[0] + Math.random() * (d.gold[1] - d.gold[0])) * (1 + arena() * 0.25) | 0;
-    save.gold += gold;
+    // (a crate holds cards only: one bought with parts paid nothing back in parts)
     const picks = rollCards(d.cards, 1.4, d.ss);
     persist();
     SFX.play('pickSS', 0.7);
@@ -1015,8 +1014,8 @@
     $('chestName').textContent = d.name;
     $('chestBox').className = 'bigbox ' + c.k;
     const list = $('chestList');
-    list.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${gold}</b></div>` + picks.map(([cd, n]) => `<div class="rw"><span class="pf r${cd.rarity}" style="background-image:url(${art(cd)})"></span><b>${esc(cd.name)}</b><em>x${n}</em></div>`).join('');
-    list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.7 + k * 0.22) + 's'; setTimeout(() => SFX.play(k ? 'genB' : 'coin', 0.4), 700 + k * 220); });
+    list.innerHTML = picks.map(([cd, n]) => `<div class="rw"><span class="pf r${cd.rarity}" style="background-image:url(${art(cd)})"></span><b>${esc(cd.name)}</b><em>x${n}</em></div>`).join('');
+    list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.7 + k * 0.22) + 's'; setTimeout(() => SFX.play('genB', 0.4), 700 + k * 220); });
     ov.hidden = false;
     renderTitle();
   }
