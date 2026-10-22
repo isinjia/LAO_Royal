@@ -43,7 +43,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.69'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.70'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -419,10 +419,12 @@
     $('collSort').innerHTML = Object.entries(CSORT).map(([k, n]) => `<button data-s="${k}" class="${save.collSort === k ? 'on' : ''}">${n}${save.collSort === k ? (save.collDesc ? ' ▼' : ' ▲') : ''}</button>`).join('');
     const col = $('collection');
     col.innerHTML = '';
-    const list = !picking ? [] : DATA.CARDS.filter((c) => !deck.includes(c.id)).sort(collOrder(save.collSort, f, !!save.collDesc)); // (cards in the deck above are not repeated here)
+    const list = !picking ? [] : DATA.CARDS.filter((c) => !deck.includes(c.id)).sort((a, b) => (!save.cards[a.id] - !save.cards[b.id]) || collOrder(save.collSort, f, !!save.collDesc)(a, b)); // (cards in the deck above are not repeated here; owned cards first, the sort button orders each part)
+    let gap = false;
     list.forEach((c) => {
       const o = save.cards[c.id];
       const locked = !unlocked(c) || !o;
+      if (locked && !gap) { gap = true; col.insertAdjacentHTML('beforeend', '<div class="collgap">미획득</div>'); } // (the cards not found yet, under the owned ones)
       const el = cardEl(c, (cardOpen && deckSel === c.id ? 'sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, isNew: !locked && save.newCards && save.newCards[c.id], rank: true, tile: true });
       el.onclick = () => { deckSel = c.id; cardOpen = true; if (save.newCards && save.newCards[c.id]) { delete save.newCards[c.id]; persist(); } renderDeck(); };
       col.appendChild(el);

@@ -1358,3 +1358,4 @@ button:disabled { cursor: default; }
 .pnote ul { margin: 8px 0 0; padding-left: 18px; }
 .pnote li { font-size: 12.5px; line-height: 1.5; color: #d6e2ee; margin: 3px 0; }
 .corec .tile { width: 100%; } .corec .tile .card { width: 100%; }
+#collection .collgap { grid-column: 1 / -1; width: 100%; flex-basis: 100%; margin: 10px 0 2px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 800; color: var(--dim); }
