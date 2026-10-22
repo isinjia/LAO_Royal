@@ -49,7 +49,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.87'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.88'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -875,6 +875,7 @@
   function loading(f, opts) {
     const el = $('loading');
     if (opts) $('btnPause').hidden = !!opts.online || opts.mode === 0; // the pause button is for practice only (a normal battle looks like an online one)
+    if (opts) $('btnLoadCancel').hidden = !!opts.online || opts.mode === 0; // (no backing out of a matched battle either: practice only)
     if (el.hidden && opts) {
       SFX.voice('ann:battlestart', 1, 3); // "잠시 후 전투가 시작됩니다"
       const ff = foeFaction(opts);
@@ -943,7 +944,7 @@
   // battle rewards: parts, a supply crate on a win (or loose cards when every crate slot is full)
   function rollRewards(win, crownsN) {
     const a = arena();
-    const gold = win ? 20 + a * 8 + crownsN * 5 : 6 + crownsN * 3;
+    const base = 20 + a * 8 + crownsN * 5, gold = win ? base * 3 : base; // (a loss still pays what a win used to; a win pays three times that)
     let chest = null, picks = [];
     if (win) {
       if (!Array.isArray(save.chests)) save.chests = [];
@@ -1043,7 +1044,7 @@
     if (!practice) save.best = Math.max(save.best, save.trophy);
     if (practice) { /* not on the record */ } else if (win) { save.wins++; save.streak++; } else if (draw) save.draws++; else { save.losses++; save.streak = 0; }
     save.gold += rw.gold;
-    if (win && !practice) { rw.tuna = DATA.SHOP.tunaWin + (save.firstWin === 'd' + DATA.dayIndex() ? 0 : DATA.SHOP.tunaFirstWin); save.tuna += rw.tuna; } // (the first win of the day gives more)
+    if (!practice) { rw.tuna = win ? DATA.SHOP.tunaWin * 3 + (save.firstWin === 'd' + DATA.dayIndex() ? 0 : DATA.SHOP.tunaFirstWin) : DATA.SHOP.tunaWin; save.tuna += rw.tuna; } // (a loss pays the old win's tuna, a win three times that; the first win of the day gives more)
     const a1 = arena();
     syncCollection();
     const el = $('result');
