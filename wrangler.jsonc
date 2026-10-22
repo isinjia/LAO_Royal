@@ -1,0 +1,8 @@
+// Cloudflare Workers: the game is served as static files from this folder (what to leave out: .assetsignore)
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lao-multy",
+  "compatibility_date": "2026-10-19",
+  "observability": { "enabled": true },
+  "assets": { "directory": "." }
+}
