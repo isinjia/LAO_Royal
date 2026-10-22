@@ -26,7 +26,7 @@
       <div class="tro-box"><i class="tro"></i><b id="trophy">0</b><small id="record"></small></div>
       <div class="gold-box"><i class="gold-i"></i><b id="gold">0</b></div>
       <span class="sp"></span>
-      <button class="ibtn" id="btnHelp" aria-label="도움말"><span class="q">?</span></button>
+      <button class="ibtn mailbtn" id="btnMail" aria-label="우편함"><span class="env"></span><em id="mailBadge" hidden></em></button>
       <button class="ibtn" id="btnSettings" aria-label="설정"><span class="gear"></span></button>
     </div>
     <div class="logo">
@@ -57,21 +57,23 @@
       <button data-tab="deck"><i class="t-cards"></i><span>카드</span></button>
       <button data-tab="battle" class="on"><i class="t-battle"></i><span>전투</span></button>
       <button data-tab="missions" id="btnMissions"><i class="t-mission"></i><span>임무</span><em id="mBadge" hidden>0</em></button>
-      <button data-tab="road"><i class="t-road"></i><span>트로피 로드</span></button>
+      <button data-tab="notes"><i class="t-notes"></i><span>패치노트</span></button>
     </nav>
   </section>
 
   <!-- deck builder -->
   <!-- missions and the trophy road: their own tabs -->
   <section id="missions" class="screen">
-    <header class="dhead"><h3>작전 임무</h3></header>
-    <div class="tabpage"><p class="pagenote">임무를 완료하고 부품을 받으세요. 받으면 새 임무가 주어집니다.</p>
+    <header class="dhead"><h3>임무</h3></header>
+    <div class="mtabs" id="mTabs"><button data-mt="m" class="on">작전 임무</button><button data-mt="r">트로피 로드<em id="rBadge" hidden></em></button></div>
+    <div class="tabpage" id="mtM"><p class="pagenote">임무를 완료하고 부품을 받으세요. 받으면 새 임무가 주어집니다.</p>
       <div id="missionList"></div></div>
-  </section>
-  <section id="road" class="screen">
-    <header class="dhead"><h3>트로피 로드</h3><button class="btn y sm" id="btnRoadClaim">모두 받기</button></header>
-    <div class="tabpage"><p class="pagenote">트로피가 오를수록 보상이 열립니다. 500마다 상자!</p>
+    <div class="tabpage" id="mtR" hidden><div class="roadhead"><p class="pagenote">트로피가 오를수록 보상이 열립니다. 500마다 상자!</p><button class="btn y sm" id="btnRoadClaim">모두 받기</button></div>
       <div id="roadList" class="roadlist"></div></div>
+  </section>
+  <section id="notes" class="screen">
+    <header class="dhead"><h3>패치노트</h3></header>
+    <div class="tabpage" id="notesList"></div>
   </section>
 
   <!-- shop (its own tab): crates for parts, master cards for tuna -->
@@ -193,6 +195,7 @@
       <label class="row">음성<input type="range" id="setVoice" min="0" max="1" step="0.05"></label>
       <label class="row">그래픽<select id="setQuality"><option value="auto">자동</option><option value="0">높음</option><option value="1">보통</option><option value="2">낮음</option></select></label>
       <p class="setinfo" id="setInfo"></p>
+      <button class="btn d helpbtn" id="btnHelp"><span class="q">?</span> 도움말</button>
       <div class="tbtns"><button class="btn d sm" id="btnReset">진행 초기화</button><button class="btn y" id="btnSetClose">닫기</button></div></div>
   </div>
 
@@ -219,6 +222,12 @@
   </div>
 
   <!-- nickname: set on the very first start, changed from the chip on the battle tab -->
+  <div id="mailOv" class="ov" hidden>
+    <div class="dlg maildlg"><h4>우편함</h4>
+      <div id="mailList" class="maillist"></div>
+      <div class="tbtns"><button class="btn d" id="btnMailClose">닫기</button><button class="btn y" id="btnMailAll">모두 받기</button></div></div>
+  </div>
+
   <div id="coreOv" class="ov" hidden>
     <div class="dlg coredlg"><h4 id="coreTitle"></h4><p id="coreSub"></p>
       <div id="coreList" class="corelist"></div>

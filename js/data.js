@@ -263,7 +263,7 @@
   const SHOP = {
     crates: [{ key: 'normal', price: 120 }, { key: 'rare', price: 350 }, { key: 'epic', price: 900 }],
     masters: [{ r: 0, n: 10, price: 20 }, { r: 1, n: 5, price: 30 }, { r: 2, n: 2, price: 40 }, { r: 3, n: 1, price: 60 }],
-    tunaStart: 50, tunaWin: 3, tunaFirstWin: 10,
+    tunaStart: 100, tunaWin: 3, tunaFirstWin: 10,
   };
   const CHESTS = [
     { key: 'normal', name: '보급 상자', time: 30, gold: [40, 70], cards: 3, weight: 70, color: '#8aa0b4' },
@@ -318,8 +318,23 @@
 
   // emotes: the original emotion icons (EmojiSprite), the same eight for every faction (0-3 are the AI's: cheer, praise, oops, taunt)
   const EMOTES = [['heart', '좋아요!'], ['shiny', '잘했어요'], ['sweat', '이런…'], ['aggro', '덤벼라!'], ['note', '신난다~'], ['electric', '좋은 생각!'], ['big_surprise', '뭐라고!?'], ['question', '응?']];
+  // the mailbox: mail sent with a patch (each id once per commander). oldOnly: only for commanders who started before it
+  // (a new account already starts with what it brings)
+  const MAIL = [
+    { id: 'v068_start', date: '2026.10.22', title: '시작 자원 지급', body: '시작 자원이 부품 1000 · 참치 100으로 늘었습니다. 먼저 시작한 지휘관께도 같은 만큼 보내 드립니다.', gold: 1000, tuna: 100, oldOnly: true },
+  ];
+  // patch notes shown in their own tab (newest first)
+  const NOTES = [
+    { ver: 'V0.68', date: '2026.10.22', items: ['우편함 추가: 패치 보상을 우편으로 받습니다 (도움말은 설정 안으로 이동)', '시작 자원이 부품 1000 · 참치 100으로 늘었습니다. 먼저 시작한 지휘관께는 우편으로 같은 만큼 지급', '트로피 로드를 임무 안으로 옮기고, 그 자리에 패치노트 탭 추가', '오르카·철충 지원 스킬 버튼에 캐릭터 얼굴 대신 효과 아이콘(회복, 독가스)'] },
+    { ver: 'V0.67', date: '2026.10.22', items: ['대체코어를 누르면 같은 등급의 내 캐릭터 목록이 뜨고, 고르면 바로 적용되며 참치 차감', '매칭 화면의 상대 정보 문구 삭제'] },
+    { ver: 'V0.66', date: '2026.10.22', items: ['마스터 카드를 대체코어로 이름 변경, 원작 대체코어 아이콘 사용'] },
+    { ver: 'V0.65', date: '2026.10.22', items: ['진영 지원 버튼이 감정 표현 버튼과 겹치던 문제 수정'] },
+    { ver: 'V0.64', date: '2026.10.21', items: ['슬레이프니르 카드 삭제 (덱에 있었다면 가진 다른 카드로 자동 교체)'] },
+    { ver: 'V0.61 ~ V0.63', date: '2026.10.21', items: ['범위 공격과 투사체가 바뀐 캐릭터들의 공격 이펙트를 새로 제작 (둠 이터, 님프, 하르페, 피닉스, 디스트로이어, 센츄리온)'] },
+    { ver: 'V0.60', date: '2026.10.21', items: ['타워와 카드 수치를 클래시로얄 10레벨 기준으로 다시 맞춤', '타워 공격 투사체가 더 잘 보이도록 변경'] },
+  ];
   window.DATA = {
-    EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
+    NOTES, MAIL, EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
     card: Object.fromEntries(CARDS.concat(TOKENS).map((c) => [c.id, c])),
     byFaction: (f) => CARDS.filter((c) => c.anyFaction || c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (spells belong to every faction) // (Lemonade and the commander play from the orca cards)
   };

@@ -922,8 +922,8 @@
   // ── commander support (owner-approved): one call per match, charged over time and by the damage your towers take ──
   const SUPPORT_TIME = 75; // seconds of play to charge it without taking damage
   const SUPPORT = {
-    orca: { name: '긴급 치료', icon: 'c_DS_Azazel_N', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
-    iron: { name: '부식 살포', icon: 'e_PuppHead_N', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
+    orca: { name: '긴급 치료', icon: 'spell:repair', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
+    iron: { name: '부식 살포', icon: 'spell:poison', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
     lemonade: { name: '감마 투입', icon: 'c_PECS_LemonadeGamma_N', summon: true, desc: '아군 진영 중앙에 레모네이드 감마 소환 (끌어서 좌우 위치 지정)' },
     cmd: { name: '렘파리온 강림', icon: 'c_AGS_Rampart_NS1', summon: true, desc: '아군 진영 중앙에 렘파리온 소환 (끌어서 좌우 위치 지정)' },
   };
