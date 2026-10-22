@@ -49,7 +49,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.89'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.90'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -1206,11 +1206,11 @@
       const levels = {}; save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
       const profile = { nick: save.nick || '', pid: save.pid, faction: save.faction, deck: save.decks[save.faction].slice(), levels, trophy: save.trophy, arena: arena() };
       $('searchOv').hidden = false; $('searchMsg').textContent = '온라인 대전 상대를 찾고 있습니다';
-      const WAIT = 10000 + Math.random() * 10000; // nobody in 10-20 s: the AI takes the seat (no countdown shown)
+      const WAIT = 5000 + Math.random() * 5000; // nobody in 5-10 s: the AI takes the seat (no countdown shown)
       $('searchSec').textContent = '';
       const now = Date.now(), recent = save.recentFoes.filter((r) => now - r.t < REMATCH_MS), t0 = performance.now(), myTr = save.trophy;
-      // a near rating first: +-200 for 4 s, +-500 until 8 s, then anyone (the AI still takes the seat after 10-20 s)
-      const span = () => { const e = performance.now() - t0; return e < 4000 ? 200 : e < 8000 ? 500 : Infinity; };
+      // a near rating first: +-200 for 2 s, +-500 until 3.5 s, then anyone (a waiting player is met within 5 s; the AI takes the seat after 5-10 s)
+      const span = () => { const e = performance.now() - t0; return e < 2000 ? 200 : e < 3500 ? 500 : Infinity; };
       const blocked = (p) => !p || typeof p.pid !== 'string' || p.pid === save.pid // (this same device in another window)
         || recent.some((r) => r.id && p.pid === r.id) // (met in the last 5 minutes: by device, not by nickname: nicknames are not unique)
         || Math.abs((+p.trophy || 0) - myTr) > span(); // (not yet within the rating span)

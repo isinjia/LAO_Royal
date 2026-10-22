@@ -330,6 +330,7 @@
   ];
   // patch notes shown in their own tab (newest first)
   const NOTES = [
+    { ver: 'V0.90', date: '2026.10.22', items: ['버그 수정'] },
     { ver: 'V0.89', date: '2026.10.22', items: ['버그 수정'] },
     { ver: 'V0.88', date: '2026.10.22', items: ['버그 수정'] },
     { ver: 'V0.87', date: '2026.10.22', items: ['버그 수정'] },
