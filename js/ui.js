@@ -1041,7 +1041,7 @@
     const el = $('result');
     el.className = 'screen on ' + (win ? 'win' : draw ? 'draw' : 'lose');
     $('resTitle').textContent = win ? '승리!' : draw ? '무승부' : '패배';
-    const REASON = { king: '중앙 타워 파괴', crowns: '별 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
+    const REASON = { king: '중앙 타워 파괴', crowns: '별 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복', disconnect: '연결 끊김' };
     $('resReason').textContent = (practice ? '연습전 · ' : '') + (REASON[reason] || '');
     // the winning side's original cut-scene art behind the result
     const wf0 = (win || draw ? G.sides.blue : G.sides.red).faction, wf = WIN_ART[wf0] ? wf0 : wf0 === 'iron' ? 'iron' : 'orca'; // (Lemonade / the commander borrow the orca art)

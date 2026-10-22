@@ -2335,7 +2335,7 @@
   // bottom, so the opponent's inputs arrive mirrored. An input runs MP_DELAY ticks after it was made, on both devices, and
   // a device only steps a tick once the other side has said it has nothing more for it. The host (the side that invited)
   // sends a correction of every unit's health and position twice a second and decides how the match ends.
-  const MP_DELAY = 6, MP_DIGEST = 12, MP_STALL = 10000; // (the host's full state goes out five times a second)
+  const MP_DELAY = 6, MP_DIGEST = 12, MP_STALL = 5000; // (the host's full state goes out five times a second)
   function mpSetup(opts) {
     srng = Math.random; mp = null;
     if (!opts.online) return;
@@ -2362,6 +2362,7 @@
     mp.lastRecv = performance.now(); mp.heard = true;
     if (m.c) for (const c of m.c) { if (!mp.theirs.has(c.t)) mp.theirs.set(c.t, []); mp.theirs.get(c.t).push(c); }
     if (m.u != null) mp.upTo = Math.max(mp.upTo, m.u);
+    mp.warned = false;
     if (m.d != null && mp.guest) mp.digests.set(m.d, m);
     if (m.em != null && G.phase === 'play') UI.emote('red', m.em);
     if (m.end && mp.guest) { // the host's verdict (from its side: mirror it)
@@ -2369,14 +2370,31 @@
       if (m.cr) { G.sides.blue.crowns = m.cr[1]; G.sides.red.crowns = m.cr[0]; UI.crowns(); }
       endMatch(mpOther(m.end), m.why || 'king');
     }
-    if (m.bye) mpAbandon(); // the opponent surrendered or left
+    if (m.bye) mpAbandon('surrender'); // the opponent surrendered
+    if (m.gone) mpSelfLose(); // the other device waited 5 s for this one: it was away, the match is lost
+    if (m.left && G.phase === 'play') UI.toast('상대의 연결이 끊겼습니다. 5초 안에 돌아오지 않으면 승리합니다'); // (the line dropped: the stall check decides)
   }
-  function mpAbandon() {
+  // the other device is gone (it surrendered, or nothing came from it for 5 s): this side wins, and says so in case it returns
+  function mpAbandon(why) {
     if (!mp || G.phase !== 'play') return;
     mp.endOK = true;
+    if (why !== 'surrender') try { mp.send({ gone: 1 }); } catch (e) { /* gone */ }
     G.sides.blue.crowns = Math.max(G.sides.blue.crowns, 3); UI.crowns();
-    endMatch('blue', 'surrender');
+    endMatch('blue', why || 'disconnect');
   }
+  // this device was the one away (its screen off for more than 5 s, its network down, or the other side said so): it loses
+  function mpSelfLose() {
+    if (!mp || G.phase !== 'play') return;
+    mp.endOK = true;
+    G.sides.red.crowns = Math.max(G.sides.red.crowns, 3); UI.crowns();
+    endMatch('red', 'disconnect');
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!mp || mp.done) return;
+    if (document.hidden) mp.awayAt = performance.now();
+    else if (mp.awayAt != null) { const away = performance.now() - mp.awayAt; mp.awayAt = null; if (away > MP_STALL) mpSelfLose(); }
+  });
+
   // run this tick's inputs, the host's first on both devices
   function mpRun(t) {
     const mine = mp.mine.filter((c) => c.t === t), theirs = mp.theirs.get(t) || [];
@@ -3527,7 +3545,7 @@
         let n = 0;
         while (acc >= DT && n < 6) {
           if (mp && !mp.done) {
-            if (mp.upTo < mp.tick) { acc = Math.min(acc, DT); if (performance.now() - mp.lastRecv > (mp.heard ? MP_STALL : 30000)) mpAbandon(); break; } // waiting for the other device (longer before its first word: it may still be loading)
+            if (mp.upTo < mp.tick) { acc = Math.min(acc, DT); const quiet = performance.now() - mp.lastRecv; if (quiet > (mp.heard ? MP_STALL : 30000)) { if (navigator.onLine === false) mpSelfLose(); else mpAbandon(); } else if (mp.heard && quiet > 1500 && !mp.warned) { mp.warned = true; UI.toast('상대의 응답을 기다리는 중입니다. 5초 안에 돌아오지 않으면 승리합니다'); } break; } // waiting for the other device (longer before its first word: it may still be loading)
             mpRun(mp.tick);
           }
           step(DT);

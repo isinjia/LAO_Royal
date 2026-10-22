@@ -5,7 +5,7 @@
   if (!/[?&]mptest=1(&|$)/.test(location.search)) return;
   const host = /[?&]host=1(&|$)/.test(location.search);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const out = { host, started: false, done: false, plays: 0, drift: null, errors: [], result: null };
+  const out = { host, started: false, done: false, plays: 0, drift: null, errors: [], result: null, freeze: false }; // freeze: this tab stops as if it were switched off (for the disconnect check)
   window.MPT = out;
   window.addEventListener('error', (e) => out.errors.push(`${e.message} @${(e.filename || '').split('/').pop()}:${e.lineno}`));
   // the meeting: the host announces, the guest answers; then every message goes over the same channel
@@ -33,7 +33,7 @@
   }
   // a hidden page gets no animation frames: a message pump keeps the match going (one 1/60 s frame per turn of the event loop)
   let rafT = 0; const raf = () => { rafT = performance.now(); requestAnimationFrame(raf); }; requestAnimationFrame(raf); // (frames stop when the page is out of sight, whatever document.hidden says)
-  { const ch = new MessageChannel(); ch.port1.onmessage = () => { if (performance.now() - rafT > 200 && window.GAME && GAME._frame && GAME.G && GAME.G.phase !== 'title') GAME._frame(1 / 60); ch.port2.postMessage(0); }; ch.port2.postMessage(0); }
+  { const ch = new MessageChannel(); ch.port1.onmessage = () => { if (!out.freeze && performance.now() - rafT > 200 && window.GAME && GAME._frame && GAME.G && GAME.G.phase !== 'title') GAME._frame(1 / 60); ch.port2.postMessage(0); }; ch.port2.postMessage(0); }
   async function run() {
     for (let i = 0; i < 300 && !(window.GAME && GAME.ready && window.UI); i++) await wait(100);
     await wait(800);

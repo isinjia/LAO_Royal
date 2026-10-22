@@ -4,7 +4,7 @@
 (function () {
   const LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
   const APP = 'lastroyal-isinjia';
-  const PROTO = 3; // bump when the match protocol changes: old and new builds never meet
+  const PROTO = 4; // bump when the match protocol changes: old and new builds never meet
   // a fixed list of relays known to answer: the library's default list includes relays that are down or have broken
   // certificates, and in-app browsers such as KakaoTalk's warn about every one of them
   const RELAYS = ['wss://nos.lol', 'wss://relay.mostro.network', 'wss://nostr-01.yakihonne.com', 'wss://relay.sigit.io', 'wss://schnorr.me', 'wss://yabu.me/v2', 'wss://nostr.data.haus', 'wss://strfry.shock.network']; // (from the library's own list: the ones that answer)
@@ -48,7 +48,7 @@
         function link(guest, sd, p, peerId) {
           let fn = null; const early = [];
           game.onMessage = (m, { peerId: from }) => { if (from !== peerId) return; if (fn) fn(m); else early.push(m); };
-          room.onPeerLeave = (pid) => { if (pid !== peerId) return; const m = { bye: 1 }; if (fn) fn(m); else early.push(m); };
+          room.onPeerLeave = (pid) => { if (pid !== peerId) return; const m = { left: 1 }; /* (not a surrender: the match waits 5 s for it to come back) */ if (fn) fn(m); else early.push(m); };
           finish({
             guest, seed: sd, foe: p,
             send: (m) => { try { game.send(m, { target: peerId }); } catch (e) { /* closing */ } },
