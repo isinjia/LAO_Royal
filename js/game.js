@@ -49,6 +49,10 @@
   let srng = Math.random;
   const srnd = (a, b) => a + srng() * (b - a);
   const MIR = () => (mp && mp.guest ? -1 : 1);
+  // which half (left -1 / right +1) a spot is on; dead centre counts as the host's right on both devices (the guest sees it
+  // mirrored), so a unit standing exactly in the middle takes the same bridge / tower on both screens
+  const side0 = (x) => (x > 0 ? 1 : x < 0 ? -1 : hostFrame ? 1 : MIR());
+  let hostFrame = false; // true while the guest works in the host's coordinates (see separate)
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const sy = (e) => e.z * TILT + (e.air ? AIR_LIFT : 0) + (e.elev || 0);
   const other = (s) => (s === 'blue' ? 'red' : 'blue');
@@ -868,7 +872,7 @@
     const s = SGN[side], depth = z * -s; // > 0 = over the river
     if (inTower(side, x, z, 0.35) || inTower(other(side), x, z, 0.35)) return false;
     if (depth <= -BAL.deployDepth) return true;
-    const lane = x < 0 ? -1 : 1;
+    const lane = side0(x);
     const foeP = G.sides[other(side)].towers.find((t) => t.type === 'princess' && Math.sign(t.x) === lane);
     return !!(foeP && !foeP.alive && depth <= BAL.pocketDepth && (Math.abs(z) > BAL.river + 0.3 || onBridge(x, 0.4)));
   }
@@ -881,7 +885,7 @@
     for (let i = 0, n = S.towers.length + S.blds.length; i < n; i++) {
       const t = i < S.towers.length ? S.towers[i] : S.blds[i - S.towers.length];
       if (!t.alive) continue;
-      const d = Math.hypot(t.x - u.x, t.z - u.z) + (t.type === 'princess' && Math.sign(t.x) !== Math.sign(u.x || 1) ? 6 : 0);
+      const d = Math.hypot(t.x - u.x, t.z - u.z) + (t.type === 'princess' && Math.sign(t.x) !== side0(u.x) ? 6 : 0);
       if (d < bd) { bd = d; best = t; }
     }
     return best;
@@ -903,7 +907,7 @@
   function waypoint(u, tx, tz) {
     const R = BAL.river, B = BAL.bridgeX;
     const s0 = u.z < 0 ? -1 : 1, s1 = tz < 0 ? -1 : 1;
-    const bx = Math.abs(u.x - B) < Math.abs(u.x + B) ? B : -B;
+    const bx = side0(u.x) * B;
     if (Math.abs(u.z) <= R + 0.2) return Math.abs(tz) > R + 0.5 ? [bx, s1 * (R + 0.9)] : null;
     if (s0 === s1) return null;
     if (Math.abs(u.x - bx) < BAL.bridgeW - u.r * 0.6 && Math.abs(u.z) < R + 1.4) return [clamp(u.x, bx - 0.4, bx + 0.4), s1 * (R + 0.9)];
@@ -1199,12 +1203,11 @@
     // the original projectile / effect of this character
     const o = e.rig ? origFor(e.rig, a.fx) : null;
     if (real && o && o.statics.length && FXB.ready(o.statics[0])) spawnStatic(o.statics[0], tx, t.z * TILT + 0.2, e.fxk * 0.65, e.face); // (the original impact art is an opaque disc: kept small so the fight under it stays visible)
-    if (o && o.bullet && FXB.ready(o.bullet) && fxRoom() && (a.fx !== 'lightning' && a.fx !== 'laser')) {
+    const showB = o && o.bullet && FXB.ready(o.bullet) && fxRoom(); // (online the flight time below is the same on both devices whether or not this one can draw the shot)
+    if (o && o.bullet && (mp ? FX_META.meta[o.bullet] : showB) && (a.fx !== 'lightning' && a.fx !== 'laser')) {
       const meta = FX_META.meta[o.bullet];
-      const inst = FXB.create(o.bullet);
-      inst.root.scale.set(e.fxk, e.fxk, 1);
-      inst.setOrder(L.PROJ);
-      scene.add(inst.root);
+      const inst = showB ? FXB.create(o.bullet) : null;
+      if (inst) { inst.root.scale.set(e.fxk, e.fxk, 1); inst.setOrder(L.PROJ); scene.add(inst.root); }
       if (real && a.splash >= 1.2 && !a.selfSplash) { FX.groundRing(t.x, t.z * TILT, a.splash * 0.9, a.splash, 0xffa020, 0.35, 0.8); FX.groundGlow(t.x, t.z * TILT, a.splash * 0.5, 0xffa020, 0.3, 0.3); } // a landing marker for a lobbed blast
       G.bfx.push({ inst, src: e, atk: a, target: t, t: 0, T: Math.max(0.1, meta.T) * (a.fx === 'bomb' ? 2 : 1), type: meta.type, sx: mx, sy: my, ex: tx, ey: ty, tz: t.z, tx: t.x, dmg, hit: o.hit, hs: meta.hitScale || 1, k: e.fxk, h: rnd(0.1, 0.4) });
       return;
@@ -1367,9 +1370,7 @@
       if (b.target.alive) { b.ex = b.target.x; b.ey = aimY(b.target); b.tx = b.target.x; b.tz = b.target.z; }
       const f = Math.min(1, b.t / b.T);
       const [x, y, dx, dy] = origPath(b, f);
-      b.inst.root.position.set(x, y, 0);
-      b.inst.root.rotation.z = Math.atan2(dy, dx);
-      b.inst.update(dt);
+      if (b.inst) { b.inst.root.position.set(x, y, 0); b.inst.root.rotation.z = Math.atan2(dy, dx); b.inst.update(dt); }
       if (b.atk.fx === 'grenade' && b.atk.splash >= 1.2) { FX.particle({ x, y, life: 0.05, size: 1.1, size1: 0.9, color: 0xffa040, tex: FX.tex.glow, alpha: 0.95, order: L.PROJ }); FX.particle({ x, y, life: 0.05, size: 0.45, size1: 0.4, color: 0xfff0c0, tex: FX.tex.glow, alpha: 1, order: L.PROJ }); FX.particle({ x, y, vy: 0.3, life: 0.28, size: 0.55, size1: 0.08, color: 0xff7a1a, tex: FX.tex.glow, alpha: 0.85, order: L.PROJ }); FX.particle({ x: x + (b.tx - x) * 0, y: b.tz * TILT * f + (b.sy - 0.6) * (1 - f) - 0.1, life: 0.05, size: 0.8, size1: 0.7, aspect: TILT, color: 0x000000, tex: FX.tex.dot, normal: true, alpha: 0.45, order: L.GROUND + 3 }); } // a lobbed shell glows, its shadow runs on the ground under it
       if ((b.trT = (b.trT || 0) - dt) <= 0) { b.trT = 0.025; FX.particle({ x, y, life: 0.26, size: 0.5, size1: 0.05, color: b.atk.color, tex: FX.tex.glow, alpha: 0.8 }); FX.particle({ x, y, life: 0.12, size: 0.2, size1: 0, color: 0xffffff, tex: FX.tex.glow, alpha: 0.9 }); } // a fading trail with a bright core
       if (f >= 1) {
@@ -1378,7 +1379,7 @@
         { const a0 = Math.atan2(dy, dx); for (let s = 0; s < 3 + big * 3; s++) { const a = a0 + rnd(-0.7, 0.7), v = rnd(3, 6); FX.particle({ x: b.ex, y: b.ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v, drag: 5, life: rnd(0.15, 0.3), size: 0.12, size1: 0.02, color: b.atk.color, tex: FX.tex.dot }); } } // sparks carry on in the shot's direction
         if (b.atk.splash) { FX.groundRing(b.tx, b.tz * TILT, 0.2, b.atk.splash, b.atk.color, 0.35, 0.8); FX.groundGlow(b.tx, b.tz * TILT, b.atk.splash * 0.45, b.atk.color, 0.3, 0.35); splashFx(b.tx, b.tz, b.atk); } // the blast area lights up, not just its edge
         if (b.dmg) hit(b.src, b.atk, b.target, b.tx, b.tz, b.dmg);
-        b.inst.dispose();
+        if (b.inst) b.inst.dispose();
         G.bfx.splice(i, 1);
       }
     }
@@ -1392,12 +1393,11 @@
       p.t += dt;
       if (!p.point && p.target.alive) { p.tx = p.target.x; p.tz = p.target.z; p.ty = aimY(p.target); }
       const gy = p.kind === 'bomb' || p.kind === 'spell' ? p.tz * TILT + 0.1 : p.ty;
-      if (p.d0 == null) { p.d0 = Math.max(0.1, Math.hypot(p.tx - p.x, gy - p.y)); p.x0 = p.x; p.y0 = p.y; }
-      const dx = p.tx - p.x, dy = gy - p.y, Ld = Math.hypot(dx, dy);
-      const step = p.speed * dt;
-      const done = Ld <= step;
-      if (!done) { p.x += dx / Ld * step; p.y += dy / Ld * step; } else { p.x = p.tx; p.y = gy; }
-      const prog = clamp(1 - Math.hypot(p.tx - p.x, gy - p.y) / p.d0, 0, 1);
+      // the flight time is set once, on the field (the same on both online devices: the drawn arc has heights that a
+      // mirrored screen does not turn round); the drawn shot only follows it
+      if (p.T == null) { const fx = p.src ? p.src.x : p.fx0, fz = p.src ? p.src.z : p.fz0; p.T = Math.max(0.05, Math.hypot(p.tx - fx, (p.tz - fz) * TILT) / p.speed); p.x0 = p.x; p.y0 = p.y; }
+      const prog = clamp(p.t / p.T, 0, 1), done = prog >= 1;
+      p.x = p.x0 + (p.tx - p.x0) * prog; p.y = p.y0 + (gy - p.y0) * prog;
       const yy = p.y + (p.arc ? Math.sin(prog * Math.PI) * p.arc : 0);
       const c = p.atk.color;
       switch (p.kind) {
@@ -1433,7 +1433,7 @@
     if (c.spell === 'fireball') {
       const k = G.sides[side].towers.find((t) => t.type === 'king');
       FX.groundRing(x, z * TILT, c.radius, c.radius * 0.9, 0xff4040, 0.9, 0.7);
-      G.projs.push({ kind: 'spell', x: k ? k.x : 0, y: s * 14 * TILT + 3, tx: x, tz: z, ty: z * TILT, speed: c.radius < 2 ? 22 : 16, arc: c.radius < 2 ? 1.6 : 3, point: true, atk: cc, side, card: cc, t: 0, dmg: cc.dmg, rocket: c.radius < 2 });
+      G.projs.push({ kind: 'spell', fx0: k ? k.x : 0, fz0: s * 14, x: k ? k.x : 0, y: s * 14 * TILT + 3, tx: x, tz: z, ty: z * TILT, speed: c.radius < 2 ? 22 : 16, arc: c.radius < 2 ? 1.6 : 3, point: true, atk: cc, side, card: cc, t: 0, dmg: cc.dmg, rocket: c.radius < 2 });
       SFX.play('missile', 0.6);
     } else if (c.spell === 'zap') {
       const y = z * TILT;
@@ -1672,7 +1672,7 @@
     if (best) return best;
     const t = nearestTower(u);
     if (t && dashPath(u, t.x, t.z)[2] < 1.5) { // the straight line would skid on the bank: head for the near end of the lane's bridge if the dash really gets there
-      const bx = (u.x < 0 ? -1 : 1) * BAL.bridgeX, bz = -Math.sign(t.z - u.z) * (BAL.river + 0.6), want = Math.min(u.card.skill.dist, Math.max(0, Math.hypot(bx - u.x, bz - u.z) - 1));
+      const bx = side0(u.x) * BAL.bridgeX, bz = -Math.sign(t.z - u.z) * (BAL.river + 0.6), want = Math.min(u.card.skill.dist, Math.max(0, Math.hypot(bx - u.x, bz - u.z) - 1));
       if (want > 0.5 && dashPath(u, bx, bz)[2] >= want * 0.8) return { x: bx, z: bz, air: false };
     }
     return t;
@@ -1779,7 +1779,7 @@
     SFX.play('rampalion_charge', 0.7);
     for (let k = 0; k < 8; k++) FX.later(k * 0.07, () => { if (!alive()) return; const [hx, hy] = hand(); FX.particle({ x: hx, y: hy, life: 0.18, size: 0.3 + k * 0.08, size1: 0.1, color: k % 2 ? 0xfff0a0 : 0x7dffb0, tex: FX.tex.glow, alpha: 0.8 }); });
     // 2. the electromagnetic tornado: a green helix down the line; enemies on it are held and drawn toward its end
-    FX.later(0.35, () => {
+    simLater(0.35, () => {
       if (!alive()) return;
       SFX.play('rampalion_skill2', 0.6); FX.shake(0.15);
       const [hx, hy] = hand();
@@ -1842,12 +1842,12 @@
         const [cx, cz] = u.skillSpot || bestSpot(u, sk.reach, sk.radius * 1.5);
         for (let i = 0; i < sk.n; i++) {
           const x = cx + (i ? srnd(-1, 1) * sk.radius * MIR() : 0), z = cz + (i ? srnd(-0.75, 0.75) * sk.radius * MIR() : 0); // inside the telegraph ring
-          FX.later(0.15 + i * 0.16, () => {
+          simLater(0.15 + i * 0.16, () => {
             if (G.phase !== 'play') return;
             const y = z * TILT;
             if (sk.pillar) { FX.pillar(x, y, 0.6, sk.color); spawnStatic('Azazel_skill1_Hit_m', x, y + 0.3, 0.2); }
             else FX.meteor(x, y, null, sk.color);
-            FX.later(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { const bk = rnd(0.85, 1.2); spawnStatic('simple_explosion', x, y + 0.3, 0.22 * bk); scorch(x, y, sk.radius * 0.5 * bk); if (!i) crater(x, y, sk.radius * 0.9); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
+            simLater(sk.pillar ? 0.05 : 0.55, () => { if (G.phase !== 'play') return; if (!sk.pillar) { const bk = rnd(0.85, 1.2); spawnStatic('simple_explosion', x, y + 0.3, 0.22 * bk); scorch(x, y, sk.radius * 0.5 * bk); if (!i) crater(x, y, sk.radius * 0.9); } hitArea(x, z, sk.radius, sk.dmg, { stun: sk.stun, slow: sk.slow }); if (!i) impact(u, x, z, sk.color); FX.shake(0.15); SFX.play('expS', 0.5); });
           });
         }
         break;
@@ -1857,7 +1857,7 @@
         for (let i = 0; i < sk.n; i++) {
           const o = list[i % Math.max(1, list.length)];
           const x = o ? o.x : u.x + srnd(-3, 3) * MIR(), z = o ? o.z : u.z - SGN[side] * srnd(1, 4);
-          FX.later(i * 0.12 + rnd(0, 0.06), () => { if (G.phase !== 'play') return; FX.thunderBolt(x, z * TILT + 0.3, sk.color); spawnStatic(SKILL_FX.storm, x, z * TILT + 0.4, 0.3); hitArea(x, z, 1, sk.dmg, { stun: sk.stun }); if (!i) impact(u, x, z, sk.color); SFX.play('elec', 0.4); });
+          simLater(i * 0.12 + srnd(0, 0.06), () => { if (G.phase !== 'play') return; FX.thunderBolt(x, z * TILT + 0.3, sk.color); spawnStatic(SKILL_FX.storm, x, z * TILT + 0.4, 0.3); hitArea(x, z, 1, sk.dmg, { stun: sk.stun }); if (!i) impact(u, x, z, sk.color); SFX.play('elec', 0.4); });
         }
         break;
       }
@@ -1953,7 +1953,7 @@
       const f = FORM[c.count] || FORM[1];
       f.forEach(([ox, oz], i) => {
         const s = SGN[side];
-        const px = clamp(x + ox, -8.6, 8.6), pz = clamp(z - oz * s, -15.6, 15.6);
+        const px = clamp(x + ox * MIR(), -8.6, 8.6), pz = clamp(z - oz * s, -15.6, 15.6); // (slots mirrored on the guest: each unit id stands in the same spot on both screens)
         out.push(spawnTroop(side, c, px, pz, i * 0.08));
       });
       FX.groundRing(x, z * TILT, 0.2, 1.6, FACTIONS[S.faction].hex, 0.5);
@@ -2218,7 +2218,14 @@
       a.x += px * lat; a.z += pz * lat; b.x -= px * lat; b.z -= pz * lat;
     }
   }
+  // the order of the pushes matters, so the guest does this in the host's coordinates (the field turned round): the same
+  // grid cells, the same pairs in the same order, the same side-steps; then it turns the result back
   function separate() {
+    const flip = !!(mp && mp.guest);
+    if (flip) { for (const e of G.ents) { e.x = -e.x; e.z = -e.z; if (e.prevZ != null) e.prevZ = -e.prevZ; } hostFrame = true; }
+    try { separateNow(); } finally { if (flip) { for (const e of G.ents) { e.x = -e.x; e.z = -e.z; if (e.prevZ != null) e.prevZ = -e.prevZ; } hostFrame = false; } }
+  }
+  function separateNow() {
     rebuildLists();
     const structs = STRUCTS; structs.length = 0; // reused every step (no garbage)
     for (const s of SIDES) { for (const t of G.sides[s].towers) if (t.alive) structs.push(t); for (const t of G.sides[s].blds) if (t.alive) structs.push(t); }
@@ -2245,14 +2252,25 @@
       if (Math.abs(u.z) < BAL.river + 0.2 && !onBridge(u.x, u.r)) {
         if (u.prevZ != null) u.z = (u.prevZ < 0 ? -1 : 1) * (BAL.river + 0.2);
       }
-      if (Math.abs(u.z) < BAL.river + 0.2) { const bx = u.x < 0 ? -BAL.bridgeX : BAL.bridgeX; u.x = clamp(u.x, bx - BAL.bridgeW + u.r * 0.35, bx + BAL.bridgeW - u.r * 0.35); }
+      if (Math.abs(u.z) < BAL.river + 0.2) { const bx = side0(u.x) * BAL.bridgeX; u.x = clamp(u.x, bx - BAL.bridgeW + u.r * 0.35, bx + BAL.bridgeW - u.r * 0.35); }
       u.prevZ = u.z;
     }
   }
 
+  // a delayed blow (a barrage shell landing, a bolt): on the simulation clock, so both online devices land it on the same tick
+  function simLater(delay, fn) { (G.simT || (G.simT = [])).push({ t: delay, fn }); }
+  function runSimTimers(dt) {
+    if (!G.simT || !G.simT.length) return;
+    const due = [];
+    for (const k of G.simT) { k.t -= dt; if (k.t <= 1e-9) due.push(k); }
+    if (!due.length) return;
+    G.simT = G.simT.filter((k) => k.t > 1e-9);
+    for (const k of due) { try { k.fn(); } catch (e) { console.error(e); } } // (in the order they were set: the same on both devices)
+  }
   function step(dt) {
     if (G.phase !== 'play') return;
     G.time += dt;
+    runSimTimers(dt);
     G.clock -= dt;
     const rush = G.opts.mode === 1 || !!(G.mut && G.mut.rush);
     // announcer cues: thirty seconds left, your king in danger (once each per match)
@@ -2317,7 +2335,7 @@
   // bottom, so the opponent's inputs arrive mirrored. An input runs MP_DELAY ticks after it was made, on both devices, and
   // a device only steps a tick once the other side has said it has nothing more for it. The host (the side that invited)
   // sends a correction of every unit's health and position twice a second and decides how the match ends.
-  const MP_DELAY = 6, MP_DIGEST = 30, MP_STALL = 10000;
+  const MP_DELAY = 6, MP_DIGEST = 12, MP_STALL = 10000; // (the host's full state goes out five times a second)
   function mpSetup(opts) {
     srng = Math.random; mp = null;
     if (!opts.online) return;
@@ -2373,29 +2391,74 @@
     else if (c.k === 's') { const u = G.ents.find((e) => e.id === c.u && e.side === side && e.alive); if (u) useSkillNow(u, c.sp ? { x: c.sp[0] * m, z: c.sp[1] * m } : undefined); }
     else if (c.k === 'p') useSupport(side, (c.x || 0) * m);
   }
-  // after a tick: the host sends its correction; the guest applies the one for this tick
-  function mpAfter(t) {
-    if (!mp.guest) {
-      if (t % MP_DIGEST === 0) {
-        const e = [];
-        for (const x of G.ents) if (x.alive) e.push([x.id, Math.round(x.hp), Math.round(x.x * 100) / 100, Math.round(x.z * 100) / 100]);
-        mp.send({ d: t, n: G.nextId, e, el: [G.sides.blue.elixir, G.sides.red.elixir] });
-      }
-      return;
+  // after a tick: the host sends its whole state; the guest takes it over for this tick (the host is the authority: whatever
+  // drifted on the guest, from a rounding to a missed blow, is put back the host's way)
+  const MP_ST = { idle: 0, move: 1, attack: 2, stun: 3, deploy: 4 }, MP_STN = Object.keys(MP_ST);
+  const r2 = (v) => Math.round((v || 0) * 1000) / 1000;
+  // one row per living unit / structure, in the host's coordinates (the guest's own rows are turned round)
+  function mpRows(flip) {
+    const e = [];
+    for (const x of G.ents) {
+      if (!x.alive) continue;
+      const c = x.sd, tg = x.target && x.target.alive ? x.target.id : 0;
+      if (x.kind === 'troop') e.push([x.id, r2(x.hp), r2(x.x * flip), r2(x.z * flip), tg, MP_ST[x.state] || 0, r2(x.cd), c && c.clipName === 'atk' ? 1 : 0, c && c.clipName === 'atk' ? r2(c.time) : 0, r2(x.stunT), r2(x.freezeT), r2(x.slowT), r2(x.slowAmt), x.chargeOn ? 1 : 0, r2(x.runD), r2(x.rampT), x.rampTgt && x.rampTgt.id || 0, r2(x.skillCd), r2(x.shieldT), r2(x.hasteT), r2(x.deployT), r2(x.spawnT), r2(x.casting), r2(x.healT), x.retarget > 0 ? r2(x.retarget) : 0]);
+      else e.push([x.id, r2(x.hp), 0, 0, tg, x.active ? 1 : 0, r2(x.cd), c && c.clipName === 'atk' ? 1 : 0, c && c.clipName === 'atk' ? r2(c.time) : 0, r2(x.stunT), r2(x.freezeT), r2(x.slowT), r2(x.slowAmt), 0, 0, 0, 0, 0, 0, r2(x.hasteT), 0, r2(x.spawnT), 0, 0, 0, x.ammo == null ? -1 : x.ammo]);
     }
-    for (const [dt, dg] of mp.digests) if (dt <= t) { mp.digests.delete(dt); mpCorrect(dg); }
+    return e;
   }
-  function mpCorrect(dg) {
-    const seen = new Set();
-    for (const [id, hp, x, z] of dg.e) {
-      seen.add(id);
-      const e = G.ents.find((q) => q.id === id);
-      if (!e || !e.alive) continue;
-      if (e.kind === 'troop') { e.x = -x; e.z = -z; } // (the host's field, mirrored)
-      if (hp < e.hp - 0.5) damage(e, e.hp - hp, null); else if (hp > e.hp + 0.5) e.hp = Math.min(e.max, hp);
+  function mpAfter(t) {
+    if (t % MP_DIGEST === 0) {
+      if (!mp.guest) { mp.send({ d: t, n: G.nextId, e: mpRows(1), el: [G.sides.blue.elixir, G.sides.red.elixir] }); return; }
+      (mp.snaps || (mp.snaps = new Map())).set(t, { e: mpRows(-1), n: G.nextId, el: [G.sides.red.elixir, G.sides.blue.elixir] }); // what this device had at that tick, to set beside the host's
     }
-    for (const e of G.ents) if (e.alive && e.id < dg.n && !seen.has(e.id)) damage(e, e.hp + 1, null); // gone on the host: gone here
-    G.sides.red.elixir = dg.el[0]; G.sides.blue.elixir = dg.el[1];
+    if (!mp.guest) return;
+    for (const [dt, dg] of mp.digests) if (dt <= t) { mp.digests.delete(dt); mpCorrect(dg, mp.snaps && mp.snaps.get(dt)); }
+    if (mp.snaps) for (const k of mp.snaps.keys()) if (k < t - MP_DIGEST * 20) mp.snaps.delete(k);
+  }
+  // the host's state for a tick this device may already have passed: set it beside what this device had at that same
+  // tick, and put right only what really differs (by the difference, so the steps taken since are kept)
+  function mpCorrect(dg, own) {
+    const byId = new Map(G.ents.map((q) => [q.id, q]));
+    const mine = new Map(own ? own.e.map((r) => [r[0], r]) : []), theirs = new Set();
+    const D = G.mpDrift || (G.mpDrift = { n: 0, pos: 0, hp: 0, life: 0, ids: 0, bad: 0 });
+    const note = (e, what) => { (D.log || (D.log = [])).length < 40 && D.log.push(`${dg.d}:${e ? (e.card ? e.card.id : e.type) : '?'}:${what}`); };
+    D.n++; if (own && own.n !== dg.n) D.ids++;
+    const eq = (a, b) => Math.abs(a - b) < 0.002;
+    for (const r of dg.e) {
+      theirs.add(r[0]);
+      const e = byId.get(r[0]), m = mine.get(r[0]);
+      if (!e) continue; // (never made here: nothing to put right)
+      if (!m) { D.life++; note(e, 'dead-here'); if (!e.alive && e.kind === 'troop') { mpRevive(e); e.hp = r[1]; e.x = -r[2]; e.z = -r[3]; } } // fell here but not on the host
+      if (!e.alive) continue;
+      const same = m && m.length === r.length && m.every((v, i) => eq(v, r[i]));
+      if (same) continue; // in step with the host
+      D.bad++;
+      if (m) { const dp = Math.hypot(m[2] - r[2], m[3] - r[3]); D.pos = Math.max(D.pos, dp); D.hp = Math.max(D.hp, Math.abs(m[1] - r[1])); const fi = m.findIndex((v, i) => !eq(v, r[i])); note(e, `hp${Math.round(m[1])}/${Math.round(r[1])} pos${dp.toFixed(2)} f${fi}:${m[fi]}/${r[fi]}`); }
+      const dh = r[1] - (m ? m[1] : e.hp);
+      if (Math.abs(dh) > 0.001) { e.hp = clamp(e.hp + dh, 0, e.max); if (e.hp <= 0) { e.hp = 0.001; damage(e, 1, null); continue; } }
+      if (e.kind === 'troop') { if (m) { e.x -= r[2] - m[2]; e.z -= r[3] - m[3]; } else { e.x = -r[2]; e.z = -r[3]; } e.state = MP_STN[r[5]] || 'idle'; } // (the host's field, mirrored)
+      else { e.active = !!r[5]; if (r[25] >= 0 && e.ammo != null) e.ammo = r[25]; }
+      const tg = r[4] ? byId.get(r[4]) : null;
+      e.target = tg && tg.alive ? tg : null;
+      e.cd = r[6]; e.stunT = r[9]; e.freezeT = r[10]; e.slowT = r[11]; e.slowAmt = r[12]; e.hasteT = r[19]; e.spawnT = r[21];
+      if (e.sd && r[7]) { if (e.sd.clipName !== 'atk') setClip(e, 'atk'); e.sd.time = r[8]; e.sd.poseDirty = true; }
+      if (e.kind === 'troop') {
+        e.chargeOn = !!r[13]; e.runD = r[14]; e.rampT = r[15]; e.rampTgt = r[16] ? byId.get(r[16]) || null : null; e.skillCd = r[17]; e.shieldT = r[18];
+        e.deployT = r[20]; e.casting = r[22]; e.healT = r[23]; e.retarget = r[24];
+      }
+    }
+    for (const [id] of mine) if (!theirs.has(id)) { const e = byId.get(id); D.life++; note(e, 'alive-here'); if (e && e.alive) damage(e, e.hp + 1, null); } // gone on the host: gone here
+    if (!own) for (const e of G.ents) if (e.alive && e.id < dg.n && !theirs.has(e.id)) damage(e, e.hp + 1, null);
+    G.nextId = Math.max(G.nextId, dg.n); // (the next unit gets the same id on both devices)
+    if (own) { G.sides.red.elixir += dg.el[0] - own.el[0]; G.sides.blue.elixir += dg.el[1] - own.el[1]; } else { G.sides.red.elixir = dg.el[0]; G.sides.blue.elixir = dg.el[1]; }
+    for (const s of SIDES) G.sides[s].elixir = clamp(G.sides[s].elixir, 0, BAL.elixirMax);
+  }
+  // a troop that died on this device only: it stands up again (the host still has it)
+  function mpRevive(e) {
+    e.alive = true; e.dieT = 0; e.hp = Math.max(1, e.hp);
+    if (e.sd) { e.sd.root.visible = true; e.sd.setOpacity(1); e.sd.speed = 1; e.sd.play('idle'); }
+    if (e.placeholder) { e.placeholder.material.opacity = 1; e.placeholder.position.y = 0.75; }
+    e.shadow.alpha = 0.85; e.disc.alpha = e.disc.a0 != null ? e.disc.a0 : 0.75; e.glow.alpha = 0.4;
   }
   function mpClose() { if (!mp) return; mp.done = true; try { mp.close && mp.close(); } catch (e) { /* gone */ } mp = null; srng = Math.random; }
 
@@ -2798,7 +2861,7 @@
         gh.ring.material.color.setHex(ok ? 0xffffff : 0xff4050);
         gh.chars.forEach((c, i) => {
           const [ox, oz] = (FORM[gh.card.count] || FORM[1])[i];
-          c.holder.position.set(gh.x + ox, (gh.z + oz) * TILT + (gh.card.air ? AIR_LIFT : 0), 0);
+          c.holder.position.set(gh.x + ox * MIR(), (gh.z + oz) * TILT + (gh.card.air ? AIR_LIFT : 0), 0);
           if (c.sd) { if (c.okTint !== ok) { c.okTint = ok; c.sd.setTint(ok ? 1 : 1.4, ok ? 1 : 0.4, ok ? 1 : 0.4); } c.sd.update(dt); c.sd.pose(); } // tint only when it changes
         });
       }
@@ -3027,11 +3090,11 @@
   function clearBattle() {
     deselect();
     G.ents.forEach(disposeEnt);
-    G.bfx.forEach((b) => b.inst.dispose());
+    G.bfx.forEach((b) => b.inst && b.inst.dispose());
     G.sfx.forEach((s) => s.dispose());
     while (G.decals.length) dropDecal(0);
     if (camera) { camera.zoom = 1; camera.position.x = camera.position.y = 0; camera.updateProjectionMatrix(); }
-    G.ents = []; G.projs = []; G.bfx = []; G.sfx = []; G.zones = []; G.punch = 0;
+    G.ents = []; G.projs = []; G.bfx = []; G.sfx = []; G.zones = []; G.punch = 0; G.simT = [];
     aimHide();
     G.drag = null; G.errShown = false; G.slowmo = 0; G.hitStop = 0; G.surge = 0; G.said30 = G.saidKing = false; { const gr = document.getElementById('grade'); if (gr) gr.classList.remove('ot', 'danger'); } G.lastBlue = null; G.troops = { blue: [], red: [] };
     (G.after || []).forEach(({ hold, c }) => { scene.remove(hold); SD.release(c); }); G.after = [];
@@ -3270,8 +3333,8 @@
     if (G.opts !== opts) return; // left during loading
     for (const side of mp && mp.guest ? ['red', 'blue'] : ['blue', 'red']) { // (host's towers first on both devices: the same ids)
       const s = SGN[side], P = BAL.tower.princess, K = BAL.tower.king;
-      makeTower(side, 'princess', -P.x, s * P.z);
-      makeTower(side, 'princess', P.x, s * P.z);
+      makeTower(side, 'princess', -P.x * MIR(), s * P.z); // (the guest makes them right first: each id names the same tower on both devices)
+      makeTower(side, 'princess', P.x * MIR(), s * P.z);
       makeTower(side, 'king', 0, s * K.z);
     }
     G.time = 0; G.clock = G.mut && G.mut.time || BAL.matchTime; G.overtime = false; G.mult = opts.mode === 1 || G.mut && G.mut.rush ? 2 : 1; G.result = null; G.zoneKey = '';
@@ -3633,6 +3696,8 @@
     _fx: (n, x, y, k) => spawnStatic(n, x, y, k),
     _toScreen: (x, y) => toScreen(x, y),
     _damage: (t, amt) => damage(t, amt, null), // (tests)
+    _frame: (dt) => frameBody(dt, dt * 1000), // (tests: one frame by hand while the page is hidden)
+    _mpPlay: (i, x, z) => { const S = G.sides.blue, id = S.hand[i]; return !!(mp && CARD[id] && S.elixir >= CARD[id].cost && (CARD[id].type !== 'troop' || canDeploy('blue', x, z)) && (CARD[id].type !== 'building' || canBuild('blue', x, z, CARD[id])) && mpLocal({ k: 'c', i, id, x, z })); }, // (tests: an online input)
     _spawnCard: (side, id, x, z) => { const c = CARD[id], f = FORM[c.count] || FORM[1]; return f.map(([ox, oz]) => spawnTroop(side, c, x + ox, z - oz * SGN[side], 0)); }, // (tests: a troop anywhere)
     voiced: (c) => voiced(c),
     autoSpot(u) { const sk = u.card.skill, tg = u.target && u.target.alive ? u.target : null; const a = sk.kind === 'barrage' ? bestSpot(u, sk.reach, sk.radius * 1.5) : (sk.kind === 'laser' ? tg || nearestTower(u) : dashTarget(u)); return a ? (Array.isArray(a) ? { x: a[0], z: a[1] } : { x: a.x, z: a.z }) : null; },
