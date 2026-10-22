@@ -71,6 +71,78 @@
   "es": "Se eliminó el botón de cancelar durante el emparejamiento",
   "ru": "Убрана кнопка отмены во время подбора"
  },
+ "대전 중 앱을 강제로 종료하면 다음에 접속할 때 패배로 처리됩니다": {
+  "ja": "対戦中にアプリを強制終了すると、次回の接続時に敗北として処理されます",
+  "en": "Force-closing the app during a battle counts as a loss the next time you connect",
+  "zh-Hans": "对战中强制关闭应用，下次连接时将判负",
+  "zh-Hant": "對戰中強制關閉應用程式，下次連線時將判負",
+  "pt": "Fechar o app à força durante uma batalha conta como derrota na próxima conexão",
+  "es": "Cerrar la app a la fuerza durante una batalla cuenta como derrota en la próxima conexión",
+  "ru": "Принудительное закрытие приложения во время боя засчитывается как поражение при следующем входе"
+ },
+ "같은 기기끼리는 매칭되지 않습니다": {
+  "ja": "同じ端末同士はマッチングされません",
+  "en": "Two windows on the same device are never matched",
+  "zh-Hans": "同一设备之间不会匹配",
+  "zh-Hant": "同一裝置之間不會配對",
+  "pt": "O mesmo dispositivo nunca é pareado consigo mesmo",
+  "es": "El mismo dispositivo nunca se empareja consigo mismo",
+  "ru": "Окна на одном устройстве не подбираются друг против друга"
+ },
+ "대전이 시작되기 전에 연결이 끊기면 무효 처리되고 다시 상대를 찾습니다": {
+  "ja": "対戦開始前に接続が切れると無効になり、再び相手を探します",
+  "en": "If the connection drops before the battle starts, it is voided and a new search begins",
+  "zh-Hans": "对战开始前断线则判为无效，并重新寻找对手",
+  "zh-Hant": "對戰開始前斷線則判為無效，並重新尋找對手",
+  "pt": "Se a conexão cair antes de a batalha começar, ela é anulada e uma nova busca começa",
+  "es": "Si la conexión se cae antes de empezar la batalla, se anula y se busca otro rival",
+  "ru": "Если связь прервётся до начала боя, он аннулируется и начнётся новый поиск"
+ },
+ "연결 끊김으로 이긴 대전은 전공을 절반만 받습니다": {
+  "ja": "接続切れで勝利した対戦は、戦功が半分になります",
+  "en": "Wins by disconnect give half the Merit",
+  "zh-Hans": "因断线获胜的对战只获得一半战功",
+  "zh-Hant": "因斷線獲勝的對戰只獲得一半戰功",
+  "pt": "Vitórias por desconexão dão metade do Mérito",
+  "es": "Las victorias por desconexión dan la mitad de Mérito",
+  "ru": "Победа из-за отключения соперника даёт половину Заслуг"
+ },
+ "비슷한 전공의 상대를 먼저 찾고, 없으면 범위를 넓혀 찾습니다": {
+  "ja": "近い戦功の相手を先に探し、いなければ範囲を広げて探します",
+  "en": "Matching looks for a similar Merit first, then widens the range",
+  "zh-Hans": "优先寻找战功相近的对手，没有时再扩大范围",
+  "zh-Hant": "優先尋找戰功相近的對手，沒有時再擴大範圍",
+  "pt": "A busca procura primeiro um Mérito parecido e depois amplia o alcance",
+  "es": "Primero se busca un Mérito parecido y luego se amplía el rango",
+  "ru": "Сначала ищется соперник с похожими Заслугами, затем диапазон расширяется"
+ },
+ "감정 표현은 3초에 한 번 보낼 수 있습니다": {
+  "ja": "エモートは3秒に1回送れます",
+  "en": "Emotes can be sent once every 3 seconds",
+  "zh-Hans": "表情每3秒只能发送一次",
+  "zh-Hant": "表情每3秒只能傳送一次",
+  "pt": "Emotes podem ser enviados uma vez a cada 3 segundos",
+  "es": "Los emotes se pueden enviar una vez cada 3 segundos",
+  "ru": "Эмоции можно отправлять раз в 3 секунды"
+ },
+ "상대와 연결되지 않아 대전이 취소되었습니다. 다시 상대를 찾습니다": {
+  "ja": "相手と接続できなかったため対戦は取り消されました。再び相手を探します",
+  "en": "Couldn't connect to the opponent, so the battle was cancelled. Searching again",
+  "zh-Hans": "未能连接对手，对战已取消。重新寻找对手",
+  "zh-Hant": "未能連線對手，對戰已取消。重新尋找對手",
+  "pt": "Não foi possível conectar ao oponente, a batalha foi cancelada. Buscando novamente",
+  "es": "No se pudo conectar con el rival, la batalla se canceló. Buscando de nuevo",
+  "ru": "Не удалось подключиться к сопернику, бой отменён. Новый поиск"
+ },
+ " · 전공 절반": {
+  "ja": " · 戦功半分",
+  "en": " · Half Merit",
+  "zh-Hans": " · 战功减半",
+  "zh-Hant": " · 戰功減半",
+  "pt": " · Metade do Mérito",
+  "es": " · Mitad de Mérito",
+  "ru": " · Половина Заслуг"
+ },
  "전공": {
   "ja": "戦功",
   "en": "Merit",
@@ -133,5 +205,23 @@
   "pt": "Correções de bugs",
   "es": "Corrección de errores",
   "ru": "Исправление ошибок"
+ },
+ "· 전공 절반": {
+  "ja": "· 戦功半分",
+  "en": "· Half Merit",
+  "zh-Hans": "· 战功减半",
+  "zh-Hant": "· 戰功減半",
+  "pt": "· Metade do Mérito",
+  "es": "· Mitad de Mérito",
+  "ru": "· Половина заслуг"
+ },
+ "끝내지 않고 나간 온라인 대전이 패배로 처리되었습니다 (전공 {0})": {
+  "ja": "途中で抜けたオンライン対戦は敗北として処理されました (戦功 {0})",
+  "en": "An online battle you left unfinished was counted as a loss (Merit {0})",
+  "zh-Hans": "未结束就离开的在线对战已判定为失败 (战功 {0})",
+  "zh-Hant": "未結束就離開的線上對戰已判定為落敗 (戰功 {0})",
+  "pt": "Uma batalha online abandonada foi contada como derrota (Mérito {0})",
+  "es": "Una batalla en línea abandonada se contó como derrota (Mérito {0})",
+  "ru": "Незавершённый онлайн-бой засчитан как поражение (заслуги {0})"
  }
 }

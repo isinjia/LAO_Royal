@@ -2361,10 +2361,10 @@
     if (!mp) return;
     mp.lastRecv = performance.now(); mp.heard = true;
     if (m.c) for (const c of m.c) { if (!mp.theirs.has(c.t)) mp.theirs.set(c.t, []); mp.theirs.get(c.t).push(c); }
-    if (m.u != null) mp.upTo = Math.max(mp.upTo, m.u);
+    if (m.u != null) { mp.upTo = Math.max(mp.upTo, m.u); if (m.u >= MP_DELAY) mp.foeStarted = true; } // (it has stepped into the fight)
     mp.warned = false; mpWaitHide();
     if (m.d != null && mp.guest) mp.digests.set(m.d, m);
-    if (m.em != null && G.phase === 'play') UI.emote('red', m.em);
+    if (m.em != null && G.phase === 'play' && performance.now() - (mp.emT || -1e9) > 2000) { mp.emT = performance.now(); UI.emote('red', m.em); } // (one bubble per 2 s at most, whatever the other device sends)
     if (m.end && mp.guest) { // the host's verdict (from its side: mirror it)
       mp.endOK = true;
       if (m.cr) { G.sides.blue.crowns = m.cr[1]; G.sides.red.crowns = m.cr[0]; UI.crowns(); }
@@ -2378,6 +2378,7 @@
   // the other device is gone (it surrendered, or nothing came from it for 5 s): this side wins, and says so in case it returns
   function mpAbandon(why, told) {
     if (!mp || G.phase !== 'play') return;
+    if (!mp.realStart && why !== 'surrender') { mpVoid(); return; } // (gone before the fight began: no winner)
     mp.endOK = true;
     if (why !== 'surrender' && !told) try { mp.send({ gone: 1 }); } catch (e) { /* gone */ }
     G.sides.blue.crowns = Math.max(G.sides.blue.crowns, 3); UI.crowns();
@@ -2392,6 +2393,7 @@
   // this device was the one away (its screen off for more than 5 s, its network down, or the other side said so): it loses
   function mpSelfLose() {
     if (!mp || G.phase !== 'play') return;
+    if (!mp.realStart) { mpVoid(); return; }
     mp.endOK = true;
     try { mp.send({ lost: 1 }); } catch (e) { /* gone */ } // (the other side may not have counted it yet: it wins too)
     G.sides.red.crowns = Math.max(G.sides.red.crowns, 3); UI.crowns();
@@ -2404,6 +2406,13 @@
     mp.lastRecv = performance.now(); // (what it sent meanwhile is still on its way: no blame on the other side for this gap)
     if (gap > MP_STALL || mp.myDrops >= MP_DROPS) { mpSelfLose(); return; }
     UI.toast(`연결 끊김 ${mp.myDrops}/${MP_DROPS} · ${MP_DROPS}번 끊기거나 5초를 넘기면 패배합니다`);
+  }
+  // the match never really began (one side left while loading or counting down): nobody wins or loses, a new search starts
+  function mpVoid() {
+    if (!mp || mp.done) return;
+    mp.done = true; mpWaitHide();
+    if (G.phase === 'play' || G.phase === 'countdown') G.phase = 'ended';
+    setTimeout(() => UI.mpVoid && UI.mpVoid(), 0); // (out of the frame that found it)
   }
   // the waiting side's notice: on screen for as long as the other device is silent, with the seconds left
   let mpWaitEl = null;
@@ -2450,6 +2459,7 @@
     return e;
   }
   function mpAfter(t) {
+    if (!mp.realStart && mp.foeStarted && t > 0) { mp.realStart = true; UI.mpStarted && UI.mpStarted(); } // both devices are in the fight: from here leaving counts as a loss
     if (t % MP_DIGEST === 0) {
       if (!mp.guest) { mp.send({ d: t, n: G.nextId, e: mpRows(1), el: [G.sides.blue.elixir, G.sides.red.elixir] }); return; }
       (mp.snaps || (mp.snaps = new Map())).set(t, { e: mpRows(-1), n: G.nextId, el: [G.sides.red.elixir, G.sides.blue.elixir] }); // what this device had at that tick, to set beside the host's
@@ -3555,13 +3565,14 @@
   function frameBody(dt, interval) {
     if (!renderer || G.paused || G.lost) return;
     if (mp && !mp.done && G.phase === 'play') { const now = performance.now(); if (mp.lastFrame != null && now - mp.lastFrame > MP_DROP) mpSelfGap(now - mp.lastFrame); if (mp) mp.lastFrame = now; } // (this device was away: settled before anything else this frame)
+    else if (ranked() && G.phase === 'play') rankedFrame(); // (a normal battle against the AI keeps the online rules: no pause, leaving loses)
     if (pv) { previewFrame(dt); return; } // (the deck popup's card preview)
     if (G.hitStop > 0) { G.hitStop -= dt; dt *= 0.06; } else if (G.slowmo > 0) { G.slowmo -= dt; dt *= 0.35; }
     const t0 = performance.now();
     let bad = false; // each stage is guarded on its own: a failing simulation must not also freeze the effects and the drawing
     try {
       if (G.phase === 'countdown') {
-        if (mp && !mp.done) mpFlush(); // (a heartbeat while counting down: the other device knows this one is ready)
+        if (mp && !mp.done) { mpFlush(); const quiet = performance.now() - mp.lastRecv; if (quiet > (mp.heard ? MP_STALL : 30000)) mpVoid(); } // (a heartbeat while counting down: the other device knows this one is ready; a silent one voids the match)
         G.cdT -= dt;
         const n = Math.ceil(G.cdT - 0.2);
         if (n !== G.cdN) { G.cdN = n; if (n > 0) { UI.countdown(n); SFX.play('click', 0.5); if (n <= 3) say('ann:' + n, 1, 4); FX.groundRing(0, 0, 0.5, 6 + (3 - n) * 1.5, 0xffffff, 0.5, 0.3); } else { UI.countdown(0); SFX.play('start', 0.6); say('ann:gamestart', 1, 4); G.phase = 'play'; } }
@@ -3691,10 +3702,24 @@
     requestAnimationFrame(frame);
   }
 
+  // a normal battle is played like an online one even when the opponent is the AI: it never pauses, a device away for
+  // 5 s (or three times) loses, and closing the app mid-fight counts as a loss at the next start
+  const SIM_RUN = /[?&](smoke|duel)=1/.test(location.search); // (the automated checks run battles in a hidden tab: no drops counted there)
+  const ranked = () => !!(G.opts && G.opts.mode === 0 && !G.opts.online && !G.opts.preview && !SIM_RUN);
+  let rk = null;
+  function rankedFrame() {
+    const now = performance.now();
+    if (!rk || rk.opts !== G.opts) { rk = { opts: G.opts, lastFrame: now, drops: 0 }; UI.mpStarted && UI.mpStarted(); return; }
+    const gap = now - rk.lastFrame; rk.lastFrame = now;
+    if (gap <= MP_DROP) return;
+    rk.drops++;
+    if (gap > MP_STALL || rk.drops >= MP_DROPS) { G.sides.red.crowns = Math.max(G.sides.red.crowns, 3); UI.crowns(); endMatch('red', 'disconnect'); return; }
+    UI.toast(`연결 끊김 ${rk.drops}/${MP_DROPS} · ${MP_DROPS}번 끊기거나 5초를 넘기면 패배합니다`);
+  }
   function pause(on) {
     if (G.phase !== 'play' && G.phase !== 'countdown') return;
     if (G.opts && G.opts.preview) return; // (a card preview never pauses)
-    if (mp) return; // an online match never stops (the menu still opens)
+    if (mp || ranked()) return; // an online match never stops (the menu still opens), nor a normal battle against the AI
     G.paused = on;
     last = 0;
   }
