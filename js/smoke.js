@@ -84,9 +84,9 @@
     const left = GAME.info;
     if (G.ents.length || G.projs.length || G.zones.length || G.decals.length) out.errors.push(`leftovers after leave: ents ${G.ents.length} projs ${G.projs.length} zones ${G.zones.length} decals ${G.decals.length}`);
     if (window.GAME && GAME.G && Math.abs((GAME.cameraZoom || 1) - 1) > 1e-6) out.errors.push('camera zoom not reset');
-    // (the effect system adds a batched mesh the first time each texture/blend pair is used: two matches warm those up before the baseline)
+    // (the effect system adds a batched mesh the first time each texture/blend pair is used: two matches warm most of those up; a few role effects - a dark smoke ring, debris - add theirs later, once)
     base.n = (base.n || 0) + 1;
-    if (base.n <= 2) base.scene = Math.max(base.scene || 0, left.scene); else if (left.scene > base.scene + 2) out.errors.push(`scene grew ${base.scene} -> ${left.scene}`);
+    if (base.n <= 2) base.scene = Math.max(base.scene || 0, left.scene); else if (left.scene > base.scene + 6) out.errors.push(`scene grew ${base.scene} -> ${left.scene}`);
     if (left.fx > 40) out.errors.push(`particles left ${left.fx}`);
   }
   const base = {};

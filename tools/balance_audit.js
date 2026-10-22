@@ -17,7 +17,6 @@ const DEPART = {
   titania: ['cost hp splash slow', '되살아나는 알 대신 체력 +30%와 얼음 범위 둔화, 챔피언 스킬로 비용 +1'],
   leona: ['spawn', '해골 4기 대신 브라우니 2기 소환(유닛이 더 튼튼해 수를 줄임)'],
   azazel: ['air targets', '날개 달린 천사: 공중 유닛이라 공중의 적도 때림'],
-  sleipnir: ['air targets', '쿼드라 브레스 엔진의 비행 수비기: 공중 유닛이라 공중의 적도 때림'],
   ramiel: ['air', '업화를 뿜는 지상 사수'],
   drone: ['air', '정찰 드론: 공중 유닛'],
   nidhogg: ['dps splash slow', '죽을 때 골렘 조각 대신 독 범위 둔화, 그만큼 피해 낮춤'],
@@ -33,8 +32,8 @@ const DEPART = {
 };
 const lnAbs = (r) => Math.abs(Math.log(r));
 const targetsOf = (c) => (c.aim === 'buildings' ? 'buildings' : c.hits === 'ground' ? 'ground' : 'all');
-const flagsOf = (c) => ['splash', 'stun', 'slow', 'chain', 'pierce', 'ramp', 'healHit', 'spawn', 'charge', 'kamikaze', 'jump']
-  .filter((k) => c[k]).map((k) => (k === 'healHit' ? 'heal' : k));
+const flagsOf = (c) => ['splash', 'stun', 'slow', 'chain', 'pierce', 'ramp', 'healHit', 'spawn', 'chargeRun', 'kamikaze', 'jump']
+  .filter((k) => c[k]).map((k) => (k === 'healHit' ? 'heal' : k === 'chargeRun' ? 'charge' : k));
 const PACE = (c) => (c.faction === 'iron' && !c.ramp ? 1.4 : 1); // the iron cards swing slower and harder (data.js PACE)
 
 // ── 1. balance against the reference ──

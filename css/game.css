@@ -1304,3 +1304,20 @@ button:disabled { cursor: default; }
 .supbtn.ready .sicon { opacity: 1; filter: none; }
 .supbtn b, .supbtn small { position: relative; z-index: 1; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
 .supbtn b { margin-top: 22px; }
+/* the faction skill sits clear above the emote button (which rides on top of NEXT) */
+.supbtn { bottom: 34px; }
+/* the master card is the original 대체코어 (substitute core) item: blue for B/A, the gold special core for S/SS, the grade on a badge */
+#shop .shopit .mcard { width: 56px; height: 56px; }
+.shopit .mcard { width: 56px; height: 56px; position: relative; display: block; border-radius: 10px; background: url(../assets/ui/core_n.webp) center / cover no-repeat; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.shopit .mcard.sp, .shopit.r3 .mcard.sp { background: url(../assets/ui/core_s.webp) center / cover no-repeat; }
+.shopit .mcard b { position: absolute; right: -4px; bottom: -4px; min-width: 22px; padding: 1px 4px; border-radius: 6px; background: #0b0f14; border: 1.5px solid currentColor; font: 900 italic 12px var(--en-font, sans-serif); line-height: 1.2; text-align: center; }
+/* the substitute core: a list of the grade's owned characters, the copies it would add under each */
+.coredlg { width: min(94%, 400px); padding: 16px 12px; }
+.coredlg p { font-size: 12px; color: var(--dim); margin: 4px 0 10px; }
+.corelist { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 52vh; overflow-y: auto; padding: 2px; }
+.corec { position: relative; padding: 0; background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.corec .card { width: 100%; }
+.corec em { font-style: normal; font-weight: 900; font-size: 12px; color: #7fffa0; }
+.corec.full { opacity: .45; }
+.corec.full em { color: var(--dim); }
+.corec b { font-size: 11px; color: #e6eef8; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

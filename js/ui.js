@@ -30,7 +30,8 @@
     if (typeof s.cards !== 'object' || !s.cards) s.cards = {};
     // the iron copies of the spells (i_<id>) were merged into one set: their copies join the spell, decks use the spell
     for (const k of Object.keys(s.cards)) { const m = /^i_(.+)$/.exec(k); if (!m || CARD[k] || !CARD[m[1]]) continue; const o = s.cards[k]; if (o) { const t = s.cards[m[1]] || (s.cards[m[1]] = { lv: o.lv, n: 0 }); t.n = (t.n | 0) + (o.n | 0); t.lv = Math.max(t.lv | 0, o.lv | 0); } delete s.cards[k]; }
-    const fixDeck = (d) => { if (!Array.isArray(d)) return d; const out = []; d.forEach((id) => { const m = /^i_(.+)$/.exec(id), j = m && !CARD[id] && CARD[m[1]] ? m[1] : id; if (!out.includes(j)) out.push(j); }); return out; };
+    for (const k of Object.keys(s.cards)) if (!CARD[k]) delete s.cards[k]; // (a card taken out of the game)
+    const fixDeck = (d) => { if (!Array.isArray(d)) return d; const out = []; d.forEach((id) => { const m = /^i_(.+)$/.exec(id), j = m && !CARD[id] && CARD[m[1]] ? m[1] : id; if (CARD[j] && !out.includes(j)) out.push(j); }); /* a card taken out of the game leaves the deck: an owned card fills its place */ if (d.length === 8) for (const k of Object.keys(s.cards)) { if (out.length >= 8) break; if (CARD[k] && !CARD[k].skill && !out.includes(k)) out.push(k); } return out; };
     if (s.decks && typeof s.decks === 'object') for (const f of Object.keys(s.decks)) s.decks[f] = fixDeck(s.decks[f]);
     if (s.deckSlots && typeof s.deckSlots === 'object') for (const f of Object.keys(s.deckSlots)) if (Array.isArray(s.deckSlots[f])) s.deckSlots[f] = s.deckSlots[f].map(fixDeck);
     s.road = Number.isFinite(+s.road) ? Math.max(0, +s.road) : 0;
@@ -39,7 +40,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.61'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.68'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -287,7 +288,30 @@
   function renderShop() {
     $('shopGold').textContent = save.gold; $('shopTuna').textContent = save.tuna;
     $('shopCrates').innerHTML = DATA.SHOP.crates.map((it, i) => { const ch = DATA.CHESTS.find((x) => x.key === it.key); return `<button class="shopit" data-buy="crate:${i}"><i class="chest-i ${it.key}"></i><b>${esc(ch.name)}</b><small>카드 ${ch.cards}장</small><em><i class="gold-i"></i>${it.price}</em></button>`; }).join('');
-    $('shopMasters').innerHTML = DATA.SHOP.masters.map((it, i) => `<button class="shopit master r${it.r}" data-buy="master:${i}"><span class="mcard"><b>${RARITY[it.r].name}</b><small>MASTER</small></span><b>${RARITY[it.r].name} 마스터 x${it.n}</b><small>보유 ${save.master[it.r]}</small><em><i class="tuna-i"></i>${it.price}</em></button>`).join('');
+    $('shopMasters').innerHTML = DATA.SHOP.masters.map((it, i) => `<button class="shopit master r${it.r}" data-buy="master:${i}"><span class="mcard ${it.r >= 2 ? 'sp' : ''}"><b>${RARITY[it.r].name}</b></span><b>${RARITY[it.r].name} 대체코어 x${it.n}</b><small>보유 ${save.master[it.r]}</small><em><i class="tuna-i"></i>${it.price}</em></button>`).join('');
+  }
+  // a substitute core: pick one of the owned cards of its grade; the copies land on it and the tuna is paid
+  function openCorePick(i) {
+    const it = DATA.SHOP.masters[i], ov = $('coreOv');
+    $('coreTitle').textContent = `${RARITY[it.r].name} 대체코어 x${it.n}`;
+    $('coreSub').innerHTML = `적용할 캐릭터를 고르세요 · <i class="tuna-i"></i>${it.price}`;
+    const list = $('coreList'); list.innerHTML = '';
+    const cards = DATA.CARDS.filter((c) => c.rarity === it.r && save.cards[c.id]).sort((a, b) => copiesLeft(b) - copiesLeft(a) || a.cost - b.cost);
+    cards.forEach((c) => {
+      const left = copiesLeft(c), add = Math.min(it.n, left), w = document.createElement('button');
+      w.className = 'corec' + (add ? '' : ' full');
+      w.appendChild(cardEl(c, 'mini', { lv: levelOf(c.id) }));
+      w.insertAdjacentHTML('beforeend', `<b>${esc(c.name)}</b><em>${add ? '카드 +' + add : '최대'}</em>`);
+      w.onclick = () => {
+        if (!add) { toast('더 모을 카드가 없는 캐릭터입니다'); SFX.play('fail', 0.4); return; }
+        if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
+        save.tuna -= it.price; save.cards[c.id].n += add; persist(); SFX.play('pickSS', 0.6);
+        toast(`${c.name} 카드 +${add} · 참치 -${it.price}`); ov.hidden = true; renderShop();
+      };
+      list.appendChild(w);
+    });
+    if (!cards.length) list.innerHTML = '<p class="hint">이 등급의 캐릭터가 없습니다</p>';
+    ov.hidden = false;
   }
   function copiesLeft(c) {
     const o = save.cards[c.id]; if (!o) return 0;
@@ -423,7 +447,7 @@
         act += `<button class="btn ${canUpgrade(c) ? 'g' : 'd'} sm" id="btnUp" ${canUpgrade(c) ? '' : 'disabled'}>강화 Lv.${lv + 1} · 카드 ${o.n}/${k.n} · <i class="gold-i"></i>${k.gold}</button>`;
       } else act += '<span class="hint">최대 레벨</span>';
       const left = copiesLeft(c), ms = save.master[c.rarity] || 0;
-      if (ms > 0 && left > 0) act += ` <button class="btn g sm" id="btnMaster">${RARITY[c.rarity].name} 마스터 카드 사용 +${Math.min(ms, left)} <small>(보유 ${ms})</small></button>`;
+      if (ms > 0 && left > 0) act += ` <button class="btn g sm" id="btnMaster">${RARITY[c.rarity].name} 대체코어 사용 +${Math.min(ms, left)} <small>(보유 ${ms})</small></button>`;
       act += inDeck ? ' <button class="btn d sm out" id="btnOut">덱에서 빼기</button>' : ` <button class="btn y sm" id="btnUse">${slotSel != null && slotSel >= 0 && slotSel < deck.length ? '이 카드로 교체' : '덱에 넣기'}</button>`;
     }
     const skill = c.skill ? `<div class="heronote">영웅: 덱에 1장만, 전장에는 1기만 나옵니다 (나와 있는 동안 카드가 손에 들어오지 않음)</div><div class="skillinfo"><b>영웅 스킬 · ${esc(c.skill.name)}</b> <span class="cost-s">${c.skill.cost}</span><br>${esc(c.skill.desc)} (재사용 ${c.skill.cd}초${c.skill.dmg ? ' · 피해 ' + Math.round(c.skill.dmg * m) : ''}${c.skill.radius ? ' · 반경 ' + c.skill.radius : ''}${c.skill.reach ? ' · 사거리 ' + c.skill.reach : ''})</div>` : '';
@@ -830,7 +854,7 @@
       const rl = GAME.G.sides && GAME.G.sides.red.lvl;
       $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? (opts.mut || DATA.mutatorOf()).name : BAL.modes[opts.mode].name}`;
       $('vsArena').textContent = ARENAS[opts.arena].name;
-      const hs = GAME.G.hints || []; $('vsHint').textContent = hs.length ? '정보: 상대가 ' + hs[0] : ''; $('vsHint').hidden = !hs.length;
+      $('vsHint').hidden = true; // (no hint about the opponent's deck on the matching screen)
       const mr = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null; // today's rule, explained before the fight
       $('vsRule').hidden = !mr; if (mr) $('vsRule').innerHTML = `<b>오늘의 작전 · ${esc(mr.name)}</b>${esc(mr.desc)}`;
       el.style.backgroundImage = `radial-gradient(ellipse at center, rgba(12,18,28,.55), rgba(5,7,10,.95) 75%), url(${ARENAS[opts.arena].bg})`;
@@ -1188,10 +1212,11 @@
       } else {
         const it = DATA.SHOP.masters[+i];
         if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
-        save.tuna -= it.price; save.master[it.r] += it.n; persist(); SFX.play('purchase', 0.6); toast(`${RARITY[it.r].name} 마스터 카드 +${it.n}`);
+        SFX.play('click'); openCorePick(+i); return; // (a core goes onto a card picked from the list: the tuna is paid then)
       }
       renderShop();
     });
+    $('coreOv').addEventListener('click', (e) => { if (e.target.id === 'coreOv' || e.target.id === 'btnCoreClose') $('coreOv').hidden = true; });
     $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; if (save.collSort === b.dataset.s) save.collDesc = !save.collDesc; else { save.collSort = b.dataset.s; save.collDesc = false; } persist(); SFX.play('click'); renderDeck(); });
     $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') closeCard(); }); // a tap outside the popup closes it
     $('deckTabs').addEventListener('click', (e) => {

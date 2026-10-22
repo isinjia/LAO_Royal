@@ -23,7 +23,7 @@ TROOPS = {
     "impet": "MegaMinion", "raven": "BabyDragon", "harpy": "ElectroDragon", "banshee": "Minions", "sylphid": "Bats",
     "undine": "DartBarrell", "nymph": "Firecracker", "zero": "MiniPekka", "thetis": "MinionHorde",
     "mercury": "SkeletonDragons", "leona": "Witch", "azazel": "BattleHealer", "hela": "ElectroWizard",
-    "empress": "ArcherQueen", "sleipnir": "GoldenKnight", "labiata": "MegaKnight", "titania": "Phoenix",
+    "empress": "ArcherQueen", "labiata": "MegaKnight", "titania": "Phoenix",
     "tiamat": "Balloon", "constantia": "EliteArcher", "fafnir": "ElectroGiant", "ramiel": "InfernoDragon",
     # iron
     "nightchick": "Goblins", "drone": "MiniSparkys", "legion": "IceWizard", "phalangites": "Knight",
