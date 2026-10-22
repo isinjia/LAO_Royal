@@ -16,5 +16,59 @@
   "pt": "LAST WAR",
   "es": "LAST WAR",
   "ru": "LAST WAR"
+ },
+ "온라인 대전에서 상대 닉네임이 표시됩니다": {
+  "ja": "オンライン対戦で相手のニックネームが表示されます",
+  "en": "Online battles now show the opponent's nickname",
+  "zh-Hans": "在线对战中会显示对手的昵称",
+  "zh-Hant": "線上對戰中會顯示對手的暱稱",
+  "pt": "Nas batalhas online, o apelido do oponente é exibido",
+  "es": "En las batallas en línea se muestra el apodo del rival",
+  "ru": "В онлайн-боях отображается ник соперника"
+ },
+ "상대의 연결이 끊기면 대기 안내와 남은 시간이 표시되고, 5초 안에 돌아오지 않으면 승리합니다": {
+  "ja": "相手の接続が切れると待機案内と残り時間が表示され、5秒以内に戻らなければ勝利します",
+  "en": "If the opponent disconnects, a waiting notice with the time left appears; if they don't return within 5 seconds, you win",
+  "zh-Hans": "对手断开连接时会显示等待提示和剩余时间，5秒内未返回则你获胜",
+  "zh-Hant": "對手斷線時會顯示等待提示與剩餘時間，5秒內未返回則你獲勝",
+  "pt": "Se o oponente desconectar, aparece um aviso de espera com o tempo restante; se ele não voltar em 5 segundos, você vence",
+  "es": "Si el rival se desconecta, aparece un aviso de espera con el tiempo restante; si no vuelve en 5 segundos, ganas",
+  "ru": "Если соперник отключится, появится уведомление об ожидании с оставшимся временем; если он не вернётся за 5 секунд, вы победите"
+ },
+ "경기 중 연결이 3번 끊기면 끊긴 쪽이 패배합니다": {
+  "ja": "試合中に接続が3回切れると、切れた側の敗北になります",
+  "en": "A player who disconnects 3 times in a match loses",
+  "zh-Hans": "比赛中断线3次的一方判负",
+  "zh-Hant": "比賽中斷線3次的一方判負",
+  "pt": "Quem se desconectar 3 vezes na partida perde",
+  "es": "Quien se desconecte 3 veces en la partida pierde",
+  "ru": "Игрок, отключившийся 3 раза за бой, проигрывает"
+ },
+ "홈 버튼으로 나갔다 돌아오면 양쪽 모두 승리하던 문제를 고쳤습니다": {
+  "ja": "ホームボタンで抜けて戻ると両方が勝利になる問題を修正しました",
+  "en": "Fixed both players winning when one left with the home button and came back",
+  "zh-Hans": "修复了按主页键离开后返回时双方都获胜的问题",
+  "zh-Hant": "修正了按主畫面鍵離開後返回時雙方都獲勝的問題",
+  "pt": "Corrigido: os dois jogadores venciam quando um saía pelo botão de início e voltava",
+  "es": "Corregido: ambos jugadores ganaban cuando uno salía con el botón de inicio y volvía",
+  "ru": "Исправлено: оба игрока побеждали, если один выходил кнопкой «Домой» и возвращался"
+ },
+ "한 번 만난 상대와는 5분 동안 다시 매칭되지 않습니다": {
+  "ja": "一度対戦した相手とは5分間再マッチングされません",
+  "en": "You won't be matched with the same opponent again for 5 minutes",
+  "zh-Hans": "遇到过的对手5分钟内不会再次匹配",
+  "zh-Hant": "遇過的對手5分鐘內不會再次配對",
+  "pt": "Você não será pareado com o mesmo oponente por 5 minutos",
+  "es": "No te emparejarán con el mismo rival durante 5 minutos",
+  "ru": "С тем же соперником повторный подбор невозможен в течение 5 минут"
+ },
+ "매칭 중 취소 버튼을 없앴습니다": {
+  "ja": "マッチング中のキャンセルボタンを削除しました",
+  "en": "Removed the cancel button while matching",
+  "zh-Hans": "移除了匹配中的取消按钮",
+  "zh-Hant": "移除了配對中的取消按鈕",
+  "pt": "Removido o botão de cancelar durante a busca de partida",
+  "es": "Se eliminó el botón de cancelar durante el emparejamiento",
+  "ru": "Убрана кнопка отмены во время подбора"
  }
 }
