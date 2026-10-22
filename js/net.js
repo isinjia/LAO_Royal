@@ -11,10 +11,12 @@
   let lib = null;
   async function load() { if (!lib) lib = await import(LIB); return lib; }
 
-  // find(profile, ms) -> { guest, seed, foe, send(msg), listen(fn), close() } | null; cancel() stops a search
+  // find(profile, ms, blocked) -> { guest, seed, foe, send(msg), listen(fn), close() } | null; cancel() stops a search
+  // blocked(their profile): true for a player this one met lately (never invited, never accepted)
   let cancelFn = null, active = null; // active: the lobby this page is in (left before a new search)
   const leaveActive = () => { if (active) { try { active.leave(); } catch (e) { /* gone */ } active = null; } };
-  function find(profile, ms) {
+  function find(profile, ms, blocked) {
+    const no = (p) => !!(blocked && blocked(p));
     return new Promise((resolve) => {
       let done = false, room = null, engaged = null, seed = 0, foe = null, inviteT = null;
       const finish = (v) => { if (done) return; done = true; clearTimeout(timer); clearTimeout(inviteT); cancelFn = null; if (!v && room) { if (active === room) active = null; try { room.leave(); } catch (e) { /* gone */ } } resolve(v); };
@@ -31,7 +33,7 @@
         room.onPeerJoin = (pid) => { if (!done) hello.send(me, { target: pid }); };
         // the lower id invites, so two waiting players never invite each other at once
         hello.onMessage = (them, { peerId }) => {
-          if (done || engaged || !them || them.v !== PROTO) return;
+          if (done || engaged || !them || them.v !== PROTO || no(them)) return;
           if (L.selfId < peerId) {
             engaged = peerId; foe = them; seed = (Math.random() * 2147483647) | 0;
             invite.send({ seed, p: me }, { target: peerId });
@@ -39,11 +41,11 @@
           }
         };
         invite.onMessage = (m, { peerId }) => {
-          if (done || (engaged && engaged !== peerId) || !m || !m.p || m.p.v !== PROTO) return;
+          if (done || (engaged && engaged !== peerId) || !m || !m.p || m.p.v !== PROTO || no(m.p)) return;
           engaged = peerId; accept.send({ p: me }, { target: peerId });
           link(true, m.seed, m.p, peerId);
         };
-        accept.onMessage = (m, { peerId }) => { if (!done && engaged === peerId && m && m.p) link(false, seed, m.p, peerId); };
+        accept.onMessage = (m, { peerId }) => { if (done || engaged !== peerId || !m || !m.p) return; if (no(m.p)) { engaged = null; return; } link(false, seed, m.p, peerId); };
         // matched: a private line to the opponent (messages queue until the match is ready to hear them)
         function link(guest, sd, p, peerId) {
           let fn = null; const early = [];

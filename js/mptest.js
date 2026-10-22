@@ -14,7 +14,8 @@
   const held = []; let deliver = () => {}, wasFrozen = false;
   window.NET = {
     cancel() {},
-    find(profile) {
+    find(profile, ms, blocked) {
+      const no = (p) => !!(blocked && blocked(p)); out.blockedSeen = 0;
       return new Promise((resolve) => {
         let fn = null; const early = [];
         deliver = () => { while (held.length && fn) fn(held.shift()); };
@@ -22,6 +23,7 @@
         bc.onmessage = (ev) => {
           const d = ev.data;
           if (d.k === 'g' && d.from !== host) { if (out.freeze || held.length) { held.push(d.m); return; } if (fn) fn(d.m); else early.push(d.m); } // (a frozen tab hears nothing until it is back, like a phone with the app down)
+          if ((d.k === 'hello' || d.k === 'ok') && no(d.p)) { out.blockedSeen++; return; } // (met lately: passed over, as on the relays)
           if (!host && d.k === 'hello') { bc.postMessage({ k: 'ok', p: profile }); link(d.p, d.seed); }
           if (host && d.k === 'ok') { clearInterval(t); link(d.p, 12345); }
         };
@@ -42,6 +44,7 @@
     for (let i = 0; i < 300 && !(window.GAME && GAME.ready && window.UI); i++) await wait(100);
     await wait(800);
     const nq = /[?&]nick=([^&]+)/.exec(location.search);
+    const pq = /[?&]pid=([a-z0-9]{12})/.exec(location.search); if (pq) UI.save.pid = pq[1]; // (pid=: two tabs of one browser stand in for two devices)
     Object.assign(UI.save, { mode: 0, tutorial: true, nick: nq ? decodeURIComponent(nq[1]) : UI.save.nick || '점검' }); // (nick=: each tab its own name)
     const ov = document.getElementById('nickOv'); if (ov) ov.hidden = true;
     const G = GAME.G;
