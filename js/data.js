@@ -42,7 +42,6 @@
     T('mercury', { rig: 'mercury', img: 'c_ST_Mercury_N', cr: '해골 드래곤', name: '머큐리', cost: 4, rarity: 2, arena: 1, air: true, hp: 512, dmg: 146, rate: 1.9, range: 3.5, splash: 0.8, count: 2, speed: SPD.fast, radius: 0.5, mass: 6, fx: 'bullet', color: 0x7dffb0, sfx: 'gun', desc: '드론 허브 페타소스로 공중·지상을 범위 공격하는 비행 지원기 2기.' }), // (original: flying controller, drone hub Petasos)
     T('leona', { rig: 'leona', img: 'c_BR_Leona_N', cr: '마녀', name: '레오나', cost: 5, rarity: 2, arena: 2, hp: 765, dmg: 122, rate: 1.1, range: 5.5, splash: 1.0, spawn: { card: 'brownie', every: 7, n: 2 }, speed: SPD.mid, radius: 0.5, mass: 6, fx: 'bullet', color: 0xff9ad5, sfx: 'handgun', desc: '지휘 프레임을 두른 지휘관. P86G 권총으로 주변까지 쏘며 7초마다 브라우니 2기를 불러냅니다.' }), // (original: commander supporter, P86G pistol)
     T('azazel', { rig: 'azazel', img: 'c_DS_Azazel_N', cr: '배틀 힐러', name: '아자젤', cost: 4, rarity: 2, arena: 2, air: true, hp: 1563, dmg: 135, rate: 1.5, range: 1.6, healHit: { r: 4, amt: 70 }, speed: SPD.mid, fx: 'claw', color: 0xffe9a0, sfx: 'energy', desc: '하늘을 나는 수호 천사. 가까이 붙어 싸우며, 공격할 때마다 주변 아군을 회복시킵니다.' }), // (original: flying defender, Holy Light; Clash Royale's Battle Healer: heals around it on every hit)
-    T('phoenix', { rig: 'phoenix', img: 'c_BR_Phoenix_N', cr: '박격포', name: '피닉스', cost: 5, rarity: 2, arena: 2, air: true, hp: 909, dmg: 242, rate: 5.0, range: 11.5, hits: 'ground', splash: 1.6, speed: SPD.slow, radius: 0.55, mass: 6, fx: 'grenade', color: 0xff8a3d, sfx: 'cannon', desc: '비행 포병. M87 105mm 곡사포로 멀리서 지상을 포격합니다. 공중은 못 맞힙니다.' }), // (original: flying artillery, M87 105mm howitzer)
     T('hela', { rig: 'hela', img: 'c_BR_Hela_N', cr: '일렉트로 마법사', name: '헬라', cost: 4, rarity: 2, arena: 2, hp: 649, dmg: 200, rate: 1.8, range: 5.0, stun: 0.5, speed: SPD.fast, radius: 0.5, mass: 6, fx: 'holy', color: 0xc77dff, sfx: 'energy', desc: '나노 입자 신호 증폭으로 폐기 부품을 형상화해 적을 붙잡습니다. 맞은 적은 잠시 멈춥니다.' }), // (original: supporter, neural signal amplifier staff)
     // ── SS (champions) ──
     T('empress', { rig: 'empress', img: 'c_PECS_Empress_N', cr: '아처 퀸', name: '엠프리스', cost: 5, rarity: 3, hp: 909, dmg: 205, rate: 1.2, range: 5.0, slow: 0.3, slowDur: 1, speed: SPD.mid, radius: 0.6, mass: 10, fx: 'frost', color: 0x9feaff, sfx: 'ice', k: 0.95, desc: '아이스 에이지 블래스터로 한 대상을 정확히 쏘아 얼려 붙잡는 펭귄 황제.',
@@ -115,6 +114,7 @@
   // Defensive ones pull "buildings only" attackers away from your towers; spawners keep producing troops.
   const B = (id, o) => Object.assign({ id, type: 'building', count: 1, arena: 0, r: 0.9 }, o);
   const BUILDINGS = [
+    B('phoenix', { faction: 'orca', rig: 'phoenix', img: 'c_BR_Phoenix_N', cr: '박격포', name: '피닉스', cost: 4, rarity: 2, arena: 2, hp: 1245, life: 30, dmg: 242, rate: 5.0, range: 11.5, minRange: 3.5, hits: 'ground', splash: 1.6, guard: { rig: 'phoenix', k: 1 }, fx: 'grenade', color: 0xff8a3d, sfx: 'cannon', desc: '30초 동안 자리를 지키는 포대. M87 105mm 곡사포로 멀리 있는 지상을 포격합니다. 가까이 붙은 적과 공중은 못 맞힙니다.' }), // (Mortar: a building, as in the original card; a moving one out-ranged the towers)
     B('turret', { faction: 'orca', cr: '테슬라', name: '그렘린 포탑', icon: 'turret', cost: 4, rarity: 1, hp: 1048, life: 30, dmg: 209, rate: 1.1, range: 5.5, hits: 'all', guard: { rig: 'leprechaun', k: 1.05 }, fx: 'bullet', color: 0xffe08a, sfx: 'mg', desc: '공중·지상을 모두 쏘는 방어 포탑 (30초). 건물만 노리는 적을 끌어당깁니다.' }),
     B('outpost', { faction: 'orca', cr: '고블린 오두막', name: '전진 기지', icon: 'outpost', cost: 5, rarity: 1, arena: 1, hp: 772, life: 29, spawn: { card: 'brownie', every: 10, n: 3 }, guard: { rig: 'brownie', k: 1 }, color: 0x7ad8ff, desc: '29초 동안 10초마다 브라우니 분대(3기)를 출격시킵니다.' }),
     B('barricade', { faction: 'orca', anyFaction: true, name: '방벽', icon: 'barricade', cost: 3, rarity: 0, hp: 1364, life: 40, wall: true, r: 1.15, color: 0x9fd0ff, desc: '튼튼한 방벽 (40초). 건물만 노리는 적을 붙잡고 지상 유닛의 길을 막습니다.' }),
@@ -330,6 +330,7 @@
   ];
   // patch notes shown in their own tab (newest first)
   const NOTES = [
+    { ver: 'V0.92', date: '2026.10.22', items: ['버그 수정'] },
     { ver: 'V0.91', date: '2026.10.22', items: ['버그 수정'] },
     { ver: 'V0.90', date: '2026.10.22', items: ['버그 수정'] },
     { ver: 'V0.89', date: '2026.10.22', items: ['버그 수정'] },

@@ -1981,7 +1981,7 @@
     const S = G.sides[side], m = LEVEL.mult(lvlOf(side, c)), hm = G.mut && G.mut.hp || 1;
     const b = {
       id: G.nextId++, kind: 'tower', type: 'bld', card: c, side, x, z, r: c.r, hp: c.hp * m * hm, max: c.hp * m * hm, air: false, alive: true, active: true,
-      atk: c.dmg ? { dmg: c.dmg * m, rate: c.rate, range: c.range, hits: c.hits, splash: 0, fx: c.fx, color: c.color, sfx: c.sfx } : null,
+      atk: c.dmg ? { dmg: c.dmg * m, rate: c.rate, range: c.range, minRange: c.minRange || 0, hits: c.hits, splash: c.splash || 0, fx: c.fx, color: c.color, sfx: c.sfx } : null,
       target: null, face: side === 'blue' ? 1 : -1, slowK: 1, slowT: 0, stunT: 0, freezeT: 0, hitT: 0, cd: 0, elev: TOWER_E.bld,
       spawnT: c.spawn ? 1.2 : 0, lv: lvlOf(side, c),
     };
@@ -2171,7 +2171,8 @@
     }
     if (!t.active || !t.atk) { if (t.sd) { if (t.sd.clipName !== 'atk') setClip(t, 'idle', t.active ? 1 : 0.5); t.sd.update(dt); } return; } // asleep king / spawner building
     const a = t.atk;
-    const inRange = (e) => e && e.alive && e.side !== t.side && e.kind === 'troop' && dist(t, e) - e.r <= a.range;
+    const gap = (e) => dist(t, e) - e.r - t.r; // edge to edge, as a troop measures its own reach (a troop's 6.5 no longer out-ranges a tower's 7.5)
+    const inRange = (e) => e && e.alive && e.side !== t.side && e.kind === 'troop' && canHit(a, e) && gap(e) <= a.range && gap(e) >= (a.minRange || 0);
     if (!inRange(t.target)) {
       t.target = null;
       let bd = Infinity;

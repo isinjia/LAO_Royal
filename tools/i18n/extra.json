@@ -223,5 +223,14 @@
   "pt": "Uma batalha online abandonada foi contada como derrota (Mérito {0})",
   "es": "Una batalla en línea abandonada se contó como derrota (Mérito {0})",
   "ru": "Незавершённый онлайн-бой засчитан как поражение (заслуги {0})"
+ },
+ "30초 동안 자리를 지키는 포대. M87 105mm 곡사포로 멀리 있는 지상을 포격합니다. 가까이 붙은 적과 공중은 못 맞힙니다.": {
+  "ja": "30秒間その場に陣取る砲台。M87 105mm榴弾砲で遠くの地上を砲撃します。近づいた敵と空中は狙えません。",
+  "en": "A battery that holds its spot for 30 seconds. Its M87 105mm howitzer shells ground targets far away. It cannot hit enemies up close or air units.",
+  "zh-Hans": "坚守原地30秒的炮台。用M87 105mm榴弹炮炮击远处的地面目标。无法攻击贴近的敌人和空中单位。",
+  "zh-Hant": "堅守原地30秒的砲台。用M87 105mm榴彈砲砲擊遠處的地面目標。無法攻擊貼近的敵人與空中單位。",
+  "pt": "Uma bateria que fica no lugar por 30 segundos. Seu obuseiro M87 105mm bombardeia alvos terrestres distantes. Não atinge inimigos próximos nem aéreos.",
+  "es": "Una batería que se mantiene en su sitio 30 segundos. Su obús M87 de 105 mm bombardea objetivos terrestres lejanos. No alcanza enemigos cercanos ni aéreos.",
+  "ru": "Батарея, удерживающая позицию 30 секунд. Гаубица M87 105 мм обстреливает далёкие наземные цели. Не достаёт врагов вблизи и воздушные цели."
  }
 }
