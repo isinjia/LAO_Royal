@@ -4,6 +4,7 @@
 (function () {
   if (!/[?&]mptest=1(&|$)/.test(location.search)) return;
   const host = /[?&]host=1(&|$)/.test(location.search);
+  try { Object.defineProperty(document, 'hidden', { get: () => false }); } catch (e) { /* kept */ } // (the test tabs sit behind the app: they count as on screen, like a phone in the player's hand)
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const out = { host, started: false, done: false, plays: 0, drift: null, errors: [], result: null, freeze: false }; // freeze: this tab stops as if it were switched off (for the disconnect check)
   window.MPT = out;

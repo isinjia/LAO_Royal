@@ -2335,7 +2335,7 @@
   // bottom, so the opponent's inputs arrive mirrored. An input runs MP_DELAY ticks after it was made, on both devices, and
   // a device only steps a tick once the other side has said it has nothing more for it. The host (the side that invited)
   // sends a correction of every unit's health and position twice a second and decides how the match ends.
-  const MP_DELAY = 6, MP_DIGEST = 12, MP_STALL = 5000; // (the host's full state goes out five times a second)
+  const MP_DELAY = 6, MP_DIGEST = 12, MP_STALL = 5000, MP_DROP = 1500, MP_DROPS = 3; // (a drop: 1.5 s of silence; three drops lose the match, however short) // (the host's full state goes out five times a second)
   function mpSetup(opts) {
     srng = Math.random; mp = null;
     if (!opts.online) return;
@@ -2382,6 +2382,13 @@
     G.sides.blue.crowns = Math.max(G.sides.blue.crowns, 3); UI.crowns();
     endMatch('blue', why || 'disconnect');
   }
+  // the other device went quiet (counted only while this one is on screen and online: then the silence is theirs)
+  function mpFoeDrop() {
+    if (!mp || G.phase !== 'play' || document.hidden || navigator.onLine === false) return;
+    mp.foeDrops = (mp.foeDrops || 0) + 1;
+    if (mp.foeDrops >= MP_DROPS) { mpAbandon(); return; }
+    UI.toast(`상대 연결 끊김 ${mp.foeDrops}/${MP_DROPS} · 5초 안에 돌아오지 않거나 ${MP_DROPS}번 끊기면 승리합니다`);
+  }
   // this device was the one away (its screen off for more than 5 s, its network down, or the other side said so): it loses
   function mpSelfLose() {
     if (!mp || G.phase !== 'play') return;
@@ -2392,7 +2399,12 @@
   document.addEventListener('visibilitychange', () => {
     if (!mp || mp.done) return;
     if (document.hidden) mp.awayAt = performance.now();
-    else if (mp.awayAt != null) { const away = performance.now() - mp.awayAt; mp.awayAt = null; if (away > MP_STALL) mpSelfLose(); }
+    else if (mp.awayAt != null) {
+      const away = performance.now() - mp.awayAt; mp.awayAt = null;
+      if (away > MP_DROP) mp.myDrops = (mp.myDrops || 0) + 1; // (the other device counts the same silence)
+      if (away > MP_STALL || mp.myDrops >= MP_DROPS) mpSelfLose();
+      else if (away > MP_DROP && G.phase === 'play') UI.toast(`연결 끊김 ${mp.myDrops}/${MP_DROPS} · ${MP_DROPS}번 끊기면 패배합니다`);
+    }
   });
 
   // run this tick's inputs, the host's first on both devices
@@ -3545,7 +3557,7 @@
         let n = 0;
         while (acc >= DT && n < 6) {
           if (mp && !mp.done) {
-            if (mp.upTo < mp.tick) { acc = Math.min(acc, DT); const quiet = performance.now() - mp.lastRecv; if (quiet > (mp.heard ? MP_STALL : 30000)) { if (navigator.onLine === false) mpSelfLose(); else mpAbandon(); } else if (mp.heard && quiet > 1500 && !mp.warned) { mp.warned = true; UI.toast('상대의 응답을 기다리는 중입니다. 5초 안에 돌아오지 않으면 승리합니다'); } break; } // waiting for the other device (longer before its first word: it may still be loading)
+            if (mp.upTo < mp.tick) { acc = Math.min(acc, DT); const quiet = performance.now() - mp.lastRecv; if (quiet > (mp.heard ? MP_STALL : 30000)) { if (navigator.onLine === false) mpSelfLose(); else mpAbandon(); } else if (mp.heard && quiet > MP_DROP && !mp.warned) { mp.warned = true; mpFoeDrop(); } break; } // waiting for the other device (longer before its first word: it may still be loading)
             mpRun(mp.tick);
           }
           step(DT);
