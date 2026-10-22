@@ -7,11 +7,14 @@
   // ── save ──────────────────────────────────────────────
   const save = (() => {
     let s = {};
+    const fresh = !localStorage.getItem(KEY) && !localStorage.getItem('lastroyal.v1'); // (a commander starting now)
     try { s = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem('lastroyal.v1') || '{}') || {}; } catch (e) { s = {}; }
-    const d = { trophy: 0, best: 0, gold: 100, wins: 0, losses: 0, draws: 0, faction: 'orca', diff: 1, mode: 0, decks: {}, cards: {},
+    const d = { trophy: 0, best: 0, gold: 1000, wins: 0, losses: 0, draws: 0, faction: 'orca', diff: 1, mode: 0, decks: {}, cards: {},
       music: 1, sfx: 1, quality: null, autoQuality: true, muted: false, tutorial: false, streak: 0 };
     s = Object.assign(d, typeof s === 'object' ? s : {});
     if (s.tuna == null) s.tuna = DATA.SHOP.tunaStart; // (tuna: the second currency, for master cards)
+    if (typeof s.mail !== 'object' || !s.mail || Array.isArray(s.mail)) s.mail = {}; // mail ids taken
+    if (fresh) DATA.MAIL.forEach((m) => { if (m.oldOnly) s.mail[m.id] = 1; }); // (patch mail for older accounts: a new one already has it)
     s.master = [0, 1, 2, 3].map((r) => Math.max(0, Math.floor(+(Array.isArray(s.master) ? s.master[r] : 0) || 0)));
     ['trophy', 'best', 'gold', 'tuna', 'wins', 'losses', 'draws', 'streak', 'opDay', 'opStreak'].forEach((k) => { s[k] = Math.max(0, Math.floor(+s[k] || 0)); });
     if (!FACTIONS[s.faction]) s.faction = 'orca';
@@ -40,7 +43,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.69'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.78'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -110,6 +113,7 @@
   const claimable = () => (save.missions || []).filter((m) => m.prog >= MDEF[m.k].goal).length;
   function renderMissions() {
     ensureMissions();
+    { const n = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0)).length, e = $('rBadge'); e.textContent = n; e.hidden = !n; } // (road rewards waiting, on its tab)
     $('missionList').innerHTML = save.missions.map((m, i) => {
       const d = MDEF[m.k], ok = m.prog >= d.goal;
       return `<div class="ms${ok ? ' ok' : ''}"><div class="mt"><b>${esc(d.name)}</b><small>${m.prog.toLocaleString()} / ${d.goal.toLocaleString()}</small><div class="mbar"><i style="width:${Math.min(100, m.prog / d.goal * 100)}%"></i></div></div>
@@ -235,8 +239,8 @@
 
   // ── screens ───────────────────────────────────────────
   function show(id) {
-    ['title', 'deck', 'shop', 'missions', 'road', 'battle'].forEach((s) => $(s).classList.toggle('on', s === id));
-    if (id !== 'battle') { const tb = document.querySelector('.tabbar'); $(id).appendChild(tb); tb.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (['deck', 'shop', 'missions', 'road'].includes(id) ? id : 'battle'))); }
+    ['title', 'deck', 'shop', 'missions', 'notes', 'battle'].forEach((s) => $(s).classList.toggle('on', s === id));
+    if (id !== 'battle') { const tb = document.querySelector('.tabbar'); $(id).appendChild(tb); tb.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === (['deck', 'shop', 'missions', 'notes'].includes(id) ? id : 'battle'))); }
     if (id === 'battle') requestAnimationFrame(() => GAME.resize(true));
   }
 
@@ -244,14 +248,14 @@
     syncCollection();
     const a = arena(), A = ARENAS[a], nx = ARENAS[a + 1];
     $('trophy').textContent = save.trophy;
-    $('gold').textContent = save.gold;
+    $('gold').textContent = save.gold; renderMailBadge();
     $('record').textContent = `${save.wins}승 ${save.losses}패`;
-    $('arenaName').textContent = `ARENA ${a + 1}`; // (the emblem below names it)
+    $('arenaName').textContent = `전장 ${a + 1}`; // (the emblem below names it)
     document.querySelector('.arena-box').style.backgroundImage = `linear-gradient(180deg, rgba(10,14,20,.15) 40%, rgba(10,14,20,.88)), url(${A.bg})`;
     const f0 = A.trophy, f1 = nx ? nx.trophy : A.trophy + 1;
     $('arenaBar').style.width = (nx ? Math.min(100, (save.trophy - f0) / (f1 - f0) * 100) : 100) + '%';
     $('arenaEmb').innerHTML = `<b>${a + 1}</b><span>${esc(A.name)}</span>`; // the arena's emblem in the middle of its picture
-    $('arenaNext').innerHTML = nx ? `<span>${save.trophy} / ${nx.trophy}</span><span>다음: ${esc(nx.name)}</span>` : '<span>최고 아레나 도달!</span>';
+    $('arenaNext').innerHTML = nx ? `<span>${save.trophy} / ${nx.trophy}</span><span>다음: ${esc(nx.name)}</span>` : '<span>최고 전장 도달!</span>';
     // the deck this commander takes into battle, as a strip on the arena picture
     $('arenaDeck').innerHTML = save.decks[save.faction].map((id) => CARD[id] ? `<i class="r${CARD[id].rarity}" style="background-image:url(${art(CARD[id])})"><b>${CARD[id].cost}</b></i>` : '').join('');
     const nextCards = []; // (every card is already open: nothing to preview)
@@ -273,7 +277,7 @@
     // trophy road: rewards reached but not claimed yet
     const road = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
     $('roadBtn').hidden = !road.length;
-    $('roadBtn').textContent = `★ 트로피 로드 보상 ${road.length}개 받기`;
+    $('roadBtn').textContent = `★ 전공 보상 ${road.length}개 받기`;
     const nextR = DATA.ROAD.find((r) => r.trophy > save.trophy);
     $('roadNext').textContent = nextR ? `다음 보상 ${nextR.trophy}: ${nextR.chest ? CH[nextR.chest].name : '부품 ' + nextR.gold}` : '';
     if (save.pendingReveal != null) setTimeout(() => { if ($('title').classList.contains('on')) revealArena(); }, 300);
@@ -300,8 +304,8 @@
     cards.forEach((c) => {
       const left = copiesLeft(c), add = Math.min(it.n, left), w = document.createElement('button');
       w.className = 'corec' + (add ? '' : ' full');
-      w.appendChild(cardEl(c, 'mini', { lv: levelOf(c.id) }));
-      w.insertAdjacentHTML('beforeend', `<b>${esc(c.name)}</b><em>${add ? '카드 +' + add : '최대'}</em>`);
+      w.appendChild(cardEl(c, 'mini', { lv: levelOf(c.id), tile: true })); // (the card tab's tile: the copies bar under it)
+      w.insertAdjacentHTML('beforeend', `<b>${esc(c.name)}</b>`);
       w.onclick = () => {
         if (!add) { toast('더 모을 카드가 없는 캐릭터입니다'); SFX.play('fail', 0.4); return; }
         if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
@@ -312,6 +316,31 @@
     });
     if (!cards.length) list.innerHTML = '<p class="hint">이 등급의 캐릭터가 없습니다</p>';
     ov.hidden = false;
+  }
+  // the mailbox: patch mail with parts / tuna, taken one by one or all at once
+  const mailOpen = () => DATA.MAIL.filter((m) => !save.mail[m.id]);
+  function renderMailBadge() { const n = mailOpen().length, b = $('mailBadge'); b.textContent = n; b.hidden = !n; }
+  function takeMail(list) {
+    let g = 0, t = 0;
+    list.forEach((m) => { save.mail[m.id] = 1; g += m.gold || 0; t += m.tuna || 0; });
+    save.gold += g; save.tuna += t; persist(); SFX.play('coin', 0.6);
+    toast([g && `부품 +${g}`, t && `참치 +${t}`].filter(Boolean).join(' · ') || '받았습니다');
+    renderMail(); renderTitle();
+  }
+  function renderMail() {
+    const all = DATA.MAIL.slice().reverse(), open = mailOpen();
+    $('mailList').innerHTML = all.length ? all.map((m) => {
+      const got = !!save.mail[m.id];
+      const gift = [m.gold && `<span><i class="gold-i"></i>${m.gold}</span>`, m.tuna && `<span><i class="tuna-i"></i>${m.tuna}</span>`].filter(Boolean).join('');
+      return `<div class="mail${got ? ' got' : ''}"><div class="mh"><b>${esc(m.title)}</b><small>${esc(m.date || '')}</small></div><p>${esc(m.body)}</p><div class="mf"><div class="gift">${gift}</div>${got ? '<em>받음</em>' : `<button class="btn y sm" data-mail="${m.id}">받기</button>`}</div></div>`;
+    }).join('') : '<p class="hint">받은 우편이 없습니다</p>';
+    $('btnMailAll').disabled = !open.length;
+    renderMailBadge();
+  }
+  function renderMissionsBadgeRoad() { const n = DATA.ROAD.filter((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0)).length, e = $('rBadge'); e.textContent = n; e.hidden = !n; }
+  // patch notes: what each version changed, newest first
+  function renderNotes() {
+    $('notesList').innerHTML = DATA.NOTES.map((n, i) => `<div class="pnote${i ? '' : ' new'}"><div class="ph"><b>${esc(n.ver)}</b><small>${esc(n.date)}</small></div><ul>${n.items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`).join('');
   }
   function copiesLeft(c) {
     const o = save.cards[c.id]; if (!o) return 0;
@@ -390,10 +419,12 @@
     $('collSort').innerHTML = Object.entries(CSORT).map(([k, n]) => `<button data-s="${k}" class="${save.collSort === k ? 'on' : ''}">${n}${save.collSort === k ? (save.collDesc ? ' ▼' : ' ▲') : ''}</button>`).join('');
     const col = $('collection');
     col.innerHTML = '';
-    const list = !picking ? [] : DATA.CARDS.filter((c) => !deck.includes(c.id)).sort(collOrder(save.collSort, f, !!save.collDesc)); // (cards in the deck above are not repeated here)
+    const list = !picking ? [] : DATA.CARDS.filter((c) => !deck.includes(c.id)).sort((a, b) => (!save.cards[a.id] - !save.cards[b.id]) || collOrder(save.collSort, f, !!save.collDesc)(a, b)); // (cards in the deck above are not repeated here; owned cards first, the sort button orders each part)
+    let gap = false;
     list.forEach((c) => {
       const o = save.cards[c.id];
       const locked = !unlocked(c) || !o;
+      if (locked && !gap) { gap = true; col.insertAdjacentHTML('beforeend', '<div class="collgap">미획득</div>'); } // (the cards not found yet, under the owned ones)
       const el = cardEl(c, (cardOpen && deckSel === c.id ? 'sel' : '') + (canUpgrade(c) ? ' upg' : ''), { lv: o && o.lv, locked, isNew: !locked && save.newCards && save.newCards[c.id], rank: true, tile: true });
       el.onclick = () => { deckSel = c.id; cardOpen = true; if (save.newCards && save.newCards[c.id]) { delete save.newCards[c.id]; persist(); } renderDeck(); };
       col.appendChild(el);
@@ -564,7 +595,7 @@
     b.hidden = sp.used;
     b.classList.toggle('ready', sp.ready);
     b.classList.toggle('iron', sp.faction === 'iron');
-    { const ic = b.querySelector('.sicon'), u = sp.icon && IMG[sp.icon]; if (ic && ic._u !== u) { ic._u = u; ic.style.backgroundImage = u ? `url(${u})` : ''; } } // the faction's support, as a character portrait
+    { const ic = b.querySelector('.sicon'), sk = sp.icon && sp.icon.startsWith('spell:') && CARD[sp.icon.slice(6)], u = sk ? art(sk) : sp.icon && IMG[sp.icon]; if (ic && ic._u !== u) { ic._u = u; ic.style.backgroundImage = u ? `url(${u})` : ''; ic.classList.toggle('fx', !!sk); } } // a summon: the character who comes; a heal / a gas: the effect's own icon (no face that would promise a unit)
     b.style.setProperty('--p', Math.round(sp.charge * 100) + '%');
     b.querySelector('small').textContent = sp.ready ? sp.name : ''; // charging: the ring says it (players don't reason in percent)
     b.title = `${sp.name}: ${sp.desc}`;
@@ -585,7 +616,7 @@
       $('timerLabel').textContent = G.overtime ? '연장전' : '남은 시간';
       $('timer').classList.toggle('hot', G.overtime || G.clock <= BAL.doubleAt);
       $('timer').classList.toggle('last', G.clock <= 10);
-      $('multTag').textContent = G.mult > 1 ? `에너지 x${G.mult}` : '';
+      $('multTag').textContent = G.mult > 1 ? `${G.mult}X 타임` : '';
       $('elixir').classList.toggle('x2', G.mult > 1);
       if (G.phase === 'play' && G.clock <= 10 && G.clock > 0 && t !== tick.lastBeep) { tick.lastBeep = t; if (!SFX.voice('ann:' + t, 0.9, 4)) SFX.play('click', 0.35); } // the announcer counts the last ten seconds
     }
@@ -778,7 +809,7 @@
     if (G.phase !== 'play' || G.paused) return; // the match ended or paused under the finger: nothing to say
     SFX.play('fail', 0.3);
     if (u.alive && u.skillCd > 0) SFX.voice('ann:notready', 0.8, 1);
-    toast(!u.alive ? '챔피언이 쓰러졌습니다' : u.stunT > 0 || u.freezeT > 0 ? '기절·빙결 중에는 스킬을 쓸 수 없습니다' : u.casting > 0 ? '스킬 시전 중입니다' : u.deployT > 0 ? '배치가 끝나면 쓸 수 있습니다'
+    toast(!u.alive ? '영웅이 쓰러졌습니다' : u.stunT > 0 || u.freezeT > 0 ? '기절·빙결 중에는 스킬을 쓸 수 없습니다' : u.casting > 0 ? '스킬 시전 중입니다' : u.deployT > 0 ? '배치가 끝나면 쓸 수 있습니다'
       : u.skillCd > 0 ? '스킬 재사용 대기 중' : '에너지가 부족합니다');
   }
   // where the aim would land: null when the pointer is off the field or back over the skill bar (= cancel)
@@ -849,7 +880,7 @@
       $('vsMe').style.backgroundImage = `url(${IMG[FACTIONS[opts.faction].banner]})`;
       $('vsFoe').style.backgroundImage = `url(${IMG[foe.img]})`;
       $('vsMeName').textContent = save.nick || '사령관';
-      $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 트로피 ${save.trophy}`;
+      $('vsMeSub').textContent = `${FACTIONS[opts.faction].name} · 전공 ${save.trophy}`;
       $('vsFoeName').textContent = foe.name;
       const rl = GAME.G.sides && GAME.G.sides.red.lvl;
       $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? (opts.mut || DATA.mutatorOf()).name : BAL.modes[opts.mode].name}`;
@@ -914,8 +945,8 @@
         let r = Math.random() * tot;
         chest = DATA.CHESTS.find((c) => (r -= c.weight) < 0) || DATA.CHESTS[0];
         save.chests.push({ k: chest.key, t0: null });
-      } else picks = rollCards(3);
-    } else if (crownsN > 0) picks = rollCards(1);
+      } // (a battle pays no card copies: those come from crates and spare cores)
+    }
     // a win opens one card the commander does not have yet
     let fresh = null;
     if (win) { const locked = DATA.CARDS.filter((c) => !save.cards[c.id]); if (locked.length) { fresh = locked[Math.floor(Math.random() * locked.length)]; save.cards[fresh.id] = { lv: LEVEL.min, n: 0 }; (save.newCards || (save.newCards = {}))[fresh.id] = 1; } }
@@ -963,7 +994,7 @@
     save.pendingReveal = null;
     persist();
     const A = ARENAS[a];
-    $('chestName').textContent = `ARENA ${a + 1} · ${A.name}`;
+    $('chestName').textContent = `전장 ${a + 1} · ${A.name}`;
     $('chestBox').className = 'bigbox arena';
     $('chestBox').style.backgroundImage = `url(${A.bg})`;
     const cards = []; // (every card is open from the start: a new arena is a new battlefield, not new cards)
@@ -977,8 +1008,7 @@
     $('chestBox').style.backgroundImage = '';
     const c = save.chests[i], d = CH[c.k];
     save.chests.splice(i, 1);
-    const gold = Math.round(d.gold[0] + Math.random() * (d.gold[1] - d.gold[0])) * (1 + arena() * 0.25) | 0;
-    save.gold += gold;
+    // (a crate holds cards only: one bought with parts paid nothing back in parts)
     const picks = rollCards(d.cards, 1.4, d.ss);
     persist();
     SFX.play('pickSS', 0.7);
@@ -986,8 +1016,8 @@
     $('chestName').textContent = d.name;
     $('chestBox').className = 'bigbox ' + c.k;
     const list = $('chestList');
-    list.innerHTML = `<div class="rw gold-rw"><i class="gold-i big"></i><b>+${gold}</b></div>` + picks.map(([cd, n]) => `<div class="rw"><span class="pf r${cd.rarity}" style="background-image:url(${art(cd)})"></span><b>${esc(cd.name)}</b><em>x${n}</em></div>`).join('');
-    list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.7 + k * 0.22) + 's'; setTimeout(() => SFX.play(k ? 'genB' : 'coin', 0.4), 700 + k * 220); });
+    list.innerHTML = picks.map(([cd, n]) => `<div class="rw"><span class="pf r${cd.rarity}" style="background-image:url(${art(cd)})"></span><b>${esc(cd.name)}</b><em>x${n}</em></div>`).join('');
+    list.querySelectorAll('.rw').forEach((x, k) => { x.style.animationDelay = (0.7 + k * 0.22) + 's'; setTimeout(() => SFX.play('genB', 0.4), 700 + k * 220); });
     ov.hidden = false;
     renderTitle();
   }
@@ -1012,7 +1042,7 @@
     const el = $('result');
     el.className = 'screen on ' + (win ? 'win' : draw ? 'draw' : 'lose');
     $('resTitle').textContent = win ? '승리!' : draw ? '무승부' : '패배';
-    const REASON = { king: '킹 타워 파괴', crowns: '크라운 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
+    const REASON = { king: '중앙 타워 파괴', crowns: '별 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복' };
     $('resReason').textContent = (practice ? '연습전 · ' : '') + (REASON[reason] || '');
     // the winning side's original cut-scene art behind the result
     const wf0 = (win || draw ? G.sides.blue : G.sides.red).faction, wf = WIN_ART[wf0] ? wf0 : wf0 === 'iron' ? 'iron' : 'orca'; // (Lemonade / the commander borrow the orca art)
@@ -1026,7 +1056,7 @@
       const run = (now) => { if (!el.isConnected) return; const f = Math.max(0, Math.min(1, (now - t0) / 700)); el.textContent = Math.round(a + (b - a) * f); if (f < 1) requestAnimationFrame(run); else { el.classList.add('done'); el.textContent = b; } };
       requestAnimationFrame(run); setTimeout(() => { if (el.isConnected) el.textContent = b; }, 1800); // (and lands there even without animation frames)
     }
-    if (practice) $('resTrophy').innerHTML = '<span class="prac">연습전 · 트로피와 보상 변동 없음</span>';
+    if (practice) $('resTrophy').innerHTML = '<span class="prac">연습전 · 전공과 보상 변동 없음</span>';
     const s = stats.blue;
     $('resStats').innerHTML = `<div><b>${Math.round(s.dmg).toLocaleString()}</b><small>입힌 피해</small></div><div><b>${s.kills}</b><small>처치</small></div><div><b>${s.spent}</b><small>사용 에너지</small></div><div><b>${s.wasted.toFixed(1)}</b><small>낭비 에너지</small></div>`;
     $('resStats').hidden = !s.cards && !s.dmg; // a match won before a single card was played has no stats to show
@@ -1049,7 +1079,7 @@
     const mDone = practice ? 0 : progressMissions(win, b, s, G.opts);
     const notes = [];
     if (a1 > a0) save.pendingReveal = a1;
-    if (a1 > a0) { notes.push(`<b>새 아레나 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => { SFX.play('rankUpSS', 0.6); SFX.voice('ann:stageclear', 1, 5); }, 900); }
+    if (a1 > a0) { notes.push(`<b>새 전장 해금!</b> ${esc(ARENAS[a1].name)} — 새 카드가 열렸습니다`); setTimeout(() => { SFX.play('rankUpSS', 0.6); SFX.voice('ann:stageclear', 1, 5); }, 900); }
     if (mDone) notes.push(`<b>임무 완료 ${mDone}개!</b> 메인 화면에서 보상을 받으세요`);
     if (win && !practice && save.streak >= 3) notes.push(`<b>${save.streak}연승 중!</b>`);
     // the day's first win pays a bonus (parts and a handful of cards)
@@ -1058,8 +1088,7 @@
       save.firstWin = today;
       const bg = 80 + arena() * 30;
       save.gold += bg;
-      const bp = rollCards(3, 1.5);
-      notes.push(`<b>오늘의 첫 승리 보너스!</b> 부품 +${bg} · ${bp.map(([c, n]) => `${esc(c.name)} x${n}`).join(', ')}`);
+      notes.push(`<b>오늘의 첫 승리 보너스!</b> 부품 +${bg}`);
       setTimeout(() => SFX.play('pickSS', 0.6), 1200);
     }
     // the daily operation: its first clear of the day pays a crate, and clearing on consecutive days grows the parts bonus
@@ -1088,6 +1117,7 @@
     $('setMusic').value = save.music;
     $('setSfx').value = save.sfx;
     $('setVoice').value = save.voice;
+    { const sl = $('setLang'); if (window.I18N) { sl.innerHTML = I18N.langs.map((c, i) => `<option value="${c}">${I18N.labels[i]}</option>`).join(''); sl.value = I18N.lang; } } // (each language in its own name)
     $('setQuality').value = save.autoQuality ? 'auto' : String(save.quality == null ? GAME.perf.level : save.quality);
     $('setInfo').textContent = `현재 품질: ${GAME.QUALITY[GAME.perf.level].name} · 최근 FPS ${GAME.perf.fps || '-'} · 버전 ${APP_VERSION}`;
     $('settingsOv').hidden = false;
@@ -1097,10 +1127,10 @@
   // tutorial
   const TUT = [
     ['c_BR_Brownie_N', '카드 배치', '아래 카드를 전장으로 드래그하거나, 카드를 누른 뒤 아군 진영을 누르면 유닛이 출격합니다. 카드마다 에너지가 필요합니다.'],
-    ['c_BR_Leprechaun_N', '에너지', '에너지는 2.8초마다 1씩 차고 최대 10까지 모입니다. 가득 찬 채로 두면 낭비! 남은 1분은 2배로 찹니다.'],
-    ['c_PECS_Empress_N', '타워 공략', '적 프린세스 타워를 부수면 크라운 1개. 킹 타워를 부수면 즉시 승리합니다. 건물만 노리는 유닛으로 압박하세요.'],
+    ['c_BR_Leprechaun_N', '에너지', '에너지는 2.8초마다 1씩 차고 최대 10까지 모입니다. 가득 찬 채로 두면 낭비! 남은 1분은 2X 타임: 두 배로 빨리 찹니다.'],
+    ['c_PECS_Empress_N', '타워 공략', '적 측면 타워를 부수면 별 1개. 중앙 타워를 부수면 즉시 승리합니다. 건물만 노리는 유닛으로 압박하세요.'],
     ['c_BR_Leprechaun_N', '건물과 주문', '건물은 아군 진영에만 지을 수 있고 시간이 지나면 무너집니다. 포탑·방벽은 건물만 노리는 적을 끌어당기고, 기지는 유닛을 계속 보냅니다. 주문은 전장 어디에나 쓸 수 있습니다.'],
-    ['c_3P_Labiata_N', '챔피언 스킬', 'SS 등급 챔피언이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요! 포격·레이저·돌진 스킬은 버튼을 전장으로 끌어 직접 조준할 수 있습니다.'],
+    ['c_3P_Labiata_N', '영웅 스킬', 'SS 등급 영웅이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요! 포격·레이저·돌진 스킬은 버튼을 전장으로 끌어 직접 조준할 수 있습니다.'],
   ];
   let tutI = 0;
   function showTut(i) {
@@ -1216,6 +1246,12 @@
       }
       renderShop();
     });
+    $('btnMail').onclick = () => { SFX.play('click'); renderMail(); $('mailOv').hidden = false; };
+    $('mailOv').addEventListener('click', (e) => {
+      if (e.target.id === 'mailOv' || e.target.id === 'btnMailClose') { $('mailOv').hidden = true; return; }
+      if (e.target.id === 'btnMailAll') { const o = mailOpen(); if (o.length) takeMail(o); return; }
+      const b = e.target.closest('[data-mail]'); if (b) { const m = DATA.MAIL.find((x) => x.id === b.dataset.mail); if (m && !save.mail[m.id]) takeMail([m]); }
+    });
     $('coreOv').addEventListener('click', (e) => { if (e.target.id === 'coreOv' || e.target.id === 'btnCoreClose') $('coreOv').hidden = true; });
     $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; if (save.collSort === b.dataset.s) save.collDesc = !save.collDesc; else { save.collSort = b.dataset.s; save.collDesc = false; } persist(); SFX.play('click'); renderDeck(); });
     $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') closeCard(); }); // a tap outside the popup closes it
@@ -1261,11 +1297,14 @@
         return `<div class="rd ${st}"><b>${r.trophy}</b><span>${what}</span><em>${st === 'got' ? '✓ 받음' : st === 'ready' ? '받기 가능' : '잠김'}</em></div>`;
       }).join('');
       const ready = DATA.ROAD.some((r) => r.trophy <= save.trophy && r.trophy > (save.road || 0));
-      $('btnRoadClaim').disabled = !ready;
+      $('btnRoadClaim').disabled = !ready; renderMissionsBadgeRoad();
       const cur = $('roadList').querySelector('.ready, .lock');
       if (cur) cur.scrollIntoView({ block: 'center' });
     };
-    const openRoad = () => { SFX.play('click'); show('road'); renderRoad(); }; // shown first: scrollIntoView needs layout
+    // the missions page holds two parts: the missions and the trophy road
+    const mTab = (k) => { document.querySelectorAll('#mTabs [data-mt]').forEach((b) => b.classList.toggle('on', b.dataset.mt === k)); $('mtM').hidden = k !== 'm'; $('mtR').hidden = k !== 'r'; };
+    $('mTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-mt]'); if (!b || b.classList.contains('on')) return; SFX.play('click'); mTab(b.dataset.mt); if (b.dataset.mt === 'r') renderRoad(); else renderMissions(); });
+    const openRoad = () => { SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderMissions(); show('missions'); mTab('r'); renderRoad(); }; // shown first: scrollIntoView needs layout
     $('arenaName').onclick = $('roadNext').onclick = openRoad;
     $('roadBtn').onclick = openRoad;
     $('btnRoadClaim').onclick = () => {
@@ -1281,11 +1320,11 @@
       save.gold += gold;
       persist();
       SFX.play('pickSS', 0.6);
-      toast(`트로피 로드 보상: ${gold ? '부품 +' + gold : ''}${gold && crates ? ' · ' : ''}${crates ? '상자 ' + crates + '개' : ''}`);
+      toast(`전공 보상: ${gold ? '부품 +' + gold : ''}${gold && crates ? ' · ' : ''}${crates ? '상자 ' + crates + '개' : ''}`);
       renderRoad();
       if (crates) openChest(save.chests.length - 1); // the road's crate opens on the spot
     };
-    $('btnMissions').onclick = () => { SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderMissions(); show('missions'); };
+    $('btnMissions').onclick = () => { SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderMissions(); show('missions'); mTab('m'); };
     $('btnSearchCancel').onclick = () => { $('searchOv').dataset.how = 'cancel'; NET.cancel(); };
 
     $('btnMode').onclick = () => { SFX.play('click'); $('modeOv').hidden = false; };
@@ -1297,7 +1336,7 @@
       if (t === 'shop') { if (!$('shop').classList.contains('on')) SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderShop(); show('shop'); }
       else if (t === 'deck') { if (!$('deck').classList.contains('on')) $('btnDeck').click(); }
       else if (t === 'battle') { if (!$('title').classList.contains('on')) SFX.play('click'); cardOpen = false; slotSel = null; $('cardOv').hidden = true; cardPreview(null); renderTitle(); show('title'); }
-      else if (t === 'road') { cardOpen = false; $('cardOv').hidden = true; cardPreview(null); openRoad(); }
+      else if (t === 'notes') { if (!$('notes').classList.contains('on')) SFX.play('click'); cardOpen = false; $('cardOv').hidden = true; cardPreview(null); renderNotes(); show('notes'); }
       // (missions: its own handler above; battle: this screen)
     });
     $('missionList').addEventListener('click', (e) => {
@@ -1313,12 +1352,13 @@
       renderMissions();
       toast(`부품 +${MDEF[m.k].gold}`);
     });
-    $('btnHelp').onclick = () => { SFX.play('click'); showTut(0); };
+    $('btnHelp').onclick = () => { SFX.play('click'); $('settingsOv').hidden = true; showTut(0); }; // (help sits in the settings now)
     $('btnSetClose').onclick = () => { $('settingsOv').hidden = true; };
     $('setMusic').oninput = (e) => { save.music = +e.target.value; applyAudio(); persist(); };
     $('setSfx').oninput = (e) => { save.sfx = +e.target.value; applyAudio(); persist(); SFX.play('click'); };
     $('setVoice').oninput = (e) => { save.voice = +e.target.value; applyAudio(); persist(); };
     $('setVoice').onchange = () => SFX.voice('ann:great', 1, 5); // a sample line at the new level
+    $('setLang').onchange = (e) => { if (window.I18N) I18N.set(e.target.value); }; // (the page reloads in the new language)
     $('setQuality').onchange = (e) => {
       const v = e.target.value;
       save.autoQuality = v === 'auto';
@@ -1327,7 +1367,7 @@
       persist();
     };
     $('btnReset').onclick = () => {
-      if (!confirm('모든 진행(트로피·카드·골드)을 초기화할까요?')) return;
+      if (!confirm('모든 진행(전공·카드·부품)을 초기화할까요?')) return;
       try { localStorage.removeItem(KEY); localStorage.removeItem('lastroyal.v1'); } catch (e) { /* ignore */ }
       location.reload();
     };

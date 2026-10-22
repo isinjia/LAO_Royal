@@ -926,10 +926,10 @@
   // ── commander support (owner-approved): one call per match, charged over time and by the damage your towers take ──
   const SUPPORT_TIME = 75; // seconds of play to charge it without taking damage
   const SUPPORT = {
-    orca: { name: '긴급 치료', icon: 'c_DS_Azazel_N', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
-    iron: { name: '부식 살포', icon: 'e_PuppHead_N', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
+    orca: { name: '긴급 치료', icon: 'spell:repair', desc: '전장의 모든 아군 유닛 체력 회복 (타워 제외)' },
+    iron: { name: '부식 살포', icon: 'spell:poison', desc: '전장의 모든 적 유닛에게 지속 피해 (타워 제외)' },
     lemonade: { name: '감마 투입', icon: 'c_PECS_LemonadeGamma_N', summon: true, desc: '아군 진영 중앙에 레모네이드 감마 소환 (끌어서 좌우 위치 지정)' },
-    cmd: { name: '렘파리온 강림', icon: 'c_AGS_Rampart_NS1', summon: true, desc: '아군 진영 중앙에 렘파리온 소환 (끌어서 좌우 위치 지정)' },
+    cmd: { name: '램파리온 강림', icon: 'c_AGS_Rampart_NS1', summon: true, desc: '아군 진영 중앙에 램파리온 소환 (끌어서 좌우 위치 지정)' },
   };
   const supOut = {}, skOut = {};
   const supportReady = (S) => !!(S && S.sup && !S.sup.used && S.sup.charge >= 1);
@@ -1018,7 +1018,7 @@
     FX.ring(k.x, k.z * TILT + 1, 0.5, 3.4, teamHex(k.side), 0.6);
     FX.groundRing(k.x, k.z * TILT, 0.5, 3.4, teamHex(k.side), 0.7);
     SFX.play('charge', 0.6);
-    if (k.side === 'blue') UI.toast('킹 타워 가동!');
+    if (k.side === 'blue') UI.toast('중앙 타워 가동!');
   }
 
   function kill(e, src) {
@@ -1070,7 +1070,7 @@
     FX.flash(0xffd0a0, 0.35);
     SFX.play('expB'); FX.later(0.25, () => SFX.play('quake', 0.6));
     UI.crownFly(e, other(e.side));
-    logEvent((e.side === 'red' ? '적 ' : '아군 ') + (e.type === 'king' ? '킹 타워' : '프린세스 타워') + ' 파괴', other(e.side));
+    logEvent((e.side === 'red' ? '적 ' : '아군 ') + (e.type === 'king' ? '중앙 타워' : '측면 타워') + ' 파괴', other(e.side));
     if (e.type === 'king') {
       foe.crowns = 3;
       let k = 1;
@@ -2279,9 +2279,9 @@
     const mult = G.overtime ? 3 : rush || G.clock <= BAL.doubleAt ? 2 : 1;
     if (mult !== G.mult) {
       G.mult = mult;
-      UI.banner(mult === 2 ? '에너지 2배!' : '에너지 3배!', 'warn');
+      UI.banner(mult === 2 ? '2X 타임!' : '3X 타임!', 'warn');
       energySurge();
-      logEvent(mult === 2 ? '에너지 2배 돌입' : '에너지 3배 돌입');
+      logEvent(mult === 2 ? '2X 타임 돌입' : '3X 타임 돌입');
       SFX.play('warning', 0.5);
       if (mult === 2) SFX.music('battle2');
     }

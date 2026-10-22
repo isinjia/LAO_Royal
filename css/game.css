@@ -1290,13 +1290,13 @@ button:disabled { cursor: default; }
 #shop .shopit .mcard { width: 46px; height: 60px; }
 
 /* missions and the trophy road as pages */
-#missions, #road { background: var(--bg); overflow-y: auto; touch-action: pan-y; overflow-x: hidden; }
+#missions, #notes { background: var(--bg); overflow-y: auto; touch-action: pan-y; overflow-x: hidden; }
 .tabpage { padding: 8px 14px 96px; }
 .pagenote { font-size: 12px; color: var(--dim); margin: 2px 0 10px; }
-#road .dhead { display: flex; align-items: center; justify-content: space-between; }
-#road .roadlist { max-height: none; }
-#shop > .tabbar, #missions > .tabbar, #road > .tabbar { position: sticky; bottom: 0; z-index: 5; margin-top: auto; }
-#shop .shoppage, #missions .tabpage, #road .tabpage { padding-bottom: 16px; }
+#mtR .roadhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+#mtR .roadlist { max-height: none; }
+#shop > .tabbar, #missions > .tabbar, #notes > .tabbar { position: sticky; bottom: 0; z-index: 5; margin-top: auto; }
+#shop .shoppage, #missions .tabpage, #notes .tabpage { padding-bottom: 16px; }
 
 /* support button: the faction's character portrait inside the charge ring */
 .supbtn { overflow: visible; touch-action: none; }
@@ -1321,3 +1321,49 @@ button:disabled { cursor: default; }
 .corec.full { opacity: .45; }
 .corec.full em { color: var(--dim); }
 .corec b { font-size: 11px; color: #e6eef8; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.supbtn .sicon.fx { background-position: center; background-size: cover; }
+/* the mailbox: an envelope in the title's top bar (a red count while mail waits), the help moved into the settings */
+.ibtn.mailbtn { position: relative; }
+.ibtn .env { width: 22px; height: 16px; border: 2.5px solid #fff; border-radius: 3px; position: relative; overflow: hidden; }
+.ibtn .env::before { content: ''; position: absolute; left: 50%; top: -9px; width: 15px; height: 15px; border: 2.5px solid #fff; transform: translateX(-50%) rotate(45deg); }
+.ibtn.mailbtn em { position: absolute; right: -4px; top: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #ff3b4a; color: #fff; font: 800 11px/18px var(--en-font, sans-serif); font-style: normal; box-shadow: 0 0 0 2px #0b0f14; }
+.ibtn.mailbtn em[hidden] { display: none; }
+.maildlg { width: min(92%, 380px); padding: 16px 14px; }
+.maillist { max-height: 56vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 10px 0 4px; text-align: left; }
+.maillist .mail { background: var(--panel2, #1a2330); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.maillist .mail.got { opacity: .55; }
+.maillist .mh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.maillist .mh b { font-size: 14px; }
+.maillist .mh small { font-size: 11px; color: var(--dim); }
+.maillist p { font-size: 12px; color: #c9d6e2; margin: 6px 0 8px; line-height: 1.45; }
+.maillist .mf { display: flex; align-items: center; justify-content: space-between; }
+.maillist .gift { display: flex; gap: 10px; font-weight: 900; color: #ffd34d; }
+.maillist .gift span { display: inline-flex; align-items: center; gap: 2px; }
+.maillist .mf em { font-style: normal; font-size: 12px; color: var(--dim); }
+.helpbtn { width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.helpbtn .q { font: 900 16px var(--en-font); }
+/* the missions page: missions | trophy road; the patch notes tab where the road was */
+.mtabs { display: flex; gap: 6px; padding: 4px 14px 0; }
+.mtabs button { flex: 1; position: relative; padding: 9px 0; border-radius: 10px; background: var(--panel2, #1a2330); border: 1px solid var(--line); color: var(--dim); font-weight: 800; font-size: 13px; }
+.mtabs button.on { background: #ffd34d; color: #1a1300; border-color: #ffd34d; }
+.mtabs em { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #ff3b4a; color: #fff; font: 800 11px/18px var(--en-font, sans-serif); font-style: normal; }
+.mtabs em[hidden] { display: none; }
+.tabbar .t-notes { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 2h10l5 5v15H5z M14 3v5h5' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M8 12h9M8 15.5h9M8 19h6' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") !important; mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 2h10l5 5v15H5z M14 3v5h5' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M8 12h9M8 15.5h9M8 19h6' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") !important; }
+#notesList { padding: 8px 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pnote { background: var(--panel2, #1a2330); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.pnote.new { border-color: #ffd34d; }
+.pnote .ph { display: flex; justify-content: space-between; align-items: baseline; }
+.pnote .ph b { font: 900 16px var(--en-font, sans-serif); color: #ffd34d; }
+.pnote .ph small { font-size: 11px; color: var(--dim); }
+.pnote ul { margin: 8px 0 0; padding-left: 18px; }
+.pnote li { font-size: 12.5px; line-height: 1.5; color: #d6e2ee; margin: 3px 0; }
+.corec .tile { width: 100%; } .corec .tile .card { width: 100%; }
+#collection .collgap { grid-column: 1 / -1; width: 100%; flex-basis: 100%; margin: 10px 0 2px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 800; color: var(--dim); }
+/* the record (wins / losses) under the nickname: a long name keeps the room the record used to share */
+.nickcol { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; flex: 1 1 0; }
+.nickcol .nickchip { max-width: 100%; min-width: 0; flex: none; }
+#title .ttop { gap: 6px; }
+#title .ttop .tro-box, #title .ttop .gold-box { padding: 5px 9px 5px 6px; gap: 4px; flex: none; }
+#title .ttop .ibtn { flex: none; }
+#title .ttop .sp { display: none; }
+.nickcol #record { margin: 0 0 0 6px; font-size: 10.5px; line-height: 1; color: var(--dim); white-space: nowrap; }

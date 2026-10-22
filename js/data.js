@@ -26,14 +26,14 @@
     // ── B ──
     T('brownie', { rig: 'brownie', img: 'c_BR_Brownie_N', cr: '창 고블린', name: '브라우니 분대', cost: 2, rarity: 0, count: 3, hp: 121, dmg: 74, rate: 1.7, range: 5.5, speed: SPD.vfast, radius: 0.35, mass: 2, fx: 'bullet', color: 0xffe08a, sfx: 'rifle', desc: '돌격소총으로 무장한 브라우니 3기. 싸고 빠르게 공중·지상을 견제합니다.' }),
     T('leprechaun', { rig: 'leprechaun', img: 'c_BR_Leprechaun_N', cr: '다트 고블린', name: '레프리콘', cost: 3, rarity: 0, hp: 237, dmg: 119, rate: 0.7, range: 6.5, speed: SPD.vfast, fx: 'bullet', color: 0x9dff7a, sfx: 'mg', desc: '기관총 연사. 공중 유닛과 무리 상대로 든든합니다.' }),
-    T('gnome', { rig: 'gnome', img: 'c_BR_Gnome_N', cr: '머스킷병', name: '놈', cost: 4, rarity: 0, hp: 656, dmg: 198, rate: 1.0, range: 6.0, speed: SPD.mid, fx: 'bullet', color: 0xffd080, sfx: 'rifle', desc: '방어벽을 펼치는 수비형 사수. AR-X-780 소총으로 공중·지상을 견제하며 전선을 버팁니다.' }), // (original: defender, AR-X-780 rifle + deployable wall)
+    T('gnome', { rig: 'gnome', img: 'c_BR_Gnome_N', cr: '머스킷병', name: '노움', cost: 4, rarity: 0, hp: 656, dmg: 198, rate: 1.0, range: 6.0, speed: SPD.mid, fx: 'bullet', color: 0xffd080, sfx: 'rifle', desc: '방어벽을 펼치는 수비형 사수. AR-X-780 소총으로 공중·지상을 견제하며 전선을 버팁니다.' }), // (original: defender, AR-X-780 rifle + deployable wall)
     T('valkyrie', { rig: 'valkyrie', img: 'c_BR_Valkyrie_N', cr: '프린세스', hitFx: 'hnadgun_hit', name: '발키리', cost: 3, rarity: 0, hp: 237, dmg: 154, rate: 3.0, range: 9.0, splash: 2.5, speed: SPD.mid, fx: 'snipe', color: 0x9fd0ff, sfx: 'handgun', desc: '모신나강 저격소총의 정밀 저격수. 멀리서 쏜 탄이 터지며 주변의 무리까지 함께 맞힙니다.' }), // (original: attacker, Mosin-Nagant sniper rifle)
     // ── A ──
     T('impet', { rig: 'impet', img: 'c_BR_Impet_N', cr: '메가 미니언', name: '임펫', cost: 3, rarity: 1, air: true, hp: 762, dmg: 283, rate: 1.5, range: 1.6, speed: SPD.mid, radius: 0.5, mass: 5, fx: 'missile', color: 0xffa040, sfx: 'missile', desc: '강철라인의 비행 중화기 바이오로이드. RPG2040 대장갑 로켓으로 공중·지상의 한 대상에 큰 피해를 줍니다.' }), // (the original AA-7: a flying attacker with an RPG2040 launcher)
     T('raven', { rig: 'raven', img: 'c_BR_Raven_N', cr: '아기 드래곤', name: '레이븐', cost: 4, rarity: 1, air: true, hp: 1051, dmg: 146, rate: 1.5, range: 3.5, splash: 1.2, speed: SPD.fast, fx: 'grenade', color: 0xfff2b0, sfx: 'cannon', desc: '하늘의 전방 관측병. 디스크 런처로 공중·지상의 무리를 범위 폭격합니다.' }), // (original: flying spotter, disc launcher)
-    T('harpy', { rig: 'harpy', img: 'c_BR_Harpy_N', cr: '일렉트로 드래곤', hitFx: 'Kunoichi_skill2_after_Lighting', name: '하르페', cost: 5, rarity: 1, air: true, hp: 867, dmg: 175, rate: 2.1, range: 3.5, splash: 0, chain: 3, stun: 0.5, speed: SPD.mid, radius: 0.55, mass: 5, fx: 'lightning', color: 0xb98bff, sfx: 'elec', desc: '번지는 전격 미사일로 세 대상까지 연쇄 타격하고 잠시 멈춥니다.' }),
+    T('harpy', { rig: 'harpy', img: 'c_BR_Harpy_N', cr: '일렉트로 드래곤', hitFx: 'Kunoichi_skill2_after_Lighting', name: '하르페이아', cost: 5, rarity: 1, air: true, hp: 867, dmg: 175, rate: 2.1, range: 3.5, splash: 0, chain: 3, stun: 0.5, speed: SPD.mid, radius: 0.55, mass: 5, fx: 'lightning', color: 0xb98bff, sfx: 'elec', desc: '번지는 전격 미사일로 세 대상까지 연쇄 타격하고 잠시 멈춥니다.' }),
     T('banshee', { rig: 'banshee', img: 'c_BR_Banshee_N', cr: '미니언', name: '밴시', cost: 3, rarity: 1, arena: 1, air: true, hp: 209, dmg: 107, rate: 1.0, range: 1.6, splash: 0, count: 3, speed: SPD.fast, fx: 'bullet', color: 0x7affd4, sfx: 'cannon', desc: '급강하 폭격기 3기. 37mm 기관포로 공중·지상을 휩씁니다.' }), // (original: flying dive bomber, 37mm autocannon + aerial bomb)
-    T('sylphid', { rig: 'sylphid', img: 'c_BR_Sylphid_N', cr: '박쥐', name: '실피드', cost: 2, rarity: 1, arena: 1, air: true, hp: 74, dmg: 74, rate: 1.3, range: 1.2, count: 5, speed: SPD.vfast, fx: 'bullet', color: 0xd78bff, sfx: 'mg', k: 0.9, desc: '고속 추격기 5기. 빠르고 약해서 타워 한 방에 떨어집니다(박쥐).' }), // (original: flying anti-air pursuer, LMG + homing missile)
+    T('sylphid', { rig: 'sylphid', img: 'c_BR_Sylphid_N', cr: '박쥐', name: '실피드', cost: 2, rarity: 1, arena: 1, air: true, hp: 74, dmg: 74, rate: 1.3, range: 1.2, count: 5, speed: SPD.vfast, fx: 'bullet', color: 0xd78bff, sfx: 'mg', k: 0.9, desc: '고속 추격기 5기. 빠르고 약해서 타워 한 방에 떨어집니다.' }), // (original: flying anti-air pursuer, LMG + homing missile)
     T('undine', { rig: 'undine', img: 'c_BR_Undine_N', cr: '비행 기계', name: '운디네', cost: 4, rarity: 1, arena: 1, air: true, hp: 559, dmg: 156, rate: 1.1, range: 6.0, speed: SPD.fast, fx: 'bullet', color: 0x9feaff, sfx: 'cannon', k: 0.9, desc: '비행 수비기. 30mm 리볼버 캐논으로 버티며 적을 붙잡아 둡니다.' }), // (original: flying defender, 30mm revolver cannon + missile)
     T('nymph', { rig: 'nymph', img: 'c_BR_Nymph_N', cr: '폭죽 병사', name: '님프', cost: 3, rarity: 1, arena: 1, hp: 277, dmg: 58, rate: 3.0, range: 6.0, splash: 1.2, speed: SPD.fast, fx: 'bullet', color: 0x9fffc8, sfx: 'mg', desc: '크리스 MG80 경기관총의 제압 사격. 좁은 범위의 무리를 한꺼번에 묶어 둡니다.' }), // (original: attacker, Kriss MG80 LMG with a suppressing barrage)
     // ── S ──
@@ -45,7 +45,7 @@
     T('phoenix', { rig: 'phoenix', img: 'c_BR_Phoenix_N', cr: '박격포', name: '피닉스', cost: 5, rarity: 2, arena: 2, air: true, hp: 909, dmg: 242, rate: 5.0, range: 11.5, hits: 'ground', splash: 1.6, speed: SPD.slow, radius: 0.55, mass: 6, fx: 'grenade', color: 0xff8a3d, sfx: 'cannon', desc: '비행 포병. M87 105mm 곡사포로 멀리서 지상을 포격합니다. 공중은 못 맞힙니다.' }), // (original: flying artillery, M87 105mm howitzer)
     T('hela', { rig: 'hela', img: 'c_BR_Hela_N', cr: '일렉트로 마법사', name: '헬라', cost: 4, rarity: 2, arena: 2, hp: 649, dmg: 200, rate: 1.8, range: 5.0, stun: 0.5, speed: SPD.fast, radius: 0.5, mass: 6, fx: 'holy', color: 0xc77dff, sfx: 'energy', desc: '나노 입자 신호 증폭으로 폐기 부품을 형상화해 적을 붙잡습니다. 맞은 적은 잠시 멈춥니다.' }), // (original: supporter, neural signal amplifier staff)
     // ── SS (champions) ──
-    T('empress', { rig: 'empress', img: 'c_PECS_Empress_N', cr: '아처 퀸', name: '엠프레스', cost: 5, rarity: 3, hp: 909, dmg: 205, rate: 1.2, range: 5.0, slow: 0.3, slowDur: 1, speed: SPD.mid, radius: 0.6, mass: 10, fx: 'frost', color: 0x9feaff, sfx: 'ice', k: 0.95, desc: '아이스 에이지 블래스터로 한 대상을 정확히 쏘아 얼려 붙잡는 펭귄 황제.',
+    T('empress', { rig: 'empress', img: 'c_PECS_Empress_N', cr: '아처 퀸', name: '엠프리스', cost: 5, rarity: 3, hp: 909, dmg: 205, rate: 1.2, range: 5.0, slow: 0.3, slowDur: 1, speed: SPD.mid, radius: 0.6, mass: 10, fx: 'frost', color: 0x9feaff, sfx: 'ice', k: 0.95, desc: '아이스 에이지 블래스터로 한 대상을 정확히 쏘아 얼려 붙잡는 펭귄 황제.',
       skill: { name: '아이스 에이지', cost: 2, cd: 12, kind: 'barrage', n: 5, radius: 1.6, dmg: 300, slow: 0.45, reach: 7, color: 0x9feaff, desc: '전방 적 진영에 얼음 폭풍 5발, 맞은 적은 둔화.' } }), // (original: attacker, Ice Age Blaster)
     T('labiata', { rig: 'labiata', img: 'c_3P_Labiata_N', cr: '메가 나이트', name: '라비아타', cost: 7, rarity: 3, arena: 2, hp: 3630, dmg: 244, rate: 1.7, range: 1.2, hits: 'ground', splash: 1.3, speed: SPD.mid, radius: 0.7, mass: 16, fx: 'slash', color: 0xffd36e, sfx: 'swing', desc: '오르카의 지휘관. 거대한 체력으로 버티며 플라즈마 반응로 양손검으로 주변을 휩씁니다.',
       skill: { name: '지휘관의 일격', cost: 3, cd: 13, kind: 'nova', radius: 2.8, dmg: 600, stun: 0.8, color: 0xffd36e, desc: '주변 적 모두에게 큰 피해 + 0.8초 기절.' } }),
@@ -66,8 +66,8 @@
     T('nightchick', { rig: 'e_NightChick_N', img: 'e_NightChick_N', cr: '고블린', name: '나이트 칙 무리', cost: 2, rarity: 0, count: 4, hp: 184, dmg: 109, rate: 1.1, range: 0.5, hits: 'ground', speed: SPD.vfast, radius: 0.35, mass: 2, h: 1.1, fx: 'bullet', color: 0xffd060, sfx: 'mg', desc: '기관총을 단 소형 철충 3기. 싸고 빠르게 떼로 달려들어 근접 탄막을 쏟아냅니다.' }), // (original: Fallen-based light attacker, machine gun)
     T('drone', { rig: 'e_Drone_N', img: 'e_Drone_N', cr: '재피', name: '드론 편대', cost: 4, rarity: 0, count: 3, air: true, hp: 482, dmg: 106, rate: 2.1, range: 4.5, stun: 0.5, speed: SPD.mid, radius: 0.35, mass: 2, h: 1.0, fx: 'lightning', color: 0xff7070, sfx: 'elec', desc: '충격 미사일을 쏘는 비행 정찰 드론 3기. 맞은 적은 0.5초 감전되어 멈춥니다.' }), // (original: Drone 08 scout UAV, shock missile)
     T('legion', { rig: 'e_Legion_N', img: 'e_Legion_N', cr: '아이스 마법사', hitFx: 'Empress_skill1_ice_Hit', name: '레기온', cost: 3, rarity: 0, hp: 625, dmg: 82, rate: 1.7, range: 5.5, splash: 1.0, slow: 0.35, slowDur: 1.5, speed: SPD.mid, radius: 0.5, mass: 6, h: 1.5, fx: 'frost', color: 0x5ad8ff, sfx: 'mg', desc: 'GAU 미니건의 연사와 끈끈이 폭탄으로 적의 발을 묶습니다.' }), // (original: Rampart-based support, GAU minigun + sticky bombs)
-    T('phalangites', { rig: 'e_Phalangites_N', img: 'e_Phalangites_N', cr: '기사', name: '팔랑기테스', cost: 3, rarity: 0, hp: 1607, dmg: 184, rate: 1.2, range: 1.2, hits: 'ground', speed: SPD.mid, h: 1.5, fx: 'bullet', color: 0xffb070, sfx: 'mg', desc: '기관총으로 전열을 지키는 방패 보병.' }), // (original: Phalanx line, machine-gun protector)
-    T('pupphead', { rig: 'e_PuppHead_N', img: 'e_PuppHead_N', cr: '일렉트로 정령', name: '퍼프헤드', cost: 1, rarity: 0, hp: 209, dmg: 90, rate: 1.1, range: 2.5, chain: 9, stun: 0.5, kamikaze: true, speed: SPD.vfast, radius: 0.4, mass: 3, h: 1.2, fx: 'lightning', color: 0xffe070, sfx: 'elec', desc: '고압 충격기를 품고 적에게 뛰어드는 AGS 경찰견. 한 번 방전해 주변 적 최대 9기를 감전시키고 0.5초 멈춥니다.' }), // (original: SD3M Pupp Head, HV stun gun; its chain rope is left out: it fires electricity)
+    T('phalangites', { rig: 'e_Phalangites_N', img: 'e_Phalangites_N', cr: '기사', name: '팔랑스', cost: 3, rarity: 0, hp: 1607, dmg: 184, rate: 1.2, range: 1.2, hits: 'ground', speed: SPD.mid, h: 1.5, fx: 'bullet', color: 0xffb070, sfx: 'mg', desc: '기관총으로 전열을 지키는 방패 보병.' }), // (original: Phalanx line, machine-gun protector)
+    T('pupphead', { rig: 'e_PuppHead_N', img: 'e_PuppHead_N', cr: '일렉트로 정령', name: '펍 헤드', cost: 1, rarity: 0, hp: 209, dmg: 90, rate: 1.1, range: 2.5, chain: 9, stun: 0.5, kamikaze: true, speed: SPD.vfast, radius: 0.4, mass: 3, h: 1.2, fx: 'lightning', color: 0xffe070, sfx: 'elec', desc: '고압 충격기를 품고 적에게 뛰어드는 AGS 경찰견. 한 번 방전해 주변 적 최대 9기를 감전시키고 0.5초 멈춥니다.' }), // (original: SD3M Pupp Head, HV stun gun; its chain rope is left out: it fires electricity)
     // ── A ──
     T('centurion', { rig: 'e_Centurion_N', img: 'e_Centurion_N', cr: '마법사', hitFx: 'simple_explosion', name: '센츄리온', cost: 5, rarity: 1, hp: 656, dmg: 256, rate: 1.4, range: 5.5, splash: 1.5, speed: SPD.mid, h: 1.5, fx: 'grenade', color: 0xffa020, sfx: 'cannon', desc: 'XM 유탄 발사기로 공중·지상의 무리를 넓게 포격하는 철충 지휘기.' }), // (original MOB_MP_Centurion_N: A1 XM 유탄 발사기, A2 일제 공격 개시)
     T('intruder', { rig: 'e_Intruder_N', img: 'e_Intruder_N', cr: '호그 라이더', name: '인트루더', cost: 4, rarity: 1, hp: 1544, dmg: 289, rate: 1.6, range: 0.8, hits: 'ground', aim: 'buildings', jump: true, speed: SPD.vfast, h: 1.5, fx: 'missile', color: 0xffa040, sfx: 'missile', desc: '건물만 노리고 강을 뛰어넘어 파고드는 고속 침투기. 재밍 미사일로 탑을 두드립니다.' }), // (original MOB_MP_Intruder_N: A1 재밍 미사일, A2 요격 준비)
@@ -86,11 +86,11 @@
       skill: { name: '조직 재생', cost: 2, cd: 12, kind: 'shield', dur: 5, k: 0.35, color: 0xb070ff, desc: '5초간 조직을 재생하며 받는 피해 65% 감소.' } }), // (original MP_BlackKnight is the S-class 사이클롭스: active 1 척살, a range-1 melee strike over a 9-tile area; active 2 조직 재생, self regeneration)
     T('juggernaut', { rig: 'e_Juggernaut_N', img: 'e_Juggernaut_N', cr: '페카', name: '저거너트', cost: 7, rarity: 3, arena: 2, hp: 3431, dmg: 744, rate: 1.8, range: 1.2, hits: 'ground', speed: SPD.slow, radius: 0.75, mass: 16, h: 2.3, fx: 'claw', color: 0xff8040, sfx: 'expM', desc: '압도적인 중장갑 근접 병기. 스턴 펀치로 때려눕힙니다.',
       skill: { name: '대지 분쇄', cost: 3, cd: 13, kind: 'nova', radius: 2.8, dmg: 560, stun: 0.8, color: 0xff8040, desc: '주변 적 모두에게 큰 피해 + 0.8초 기절.' } }),
-    T('executioner', { rig: 'e_Executioner_EW', img: 'e_Executioner_EW', cr: '밴디트', name: '엑스큐셔너', cost: 3, rarity: 3, arena: 3, hp: 825, dmg: 176, rate: 1.0, range: 0.75, hits: 'ground', speed: SPD.fast, radius: 0.65, mass: 12, h: 2.3, fx: 'slash', color: 0xff3050, sfx: 'slash', desc: '처형인. 값싸고 빠른 처형인. 쌍검으로 한 대상씩 베고, 단두대 돌진으로 뒷줄까지 파고듭니다.',
+    T('executioner', { rig: 'e_Executioner_EW', img: 'e_Executioner_EW', cr: '밴디트', name: '익스큐셔너', cost: 3, rarity: 3, arena: 3, hp: 825, dmg: 176, rate: 1.0, range: 0.75, hits: 'ground', speed: SPD.fast, radius: 0.65, mass: 12, h: 2.3, fx: 'slash', color: 0xff3050, sfx: 'slash', desc: '처형인. 값싸고 빠른 처형인. 쌍검으로 한 대상씩 베고, 단두대 돌진으로 뒷줄까지 파고듭니다.',
       skill: { name: '단두대', cost: 2, cd: 11, kind: 'dash', dist: 4.5, dmg: 850, radius: 1.5, color: 0xff3050, desc: '목표를 향해 돌진하며 경로의 적을 처형합니다.' } }),
     T('goltarion', { rig: 'e_Goltarion_N', img: 'e_Goltarion_N', cr: '마이티 광부', name: '에큐토스', cost: 4, rarity: 3, arena: 3, hp: 2045, dmg: 36, rate: 0.4, range: 1.6, hits: 'ground', splash: 0, ramp: [1, 5, 10], rampAt: [2.25, 4.5], speed: SPD.mid, radius: 0.75, mass: 16, h: 2.5, fx: 'slash', color: 0xff6060, sfx: 'slash', desc: '철충에 잠식된 거병. 거대한 검의 머리베기로 주변을 함께 베어냅니다.', // (original MOB_MP_Goltarion_N '에큐토스': A1 머리베기, A2 검선 지정 - melee range 1)
       skill: { name: '방어막 전개', cost: 2, cd: 14, kind: 'shield', dur: 5, k: 0.2, color: 0xff6060, desc: '5초간 받는 피해 80% 감소.' } }),
-    T('emperorchick', { rig: 'e_EmperorChick_N', img: 'e_EmperorChick_N', cr: '해골 킹', name: '엠페러 칙', cost: 4, rarity: 3, arena: 3, hp: 2091, dmg: 186, rate: 1.6, range: 1.2, splash: 1.3, hits: 'ground', speed: SPD.mid, radius: 0.7, mass: 14, h: 2.4, fx: 'bullet', color: 0xffd040, sfx: 'cannon', desc: '칙들의 황제. 중기관포로 주변까지 휩쓸고 부하를 불러냅니다.',
+    T('emperorchick', { rig: 'e_EmperorChick_N', img: 'e_EmperorChick_N', cr: '해골 킹', name: '칙 엠페러', cost: 4, rarity: 3, arena: 3, hp: 2091, dmg: 186, rate: 1.6, range: 1.2, splash: 1.3, hits: 'ground', speed: SPD.mid, radius: 0.7, mass: 14, h: 2.4, fx: 'bullet', color: 0xffd040, sfx: 'cannon', desc: '칙들의 황제. 중기관포로 주변까지 휩쓸고 부하를 불러냅니다.',
       skill: { name: '황제의 부름', cost: 2, cd: 12, kind: 'summon', card: 'nightchick', n: 4, color: 0xffd040, desc: '나이트 칙 4기를 소환합니다.' } }),
     T('nidhogg', { rig: 'e_Nidhogg_N', img: 'e_Nidhogg_N', cr: '골렘', name: '니드호그', cost: 8, rarity: 3, arena: 4, hp: 4672, dmg: 245, rate: 2.5, aim: 'buildings', range: 0.75, splash: 1.6, slow: 0.3, slowDur: 2, hits: 'ground', speed: SPD.slow, radius: 0.75, mass: 14, h: 2.4, fx: 'flame', color: 0x9aff60, sfx: 'spray', desc: '독극물 합성기 칵테일 메이커로 부식성 독을 퍼뜨리는 AGS. 건물만 노리고 걸어가며, 맞은 적은 둔화.',
       skill: { name: '부식의 숨결', cost: 2, cd: 12, kind: 'barrage', n: 4, radius: 1.8, dmg: 380, slow: 0.4, reach: 6, color: 0x9aff60, desc: '전방에 부식탄 4발, 맞은 적은 둔화.' } }),
@@ -103,7 +103,7 @@
     S('napalm', { cr: '지진', name: '화염 지대', icon: 'napalm', cost: 3, rarity: 1, arena: 1, spell: 'zone', radius: 3.5, dmg: 76, dur: 3, slow: 0.5, towerK: 0.65, bldK: 4.5, color: 0xff6a2a, sfx: 'spray', desc: '3초 동안 거세게 타오르는 지대. 초당 피해 + 50% 둔화, 설치한 건물에는 4.5배 피해.' }),
     S('missile', { cr: '로켓', name: '순항 미사일', icon: 'missile', cost: 6, rarity: 2, arena: 2, spell: 'fireball', radius: 2, dmg: 1349, towerK: 0.25, knock: 1, color: 0xffc040, sfx: 'expB', desc: '좁은 범위에 막대한 피해. 사수 처리와 마무리용.' }),
     S('poison', { cr: '독', name: '부식 독가스', icon: 'poison', cost: 4, rarity: 2, arena: 1, spell: 'zone', gas: true, radius: 3.5, dmg: 83, dur: 8, slow: 0.15, towerK: 0.3, color: 0x8aff5a, sfx: 'spray', desc: '8초 동안 독가스가 퍼진 지대. 초당 피해 + 15% 둔화. 오래 머무는 무리를 녹입니다.' }),
-    S('clone', { cr: '복제', name: '홀로그램 복제', icon: 'clone', cost: 3, rarity: 2, arena: 2, spell: 'clone', radius: 3, color: 0x5ad8ff, sfx: 'reinforce', desc: '범위 안 아군 유닛마다 체력 1의 복제체를 하나씩 불러냅니다. 챔피언은 복제되지 않습니다.' }),
+    S('clone', { cr: '복제', name: '홀로그램 복제', icon: 'clone', cost: 3, rarity: 2, arena: 2, spell: 'clone', radius: 3, color: 0x5ad8ff, sfx: 'reinforce', desc: '범위 안 아군 유닛마다 체력 1의 복제체를 하나씩 불러냅니다. 영웅은 복제되지 않습니다.' }),
     S('volley', { cr: '화살', name: '탄막 사격', icon: 'volley', cost: 3, rarity: 0, spell: 'volley', radius: 4, dmg: 333, waves: 3, towerK: 0.3, color: 0xffe07a, sfx: 'mg', desc: '넓은 범위에 세 차례 탄막이 쏟아집니다. 체력이 낮은 무리를 쓸어냅니다.' }),
     S('thunder', { cr: '번개', name: '낙뢰 포격', icon: 'thunder', cost: 6, rarity: 2, arena: 2, spell: 'lightning', radius: 3.5, dmg: 960, n: 3, stun: 0.5, towerK: 0.3, color: 0xbfe0ff, sfx: 'elec', desc: '범위 안에서 체력이 가장 높은 대상 셋에 낙뢰. 맞은 대상은 잠시 기절합니다.' }),
     S('repair', { cr: '치유', name: '긴급 수리', icon: 'repair', cost: 1, rarity: 1, spell: 'heal', radius: 3, heal: 400, color: 0x7dffb0, sfx: 'reinforce', desc: '범위 안 아군 유닛의 체력을 400 회복합니다.' }),
@@ -136,7 +136,7 @@
   // units only a commander's support call brings (never in a deck, the codex or the shop)
   const TOKENS = [
     T('lemonadegamma', { rig: 'lemonadegamma', img: 'c_PECS_LemonadeGamma_N', name: '레모네이드 감마', faction: 'lemonade', token: true, cost: 0, rarity: 2, hp: 2600, dmg: 230, rate: 1.4, range: 1.2, hits: 'ground', splash: 0.8, speed: SPD.mid, radius: 0.6, mass: 12, fx: 'slash', color: 0xffd34d, sfx: 'swing', desc: '레모네이드 지원으로 투입되는 근접 전투원.' }),
-    T('rampalion', { rig: 'rampalion', img: 'c_AGS_Rampart_NS1', name: '렘파리온', faction: 'cmd', token: true, cost: 0, rarity: 3, k: 0.5, hp: 3400, dmg: 170, rate: 0.9, range: 5, speed: SPD.mid, radius: 0.7, mass: 16, fx: 'bullet', color: 0xffc27a, sfx: 'mg', desc: '사령관의 부름에 강림하는 수호자.',
+    T('rampalion', { rig: 'rampalion', img: 'c_AGS_Rampart_NS1', name: '램파리온', faction: 'cmd', token: true, cost: 0, rarity: 3, k: 0.5, hp: 3400, dmg: 170, rate: 0.9, range: 5, speed: SPD.mid, radius: 0.7, mass: 16, fx: 'bullet', color: 0xffc27a, sfx: 'mg', desc: '사령관의 부름에 강림하는 수호자.',
       skill: { name: '헤븐 앤 헬', cost: 2, cd: 12, kind: 'dash', heavenhell: true, castT: 1.9, dist: 8, dmg: 1150, radius: 1.6, color: 0xffc27a, desc: '전자기 회오리로 적을 묶고 불사자를 내달린 뒤, 빛이 되어 일직선으로 돌진합니다.' } }),
   ];
   const CARDS = [...ORCA, ...IRON, ...BUILDINGS,
@@ -218,11 +218,11 @@
       { key: 'hard', name: '정예', think: 0.45, reserve: 0, elixirK: 1.05, smart: 1, lvl: 1, trophy: 1.4, attackAt: 7 },
     ],
     modes: [
-      { key: 'normal', name: '일반전', desc: '3분 · 마지막 1분 에너지 2배' },
-      { key: 'rush', name: '에너지 폭주', desc: '처음부터 에너지 2배 · 연장전 3배' },
+      { key: 'normal', name: '일반전', desc: '3분 · 마지막 1분 2X 타임' },
+      { key: 'rush', name: '에너지 폭주', desc: '처음부터 2X 타임 · 연장전 3X 타임' },
       { key: 'draft', name: '무작위 덱', desc: '양측 모두 해금 카드로 만든 무작위 덱' },
       { key: 'daily', name: '오늘의 작전', desc: '날마다 바뀌는 특수 규칙' },
-      { key: 'practice', name: '연습전', desc: '상대 덱을 골라 연습 · 트로피/보상 없음' },
+      { key: 'practice', name: '연습전', desc: '상대 덱을 골라 연습 · 전공/보상 없음' },
     ],
   };
 
@@ -262,7 +262,7 @@
   const SHOP = {
     crates: [{ key: 'normal', price: 120 }, { key: 'rare', price: 350 }, { key: 'epic', price: 900 }],
     masters: [{ r: 0, n: 10, price: 20 }, { r: 1, n: 5, price: 30 }, { r: 2, n: 2, price: 40 }, { r: 3, n: 1, price: 60 }],
-    tunaStart: 50, tunaWin: 3, tunaFirstWin: 10,
+    tunaStart: 100, tunaWin: 3, tunaFirstWin: 10,
   };
   const CHESTS = [
     { key: 'normal', name: '보급 상자', time: 30, gold: [40, 70], cards: 3, weight: 70, color: '#8aa0b4' },
@@ -273,12 +273,12 @@
   // daily operation: one rule twist per day (index = days since epoch)
   const MUTATORS = [
     { key: 'mirror', name: '거울 작전', desc: '상대가 내 덱과 똑같은 카드로 싸웁니다.', mirror: true },
-    { key: 'champs', name: '영웅의 날', desc: '챔피언 스킬 에너지 -1, 재사용 시간 40% 단축.', skillCost: -1, skillCd: 0.6 },
+    { key: 'champs', name: '영웅의 날', desc: '영웅 스킬 에너지 -1, 재사용 시간 40% 단축.', skillCost: -1, skillCd: 0.6 },
     { key: 'swift', name: '전격전', desc: '모든 유닛 이동 속도 +35%, 에너지 회복 +50%.', speed: 1.35, elixir: 1.5 },
     { key: 'titans', name: '거인의 전장', desc: '모든 유닛·건물 체력 +60% (공격력은 그대로). 오래 버티는 쪽이 이깁니다.', hp: 1.6 },
-    { key: 'sudden', name: '단기 결전', desc: '경기 시간 90초, 처음부터 에너지 2배.', time: 90, rush: true },
+    { key: 'sudden', name: '단기 결전', desc: '경기 시간 90초, 처음부터 2X 타임.', time: 90, rush: true },
     // combined rules
-    { key: 'heroblitz', name: '영웅 전격전', desc: '전격전 + 영웅의 날: 이동 속도 +35%, 챔피언 스킬 에너지 -1·재사용 40% 단축.', speed: 1.35, skillCost: -1, skillCd: 0.6 },
+    { key: 'heroblitz', name: '영웅 전격전', desc: '전격전 + 영웅의 날: 이동 속도 +35%, 영웅 스킬 에너지 -1·재사용 40% 단축.', speed: 1.35, skillCost: -1, skillCd: 0.6 },
     { key: 'titanmirror', name: '거인 거울전', desc: '거울 작전 + 거인의 전장: 같은 덱, 모든 체력 +60%.', mirror: true, hp: 1.6 },
   ];
   // the day turns at midnight Korean time (UTC+9)
@@ -292,9 +292,9 @@
   // rotating objectives (three active at a time); progress comes from each battle's stats
   const MISSIONS = [
     { k: 'win', name: '전투 승리', goal: 3, gold: 90 },
-    { k: 'crowns', name: '크라운 획득', goal: 6, gold: 70 },
-    { k: 'three', name: '3크라운 승리', goal: 1, gold: 120 },
-    { k: 'skills', name: '챔피언 스킬 사용', goal: 5, gold: 70 },
+    { k: 'crowns', name: '별 획득', goal: 6, gold: 70 },
+    { k: 'three', name: '별 3개 승리', goal: 1, gold: 120 },
+    { k: 'skills', name: '영웅 스킬 사용', goal: 5, gold: 70 },
     { k: 'cards', name: '카드 배치', goal: 40, gold: 50 },
     { k: 'kills', name: '적 유닛 처치', goal: 60, gold: 60 },
     { k: 'dmg', name: '누적 피해', goal: 100000, gold: 80 },
@@ -321,8 +321,17 @@
     ['st_hello', '안녕!'], ['st_love', '사랑해요'], ['st_party', '축하해요!'], ['st_cry', '흑흑…'], ['st_pout', '흥!'], ['st_scream', '으아악!'],
     ['st_shock', '뭐라고!?'], ['st_what', '응?'], ['st_idea', '좋은 생각!'], ['st_blank', '……'], ['st_grumble', '으으…'],
     ['st_thanks', '고마워요'], ['st_smug', '후후…'], ['st_sing', '신난다~'], ['st_dumbfound', '어이없네'], ['st_confident', '맡겨 줘!']];
+  // the mailbox: mail sent with a patch (each id once per commander). oldOnly: only for commanders who started before it
+  // (a new account already starts with what it brings)
+  const MAIL = [
+    { id: 'v068_start', date: '2026.10.22', title: '시작 자원 지급', body: '시작 자원이 부품 1000 · 참치 100으로 늘었습니다. 먼저 시작한 지휘관께도 같은 만큼 보내 드립니다.', gold: 1000, tuna: 100, oldOnly: true },
+  ];
+  // patch notes shown in their own tab (newest first)
+  const NOTES = [
+    { ver: 'V0.72', date: '2026.10.22', items: ['임시 오픈'] },
+  ];
   window.DATA = {
-    EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
+    NOTES, MAIL, EMOTES, SHOP, RARITY, CARDS, FACTIONS, ARENAS, LEVEL, BAL, MISSIONS, ROAD, MUTATORS, mutatorOf, dayIndex, STYLES, COMMANDERS, CHESTS, arenaOf, synergyOf, SYNERGY,
     card: Object.fromEntries(CARDS.concat(TOKENS).map((c) => [c.id, c])),
     byFaction: (f) => CARDS.filter((c) => c.anyFaction || c.faction === ((FACTIONS[f] && FACTIONS[f].pool) || f)), // (spells belong to every faction) // (Lemonade and the commander play from the orca cards)
   };
