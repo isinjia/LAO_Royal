@@ -8,3 +8,4 @@ Thumbs.db
 # wrangler (Cloudflare deploy)
 .wrangler/
 node_modules/
+dist/

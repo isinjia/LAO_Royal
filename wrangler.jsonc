@@ -1,8 +1,11 @@
-// Cloudflare Workers: the game is served as static files from this folder (what to leave out: .assetsignore)
+// Cloudflare Workers: on every push Workers Builds runs the build (tools/build_dist.mjs), which puts only the game in
+// dist/ with its scripts minified and its pictures masked (.pak, unmasked in the browser by sw.js), then deploys dist/.
+// The repository keeps the readable originals.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "lao-multy",
   "compatibility_date": "2026-10-19",
   "observability": { "enabled": true },
-  "assets": { "directory": "." }
+  "build": { "command": "node tools/build_dist.mjs" },
+  "assets": { "directory": "./dist" }
 }

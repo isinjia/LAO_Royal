@@ -27,6 +27,18 @@
         "8767"
       ],
       "port": 8767
+    },
+    {
+      "name": "lastroyal-dist",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8793",
+        "--directory",
+        "dist"
+      ],
+      "port": 8793
     }
   ]
 }
