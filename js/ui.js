@@ -40,7 +40,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.66'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.67'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -289,6 +289,29 @@
     $('shopGold').textContent = save.gold; $('shopTuna').textContent = save.tuna;
     $('shopCrates').innerHTML = DATA.SHOP.crates.map((it, i) => { const ch = DATA.CHESTS.find((x) => x.key === it.key); return `<button class="shopit" data-buy="crate:${i}"><i class="chest-i ${it.key}"></i><b>${esc(ch.name)}</b><small>카드 ${ch.cards}장</small><em><i class="gold-i"></i>${it.price}</em></button>`; }).join('');
     $('shopMasters').innerHTML = DATA.SHOP.masters.map((it, i) => `<button class="shopit master r${it.r}" data-buy="master:${i}"><span class="mcard ${it.r >= 2 ? 'sp' : ''}"><b>${RARITY[it.r].name}</b></span><b>${RARITY[it.r].name} 대체코어 x${it.n}</b><small>보유 ${save.master[it.r]}</small><em><i class="tuna-i"></i>${it.price}</em></button>`).join('');
+  }
+  // a substitute core: pick one of the owned cards of its grade; the copies land on it and the tuna is paid
+  function openCorePick(i) {
+    const it = DATA.SHOP.masters[i], ov = $('coreOv');
+    $('coreTitle').textContent = `${RARITY[it.r].name} 대체코어 x${it.n}`;
+    $('coreSub').innerHTML = `적용할 캐릭터를 고르세요 · <i class="tuna-i"></i>${it.price}`;
+    const list = $('coreList'); list.innerHTML = '';
+    const cards = DATA.CARDS.filter((c) => c.rarity === it.r && save.cards[c.id]).sort((a, b) => copiesLeft(b) - copiesLeft(a) || a.cost - b.cost);
+    cards.forEach((c) => {
+      const left = copiesLeft(c), add = Math.min(it.n, left), w = document.createElement('button');
+      w.className = 'corec' + (add ? '' : ' full');
+      w.appendChild(cardEl(c, 'mini', { lv: levelOf(c.id) }));
+      w.insertAdjacentHTML('beforeend', `<b>${esc(c.name)}</b><em>${add ? '카드 +' + add : '최대'}</em>`);
+      w.onclick = () => {
+        if (!add) { toast('더 모을 카드가 없는 캐릭터입니다'); SFX.play('fail', 0.4); return; }
+        if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
+        save.tuna -= it.price; save.cards[c.id].n += add; persist(); SFX.play('pickSS', 0.6);
+        toast(`${c.name} 카드 +${add} · 참치 -${it.price}`); ov.hidden = true; renderShop();
+      };
+      list.appendChild(w);
+    });
+    if (!cards.length) list.innerHTML = '<p class="hint">이 등급의 캐릭터가 없습니다</p>';
+    ov.hidden = false;
   }
   function copiesLeft(c) {
     const o = save.cards[c.id]; if (!o) return 0;
@@ -831,7 +854,7 @@
       const rl = GAME.G.sides && GAME.G.sides.red.lvl;
       $('vsFoeSub').innerHTML = (rl ? `<b class="style">Lv.${rl}</b> · ` : '') + `${FACTIONS[ff].name} · <b class="style">${st.name}</b> · ${BAL.diffs[opts.diff].name} · ${opts.mode === 3 ? (opts.mut || DATA.mutatorOf()).name : BAL.modes[opts.mode].name}`;
       $('vsArena').textContent = ARENAS[opts.arena].name;
-      const hs = GAME.G.hints || []; $('vsHint').textContent = hs.length ? '정보: 상대가 ' + hs[0] : ''; $('vsHint').hidden = !hs.length;
+      $('vsHint').hidden = true; // (no hint about the opponent's deck on the matching screen)
       const mr = opts.mode === 3 ? opts.mut || DATA.mutatorOf() : null; // today's rule, explained before the fight
       $('vsRule').hidden = !mr; if (mr) $('vsRule').innerHTML = `<b>오늘의 작전 · ${esc(mr.name)}</b>${esc(mr.desc)}`;
       el.style.backgroundImage = `radial-gradient(ellipse at center, rgba(12,18,28,.55), rgba(5,7,10,.95) 75%), url(${ARENAS[opts.arena].bg})`;
@@ -1189,10 +1212,11 @@
       } else {
         const it = DATA.SHOP.masters[+i];
         if (save.tuna < it.price) { toast('참치가 부족합니다'); SFX.play('fail', 0.4); return; }
-        save.tuna -= it.price; save.master[it.r] += it.n; persist(); SFX.play('purchase', 0.6); toast(`${RARITY[it.r].name} 대체코어 +${it.n}`);
+        SFX.play('click'); openCorePick(+i); return; // (a core goes onto a card picked from the list: the tuna is paid then)
       }
       renderShop();
     });
+    $('coreOv').addEventListener('click', (e) => { if (e.target.id === 'coreOv' || e.target.id === 'btnCoreClose') $('coreOv').hidden = true; });
     $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; if (save.collSort === b.dataset.s) save.collDesc = !save.collDesc; else { save.collSort = b.dataset.s; save.collDesc = false; } persist(); SFX.play('click'); renderDeck(); });
     $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') closeCard(); }); // a tap outside the popup closes it
     $('deckTabs').addEventListener('click', (e) => {
