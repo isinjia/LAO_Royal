@@ -4,7 +4,7 @@
 (function () {
   const LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
   const APP = 'lastroyal-isinjia';
-  const PROTO = 2; // bump when the match protocol changes: old and new builds never meet
+  const PROTO = 3; // bump when the match protocol changes: old and new builds never meet
   // a fixed list of relays known to answer: the library's default list includes relays that are down or have broken
   // certificates, and in-app browsers such as KakaoTalk's warn about every one of them
   const RELAYS = ['wss://nos.lol', 'wss://relay.mostro.network', 'wss://nostr-01.yakihonne.com', 'wss://relay.sigit.io', 'wss://schnorr.me', 'wss://yabu.me/v2', 'wss://nostr.data.haus', 'wss://strfry.shock.network']; // (from the library's own list: the ones that answer)
