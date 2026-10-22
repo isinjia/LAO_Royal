@@ -218,8 +218,8 @@
       { key: 'hard', name: '정예', think: 0.45, reserve: 0, elixirK: 1.05, smart: 1, lvl: 1, trophy: 1.4, attackAt: 7 },
     ],
     modes: [
-      { key: 'normal', name: '일반전', desc: '3분 · 마지막 1분 에너지 2배' },
-      { key: 'rush', name: '에너지 폭주', desc: '처음부터 에너지 2배 · 연장전 3배' },
+      { key: 'normal', name: '일반전', desc: '3분 · 마지막 1분 2X 타임' },
+      { key: 'rush', name: '에너지 폭주', desc: '처음부터 2X 타임 · 연장전 3X 타임' },
       { key: 'draft', name: '무작위 덱', desc: '양측 모두 해금 카드로 만든 무작위 덱' },
       { key: 'daily', name: '오늘의 작전', desc: '날마다 바뀌는 특수 규칙' },
       { key: 'practice', name: '연습전', desc: '상대 덱을 골라 연습 · 전공/보상 없음' },
@@ -276,7 +276,7 @@
     { key: 'champs', name: '영웅의 날', desc: '영웅 스킬 에너지 -1, 재사용 시간 40% 단축.', skillCost: -1, skillCd: 0.6 },
     { key: 'swift', name: '전격전', desc: '모든 유닛 이동 속도 +35%, 에너지 회복 +50%.', speed: 1.35, elixir: 1.5 },
     { key: 'titans', name: '거인의 전장', desc: '모든 유닛·건물 체력 +60% (공격력은 그대로). 오래 버티는 쪽이 이깁니다.', hp: 1.6 },
-    { key: 'sudden', name: '단기 결전', desc: '경기 시간 90초, 처음부터 에너지 2배.', time: 90, rush: true },
+    { key: 'sudden', name: '단기 결전', desc: '경기 시간 90초, 처음부터 2X 타임.', time: 90, rush: true },
     // combined rules
     { key: 'heroblitz', name: '영웅 전격전', desc: '전격전 + 영웅의 날: 이동 속도 +35%, 영웅 스킬 에너지 -1·재사용 40% 단축.', speed: 1.35, skillCost: -1, skillCd: 0.6 },
     { key: 'titanmirror', name: '거인 거울전', desc: '거울 작전 + 거인의 전장: 같은 덱, 모든 체력 +60%.', mirror: true, hp: 1.6 },

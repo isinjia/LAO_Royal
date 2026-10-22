@@ -2261,9 +2261,9 @@
     const mult = G.overtime ? 3 : rush || G.clock <= BAL.doubleAt ? 2 : 1;
     if (mult !== G.mult) {
       G.mult = mult;
-      UI.banner(mult === 2 ? '에너지 2배!' : '에너지 3배!', 'warn');
+      UI.banner(mult === 2 ? '2X 타임!' : '3X 타임!', 'warn');
       energySurge();
-      logEvent(mult === 2 ? '에너지 2배 돌입' : '에너지 3배 돌입');
+      logEvent(mult === 2 ? '2X 타임 돌입' : '3X 타임 돌입');
       SFX.play('warning', 0.5);
       if (mult === 2) SFX.music('battle2');
     }

@@ -43,7 +43,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.72'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.73'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -616,7 +616,7 @@
       $('timerLabel').textContent = G.overtime ? '연장전' : '남은 시간';
       $('timer').classList.toggle('hot', G.overtime || G.clock <= BAL.doubleAt);
       $('timer').classList.toggle('last', G.clock <= 10);
-      $('multTag').textContent = G.mult > 1 ? `에너지 x${G.mult}` : '';
+      $('multTag').textContent = G.mult > 1 ? `${G.mult}X 타임` : '';
       $('elixir').classList.toggle('x2', G.mult > 1);
       if (G.phase === 'play' && G.clock <= 10 && G.clock > 0 && t !== tick.lastBeep) { tick.lastBeep = t; if (!SFX.voice('ann:' + t, 0.9, 4)) SFX.play('click', 0.35); } // the announcer counts the last ten seconds
     }
@@ -1118,6 +1118,7 @@
     $('setMusic').value = save.music;
     $('setSfx').value = save.sfx;
     $('setVoice').value = save.voice;
+    { const sl = $('setLang'); if (window.I18N) { sl.innerHTML = I18N.langs.map((c, i) => `<option value="${c}">${I18N.labels[i]}</option>`).join(''); sl.value = I18N.lang; } } // (each language in its own name)
     $('setQuality').value = save.autoQuality ? 'auto' : String(save.quality == null ? GAME.perf.level : save.quality);
     $('setInfo').textContent = `현재 품질: ${GAME.QUALITY[GAME.perf.level].name} · 최근 FPS ${GAME.perf.fps || '-'} · 버전 ${APP_VERSION}`;
     $('settingsOv').hidden = false;
@@ -1127,7 +1128,7 @@
   // tutorial
   const TUT = [
     ['c_BR_Brownie_N', '카드 배치', '아래 카드를 전장으로 드래그하거나, 카드를 누른 뒤 아군 진영을 누르면 유닛이 출격합니다. 카드마다 에너지가 필요합니다.'],
-    ['c_BR_Leprechaun_N', '에너지', '에너지는 2.8초마다 1씩 차고 최대 10까지 모입니다. 가득 찬 채로 두면 낭비! 남은 1분은 2배로 찹니다.'],
+    ['c_BR_Leprechaun_N', '에너지', '에너지는 2.8초마다 1씩 차고 최대 10까지 모입니다. 가득 찬 채로 두면 낭비! 남은 1분은 2X 타임: 두 배로 빨리 찹니다.'],
     ['c_PECS_Empress_N', '타워 공략', '적 측면 타워를 부수면 별 1개. 중앙 타워를 부수면 즉시 승리합니다. 건물만 노리는 유닛으로 압박하세요.'],
     ['c_BR_Leprechaun_N', '건물과 주문', '건물은 아군 진영에만 지을 수 있고 시간이 지나면 무너집니다. 포탑·방벽은 건물만 노리는 적을 끌어당기고, 기지는 유닛을 계속 보냅니다. 주문은 전장 어디에나 쓸 수 있습니다.'],
     ['c_3P_Labiata_N', '영웅 스킬', 'SS 등급 영웅이 전장에 있으면 오른쪽 아래에 스킬 버튼이 나타납니다. 에너지를 써서 강력한 스킬을 발동하세요! 포격·레이저·돌진 스킬은 버튼을 전장으로 끌어 직접 조준할 수 있습니다.'],
@@ -1358,6 +1359,7 @@
     $('setSfx').oninput = (e) => { save.sfx = +e.target.value; applyAudio(); persist(); SFX.play('click'); };
     $('setVoice').oninput = (e) => { save.voice = +e.target.value; applyAudio(); persist(); };
     $('setVoice').onchange = () => SFX.voice('ann:great', 1, 5); // a sample line at the new level
+    $('setLang').onchange = (e) => { if (window.I18N) I18N.set(e.target.value); }; // (the page reloads in the new language)
     $('setQuality').onchange = (e) => {
       const v = e.target.value;
       save.autoQuality = v === 'auto';
