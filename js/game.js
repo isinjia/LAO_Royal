@@ -2362,7 +2362,7 @@
     mp.lastRecv = performance.now(); mp.heard = true;
     if (m.c) for (const c of m.c) { if (!mp.theirs.has(c.t)) mp.theirs.set(c.t, []); mp.theirs.get(c.t).push(c); }
     if (m.u != null) mp.upTo = Math.max(mp.upTo, m.u);
-    mp.warned = false;
+    mp.warned = false; mpWaitHide();
     if (m.d != null && mp.guest) mp.digests.set(m.d, m);
     if (m.em != null && G.phase === 'play') UI.emote('red', m.em);
     if (m.end && mp.guest) { // the host's verdict (from its side: mirror it)
@@ -2371,14 +2371,15 @@
       endMatch(mpOther(m.end), m.why || 'king');
     }
     if (m.bye) mpAbandon('surrender'); // the opponent surrendered
-    if (m.gone) mpSelfLose(); // the other device waited 5 s for this one: it was away, the match is lost
+    if (m.gone) mpSelfLose();
+    if (m.lost) mpAbandon('disconnect', true); // the other device found itself away too long: this side wins // the other device waited 5 s for this one: it was away, the match is lost
     if (m.left && G.phase === 'play') UI.toast('상대의 연결이 끊겼습니다. 5초 안에 돌아오지 않으면 승리합니다'); // (the line dropped: the stall check decides)
   }
   // the other device is gone (it surrendered, or nothing came from it for 5 s): this side wins, and says so in case it returns
-  function mpAbandon(why) {
+  function mpAbandon(why, told) {
     if (!mp || G.phase !== 'play') return;
     mp.endOK = true;
-    if (why !== 'surrender') try { mp.send({ gone: 1 }); } catch (e) { /* gone */ }
+    if (why !== 'surrender' && !told) try { mp.send({ gone: 1 }); } catch (e) { /* gone */ }
     G.sides.blue.crowns = Math.max(G.sides.blue.crowns, 3); UI.crowns();
     endMatch('blue', why || 'disconnect');
   }
@@ -2387,25 +2388,37 @@
     if (!mp || G.phase !== 'play' || document.hidden || navigator.onLine === false) return;
     mp.foeDrops = (mp.foeDrops || 0) + 1;
     if (mp.foeDrops >= MP_DROPS) { mpAbandon(); return; }
-    UI.toast(`상대 연결 끊김 ${mp.foeDrops}/${MP_DROPS} · 5초 안에 돌아오지 않거나 ${MP_DROPS}번 끊기면 승리합니다`);
   }
   // this device was the one away (its screen off for more than 5 s, its network down, or the other side said so): it loses
   function mpSelfLose() {
     if (!mp || G.phase !== 'play') return;
     mp.endOK = true;
+    try { mp.send({ lost: 1 }); } catch (e) { /* gone */ } // (the other side may not have counted it yet: it wins too)
     G.sides.red.crowns = Math.max(G.sides.red.crowns, 3); UI.crowns();
     endMatch('red', 'disconnect');
   }
-  document.addEventListener('visibilitychange', () => {
-    if (!mp || mp.done) return;
-    if (document.hidden) mp.awayAt = performance.now();
-    else if (mp.awayAt != null) {
-      const away = performance.now() - mp.awayAt; mp.awayAt = null;
-      if (away > MP_DROP) mp.myDrops = (mp.myDrops || 0) + 1; // (the other device counts the same silence)
-      if (away > MP_STALL || mp.myDrops >= MP_DROPS) mpSelfLose();
-      else if (away > MP_DROP && G.phase === 'play') UI.toast(`연결 끊김 ${mp.myDrops}/${MP_DROPS} · ${MP_DROPS}번 끊기면 패배합니다`);
+  // this device stopped (home button, app switcher, screen off, a frozen tab): measured by the gap between its own frames,
+  // which is known on the very first frame back, before it could mistake the other side's silence for theirs
+  function mpSelfGap(gap) {
+    mp.myDrops = (mp.myDrops || 0) + 1; // (the other device counts the same silence)
+    mp.lastRecv = performance.now(); // (what it sent meanwhile is still on its way: no blame on the other side for this gap)
+    if (gap > MP_STALL || mp.myDrops >= MP_DROPS) { mpSelfLose(); return; }
+    UI.toast(`연결 끊김 ${mp.myDrops}/${MP_DROPS} · ${MP_DROPS}번 끊기거나 5초를 넘기면 패배합니다`);
+  }
+  // the waiting side's notice: on screen for as long as the other device is silent, with the seconds left
+  let mpWaitEl = null;
+  function mpWaitShow(quiet) {
+    if (!mpWaitEl) {
+      mpWaitEl = document.createElement('div');
+      mpWaitEl.id = 'mpWait';
+      mpWaitEl.style.cssText = 'position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:20;pointer-events:none;width:max-content;max-width:calc(100% - 32px);word-break:keep-all;box-sizing:border-box;padding:12px 18px;border-radius:12px;background:rgba(6,10,16,.88);border:1px solid #f0b440;color:#fff;text-align:center;font:700 14px/1.45 var(--kr,sans-serif);box-shadow:0 6px 24px rgba(0,0,0,.5)';
+      (document.getElementById('stage') || document.body).appendChild(mpWaitEl);
     }
-  });
+    const left = Math.max(0, Math.ceil((MP_STALL - quiet) / 1000));
+    mpWaitEl.innerHTML = `상대의 연결이 끊겨 대기 중입니다<br><span style="color:#ffd36a;font-size:13px">${left}초 안에 돌아오지 않으면 승리 · 끊김 ${Math.min(mp.foeDrops || 0, MP_DROPS)}/${MP_DROPS}</span>`;
+    mpWaitEl.hidden = false;
+  }
+  function mpWaitHide() { if (mpWaitEl) mpWaitEl.hidden = true; }
 
   // run this tick's inputs, the host's first on both devices
   function mpRun(t) {
@@ -2493,6 +2506,7 @@
   function mpClose() { if (!mp) return; mp.done = true; try { mp.close && mp.close(); } catch (e) { /* gone */ } mp = null; srng = Math.random; }
 
   function endMatch(winner, reason) {
+    mpWaitHide();
     if (G.phase !== 'play') return;
     if (mp && mp.guest && !mp.endOK) return; // online: the host decides how the match ends
     if (mp && !mp.guest && !mp.endOK) mp.send({ end: winner, why: reason, cr: [G.sides.blue.crowns, G.sides.red.crowns] });
@@ -3540,6 +3554,7 @@
   }
   function frameBody(dt, interval) {
     if (!renderer || G.paused || G.lost) return;
+    if (mp && !mp.done && G.phase === 'play') { const now = performance.now(); if (mp.lastFrame != null && now - mp.lastFrame > MP_DROP) mpSelfGap(now - mp.lastFrame); if (mp) mp.lastFrame = now; } // (this device was away: settled before anything else this frame)
     if (pv) { previewFrame(dt); return; } // (the deck popup's card preview)
     if (G.hitStop > 0) { G.hitStop -= dt; dt *= 0.06; } else if (G.slowmo > 0) { G.slowmo -= dt; dt *= 0.35; }
     const t0 = performance.now();
@@ -3557,7 +3572,7 @@
         let n = 0;
         while (acc >= DT && n < 6) {
           if (mp && !mp.done) {
-            if (mp.upTo < mp.tick) { acc = Math.min(acc, DT); const quiet = performance.now() - mp.lastRecv; if (quiet > (mp.heard ? MP_STALL : 30000)) { if (navigator.onLine === false) mpSelfLose(); else mpAbandon(); } else if (mp.heard && quiet > MP_DROP && !mp.warned) { mp.warned = true; mpFoeDrop(); } break; } // waiting for the other device (longer before its first word: it may still be loading)
+            if (mp.upTo < mp.tick) { acc = Math.min(acc, DT); const quiet = performance.now() - mp.lastRecv; if (quiet > (mp.heard ? MP_STALL : 30000)) { if (navigator.onLine === false) mpSelfLose(); else mpAbandon(); } else if (mp.heard && quiet > MP_DROP) { if (!mp.warned) { mp.warned = true; mpFoeDrop(); } if (mp && !mp.done && G.phase === 'play') mpWaitShow(quiet); } break; } // waiting for the other device (longer before its first word: it may still be loading)
             mpRun(mp.tick);
           }
           step(DT);

@@ -11,15 +11,17 @@
   window.addEventListener('error', (e) => out.errors.push(`${e.message} @${(e.filename || '').split('/').pop()}:${e.lineno}`));
   // the meeting: the host announces, the guest answers; then every message goes over the same channel
   const bc = new BroadcastChannel('lastroyal-mptest');
+  const held = []; let deliver = () => {}, wasFrozen = false;
   window.NET = {
     cancel() {},
     find(profile) {
       return new Promise((resolve) => {
         let fn = null; const early = [];
+        deliver = () => { while (held.length && fn) fn(held.shift()); };
         const link = (foe, seed) => resolve({ guest: !host, seed, foe, send: (m) => bc.postMessage({ k: 'g', from: host, m }), listen: (f) => { fn = f; while (early.length) f(early.shift()); }, close() {} });
         bc.onmessage = (ev) => {
           const d = ev.data;
-          if (d.k === 'g' && d.from !== host) { if (fn) fn(d.m); else early.push(d.m); }
+          if (d.k === 'g' && d.from !== host) { if (out.freeze || held.length) { held.push(d.m); return; } if (fn) fn(d.m); else early.push(d.m); } // (a frozen tab hears nothing until it is back, like a phone with the app down)
           if (!host && d.k === 'hello') { bc.postMessage({ k: 'ok', p: profile }); link(d.p, d.seed); }
           if (host && d.k === 'ok') { clearInterval(t); link(d.p, 12345); }
         };
@@ -34,7 +36,8 @@
   }
   // a hidden page gets no animation frames: a message pump keeps the match going (one 1/60 s frame per turn of the event loop)
   let rafT = 0; const raf = () => { rafT = performance.now(); requestAnimationFrame(raf); }; requestAnimationFrame(raf); // (frames stop when the page is out of sight, whatever document.hidden says)
-  { const ch = new MessageChannel(); ch.port1.onmessage = () => { if (!out.freeze && performance.now() - rafT > 200 && window.GAME && GAME._frame && GAME.G && GAME.G.phase !== 'title') GAME._frame(1 / 60); ch.port2.postMessage(0); }; ch.port2.postMessage(0); }
+  { const ch = new MessageChannel(); ch.port1.onmessage = () => { if (!out.freeze && performance.now() - rafT > 200 && window.GAME && GAME._frame && GAME.G && GAME.G.phase !== 'title') { GAME._frame(1 / 60); if (wasFrozen) { wasFrozen = false; deliver(); } } if (out.freeze) wasFrozen = true; // (back: the first frame runs before the messages that waited, the worst order)
+ ch.port2.postMessage(0); }; ch.port2.postMessage(0); }
   async function run() {
     for (let i = 0; i < 300 && !(window.GAME && GAME.ready && window.UI); i++) await wait(100);
     await wait(800);
