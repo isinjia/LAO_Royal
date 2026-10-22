@@ -375,16 +375,16 @@ button:disabled { cursor: default; }
 .dots { display: flex; justify-content: center; gap: 6px; }
 .dots i { width: 8px; height: 8px; border-radius: 50%; background: #3a4858; }
 .dots i.on { background: var(--y); }
-.vsov { grid-template-rows: auto auto auto; align-content: center; gap: 18px; background: radial-gradient(ellipse at center, #1c2836, #05070a 75%); }
-.vs-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 0 12px; }
+.vsov { grid-template-rows: auto auto auto; grid-template-columns: minmax(0, 1fr); overflow: hidden; align-content: center; gap: 18px; background: radial-gradient(ellipse at center, #1c2836, #05070a 75%); }
+.vs-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; max-width: 100%; box-sizing: border-box; padding: 0 12px; min-width: 0; }
 .vs-side { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; min-width: 0; }
 .vs-side.me { animation: vsl .5s cubic-bezier(.2,1.3,.5,1); } .vs-side.foe { animation: vsr .5s cubic-bezier(.2,1.3,.5,1); }
 @keyframes vsl { from { transform: translateX(-120%); } } @keyframes vsr { from { transform: translateX(120%); } }
-.vs-pf { width: 120px; height: 120px; border-radius: 14px; background: #222 center 15% / cover; border: 3px solid var(--blue); box-shadow: 0 0 20px rgba(58,168,255,.5); }
+.vs-pf { width: min(120px, 28vw); height: min(120px, 28vw); flex: none; border-radius: 14px; background: #222 center 15% / cover; border: 3px solid var(--blue); box-shadow: 0 0 20px rgba(58,168,255,.5); }
 .foe .vs-pf { border-color: var(--red); box-shadow: 0 0 20px rgba(255,74,90,.5); }
-.vs-side b { font-size: 16px; } .vs-side small { font-size: 11px; color: var(--dim); }
-.vs-mid { font: 900 italic 44px var(--en-font); color: var(--y); text-shadow: 0 0 20px rgba(255,200,30,.6); display: flex; flex-direction: column; align-items: center; animation: pop2 .6s .3s both; }
-.vs-mid small { font: 400 12px var(--kr); color: var(--dim); }
+.vs-side > b { font-size: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .vs-side small b { font-size: inherit; } .vs-side small { font-size: 11px; color: var(--dim); max-width: 100%; overflow-wrap: anywhere; }
+.vs-mid { flex: 0 1 auto; min-width: 0; max-width: 34%; text-align: center; font: 900 italic 44px var(--en-font); color: var(--y); text-shadow: 0 0 20px rgba(255,200,30,.6); display: flex; flex-direction: column; align-items: center; animation: pop2 .6s .3s both; }
+.vs-mid small { font: 400 12px var(--kr); color: var(--dim); max-width: 100%; overflow-wrap: anywhere; }
 .vsov .lbar { width: min(80%, 320px); justify-self: center; height: 10px; background: #0a0d12; border-radius: 5px; overflow: hidden; }
 .lbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffd84a, #f0a800); transition: width .2s; }
 .lcancel { justify-self: center; }
@@ -409,7 +409,7 @@ button:disabled { cursor: default; }
 .rchart .bar b{text-align:right;color:#fff;font-size:11px}
 @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
-.vsrule{display:block;margin:10px auto 0;max-width:230px;font-size:11px;line-height:1.4;font-weight:600;color:#e8f2ff;background:linear-gradient(rgba(40,30,8,.85),rgba(20,14,4,.85));border:1px solid #f0b440;border-radius:10px;padding:6px 10px;letter-spacing:0;animation:vsHintIn .5s .9s both}
+.vsrule{display:block;margin:0 auto;justify-self:center;max-width:min(300px,calc(100% - 32px));overflow-wrap:anywhere;font-size:11px;line-height:1.4;font-weight:600;color:#e8f2ff;background:linear-gradient(rgba(40,30,8,.85),rgba(20,14,4,.85));border:1px solid #f0b440;border-radius:10px;padding:6px 10px;letter-spacing:0;animation:vsHintIn .5s .9s both}
 .vsrule b{display:block;color:#ffd36a;font-size:12px;margin-bottom:2px}
 #elixir.near{animation:elixNear .5s ease-in-out infinite alternate}
 @keyframes elixNear{from{filter:none}to{filter:brightness(1.35) drop-shadow(0 0 6px rgba(255,90,220,.8))}}
@@ -435,7 +435,7 @@ button:disabled { cursor: default; }
 .skb .hk{position:absolute;left:-4px;top:-4px;width:18px;height:18px;border-radius:5px;background:#0d1218;border:1px solid #6a7a8a;color:#cfe3ff;font:800 10px/16px var(--kr);font-style:normal;text-align:center;pointer-events:none}
 
 
-#vsFoeSub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block}
+#vsFoeSub{white-space:normal;overflow:hidden;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35} /* (two lines on a narrow phone, never wider than its half) */
 
 /* opponent cut-in: a thin banner under the enemy tower labels; an enemy emote bubble moves below it while it shows */
 .skcut.mini{top:17%;height:40px;left:auto;width:min(300px,70%);padding:0 12px;gap:8px}
