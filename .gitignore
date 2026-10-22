@@ -4,3 +4,7 @@
 Thumbs.db
 .DS_Store
 
+
+# wrangler (Cloudflare deploy)
+.wrangler/
+node_modules/
