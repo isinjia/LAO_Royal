@@ -37,7 +37,8 @@
   async function run() {
     for (let i = 0; i < 300 && !(window.GAME && GAME.ready && window.UI); i++) await wait(100);
     await wait(800);
-    Object.assign(UI.save, { mode: 0, tutorial: true, nick: UI.save.nick || '점검' });
+    const nq = /[?&]nick=([^&]+)/.exec(location.search);
+    Object.assign(UI.save, { mode: 0, tutorial: true, nick: nq ? decodeURIComponent(nq[1]) : UI.save.nick || '점검' }); // (nick=: each tab its own name)
     const ov = document.getElementById('nickOv'); if (ov) ov.hidden = true;
     const G = GAME.G;
     for (let k = 0; k < 8 && G.phase === 'title'; k++) { document.getElementById('btnBattle').click(); await wait(3000); }

@@ -1156,7 +1156,8 @@
     beginBattleScreen();
     const levels = {}; save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
     const f = m.foe, cs = DATA.COMMANDERS[f.faction] || DATA.COMMANDERS.iron;
-    const foeC = Object.assign({}, cs[0], { name: '온라인 사령관', style: 'balanced' });
+    const foeNick = typeof f.nick === 'string' ? f.nick.replace(/\s+/g, ' ').trim().slice(0, 10) : ''; // (the other player's own nickname; an older build sends none)
+    const foeC = Object.assign({}, cs[0], { name: foeNick || '온라인 사령관', style: 'balanced' });
     m.listen((msg) => GAME.mpMessage(msg));
     GAME.start({ faction: save.faction, deck: save.decks[save.faction], diff: 1, mode: 0, mut: null, levels, arena: m.guest ? (f.arena | 0) : arena(),
       foe: foeC, foeDeck: f.deck, foeFaction: f.faction, foeLevels: f.levels || {},
@@ -1173,7 +1174,7 @@
     if (save.mode === 0 && noOnline !== true && window.NET && navigator.onLine !== false && !/[?&](smoke|offline)=1/.test(location.search)) {
       searching = true;
       const levels = {}; save.decks[save.faction].forEach((id) => { levels[id] = levelOf(id); });
-      const profile = { faction: save.faction, deck: save.decks[save.faction].slice(), levels, trophy: save.trophy, arena: arena() };
+      const profile = { nick: save.nick || '', faction: save.faction, deck: save.decks[save.faction].slice(), levels, trophy: save.trophy, arena: arena() };
       $('searchOv').hidden = false; $('searchMsg').textContent = '온라인 대전 상대를 찾고 있습니다';
       const WAIT = 10000 + Math.random() * 10000; // nobody in 10-20 s: the AI takes the seat (no countdown shown)
       $('searchSec').textContent = '';
