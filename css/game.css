@@ -1359,3 +1359,11 @@ button:disabled { cursor: default; }
 .pnote li { font-size: 12.5px; line-height: 1.5; color: #d6e2ee; margin: 3px 0; }
 .corec .tile { width: 100%; } .corec .tile .card { width: 100%; }
 #collection .collgap { grid-column: 1 / -1; width: 100%; flex-basis: 100%; margin: 10px 0 2px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 800; color: var(--dim); }
+/* the record (wins / losses) under the nickname: a long name keeps the room the record used to share */
+.nickcol { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; flex: 1 1 0; }
+.nickcol .nickchip { max-width: 100%; min-width: 0; flex: none; }
+#title .ttop { gap: 6px; }
+#title .ttop .tro-box, #title .ttop .gold-box { padding: 5px 9px 5px 6px; gap: 4px; flex: none; }
+#title .ttop .ibtn { flex: none; }
+#title .ttop .sp { display: none; }
+.nickcol #record { margin: 0 0 0 6px; font-size: 10.5px; line-height: 1; color: var(--dim); white-space: nowrap; }
