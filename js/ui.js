@@ -49,7 +49,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.88'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.89'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -1291,6 +1291,7 @@
       if (e.target.id === 'btnMailAll') { const o = mailOpen(); if (o.length) takeMail(o); return; }
       const b = e.target.closest('[data-mail]'); if (b) { const m = DATA.MAIL.find((x) => x.id === b.dataset.mail); if (m && !save.mail[m.id]) takeMail([m]); }
     });
+    $('btnSearchCancel').onclick = () => { $('searchOv').dataset.how = 'cancel'; NET.cancel(); }; // (while still looking: a found match has no way back)
     $('coreOv').addEventListener('click', (e) => { if (e.target.id === 'coreOv' || e.target.id === 'btnCoreClose') $('coreOv').hidden = true; });
     $('collSort').addEventListener('click', (e) => { const b = e.target.closest('[data-s]'); if (!b) return; if (save.collSort === b.dataset.s) save.collDesc = !save.collDesc; else { save.collSort = b.dataset.s; save.collDesc = false; } persist(); SFX.play('click'); renderDeck(); });
     $('cardOv').addEventListener('click', (e) => { if (e.target.id === 'cardOv') closeCard(); }); // a tap outside the popup closes it
