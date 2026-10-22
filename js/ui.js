@@ -25,6 +25,7 @@
     // this device's own player id (kept for good: the 5-minute rematch block goes by it)
     if (typeof s.pid !== 'string' || !/^[a-z0-9]{12}$/.test(s.pid)) s.pid = Array.from({ length: 12 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
     // online opponents met in the last 5 minutes (no rematch with them: no trading wins between friends)
+    if (s.pendingOnline != null && (typeof s.pendingOnline !== 'object' || typeof s.pendingOnline.t !== 'number')) s.pendingOnline = null;
     s.recentFoes = Array.isArray(s.recentFoes) ? s.recentFoes.filter((r) => r && typeof r.t === 'number' && Date.now() - r.t < REMATCH_MS).slice(-30) : [];
     if (s.practiceFoe === 'iron') s.practiceFoe = 'orca'; // (decks are shared now)
     if (!['ai', 'orca'].includes(s.practiceFoe)) s.practiceFoe = 'ai';
@@ -48,7 +49,7 @@
     if (typeof s.decks !== 'object' || !s.decks) s.decks = {};
     return s;
   })();
-  const APP_VERSION = 'V0.84'; // shown on the title and in the settings
+  const APP_VERSION = 'V0.85'; // shown on the title and in the settings
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { if (!persist.warned) { persist.warned = true; setTimeout(() => toast('기기 저장 공간을 쓸 수 없어 진행이 저장되지 않습니다'), 0); } } } // private mode / quota: say so once
   const arena = () => arenaOf(save.trophy);
   // a new commander starts with 12 cards (a sound deck of 8 among them); each win opens one more
@@ -1034,7 +1035,9 @@
     const floor = ARENAS[a0].trophy;
     const practice = G.opts.mode === 4; // practice: no trophies, rewards, record, missions or bonuses
     const rw = practice ? { gold: 0, picks: [], chest: null } : rollRewards(win, b); // rolled at the arena the match was played in (before trophies move)
+    save.pendingOnline = null; // (the match got its result: nothing left to settle at the next start)
     let delta = practice || draw ? 0 : win ? Math.round((26 + b * 3) * d.trophy) : -Math.round(18 + a0 * 3);
+    if (win && reason === 'disconnect') delta = Math.round(delta / 2); // (won because the line dropped: when both lines drop, both sides may claim it)
     if (!practice && !win && save.trophy + delta < floor) delta = floor - save.trophy; // never drop out of a reached arena
     save.trophy += delta;
     if (!practice) save.best = Math.max(save.best, save.trophy);
@@ -1047,7 +1050,7 @@
     el.className = 'screen on ' + (win ? 'win' : draw ? 'draw' : 'lose');
     $('resTitle').textContent = win ? '승리!' : draw ? '무승부' : '패배';
     const REASON = { king: '중앙 타워 파괴', crowns: '별 수', overtime: '연장전 타워 파괴', hp: '타워 체력 판정 (가장 약한 타워 비교)', surrender: '항복', disconnect: '연결 끊김' };
-    $('resReason').textContent = (practice ? '연습전 · ' : '') + (REASON[reason] || '');
+    $('resReason').textContent = (practice ? '연습전 · ' : '') + (REASON[reason] || '') + (win && reason === 'disconnect' ? ' · 전공 절반' : '');
     // the winning side's original cut-scene art behind the result
     const wf0 = (win || draw ? G.sides.blue : G.sides.red).faction, wf = WIN_ART[wf0] ? wf0 : wf0 === 'iron' ? 'iron' : 'orca'; // (Lemonade / the commander borrow the orca art)
     el.style.backgroundImage = `linear-gradient(rgba(4,6,10,.5), rgba(4,6,10,.88)), url(assets/bg/${WIN_ART[wf][Math.floor(Math.random() * WIN_ART[wf].length)]}.jpg)`;
@@ -1169,6 +1172,26 @@
       foe: foeC, foeDeck: f.deck, foeFaction: f.faction, foeLevels: f.levels || {},
       online: { guest: m.guest, seed: m.seed, send: m.send, close: m.close } });
   }
+  // an online fight has really begun on both devices: leaving it now (closing the app) still counts as a loss, settled at the next start
+  function mpStarted() { save.pendingOnline = { t: Date.now(), a: arena() }; persist(); }
+  function settlePendingOnline() {
+    const p = save.pendingOnline;
+    if (!p) return;
+    save.pendingOnline = null;
+    const a0 = arena(), floor = ARENAS[a0].trophy;
+    let delta = -Math.round(18 + a0 * 3);
+    if (save.trophy + delta < floor) delta = floor - save.trophy;
+    save.trophy += delta; save.losses++; save.streak = 0;
+    persist();
+    setTimeout(() => toast(`끝내지 않고 나간 온라인 대전이 패배로 처리되었습니다 (전공 ${delta})`), 800);
+  }
+  // the match fell through before it began: back to the battle tab, and look for an opponent again
+  function mpVoid() {
+    $('loading').hidden = true; $('result').className = 'screen';
+    GAME.leave(); renderTitle(); show('title');
+    toast('상대와 연결되지 않아 대전이 취소되었습니다. 다시 상대를 찾습니다');
+    setTimeout(() => startBattle(), 900);
+  }
   // 일반전: look for a human opponent first (online, no server of ours); nobody within 15 s -> the AI as before
   let searching = false;
   async function startBattle(noOnline) {
@@ -1184,8 +1207,12 @@
       $('searchOv').hidden = false; $('searchMsg').textContent = '온라인 대전 상대를 찾고 있습니다';
       const WAIT = 10000 + Math.random() * 10000; // nobody in 10-20 s: the AI takes the seat (no countdown shown)
       $('searchSec').textContent = '';
-      const now = Date.now(), recent = save.recentFoes.filter((r) => now - r.t < REMATCH_MS);
-      const blocked = (p) => !!p && typeof p.pid === 'string' && recent.some((r) => r.id && p.pid === r.id); // (met in the last 5 minutes: passed over; by device, not by nickname: nicknames are not unique)
+      const now = Date.now(), recent = save.recentFoes.filter((r) => now - r.t < REMATCH_MS), t0 = performance.now(), myTr = save.trophy;
+      // a near rating first: +-200 for 4 s, +-500 until 8 s, then anyone (the AI still takes the seat after 10-20 s)
+      const span = () => { const e = performance.now() - t0; return e < 4000 ? 200 : e < 8000 ? 500 : Infinity; };
+      const blocked = (p) => !p || typeof p.pid !== 'string' || p.pid === save.pid // (this same device in another window)
+        || recent.some((r) => r.id && p.pid === r.id) // (met in the last 5 minutes: by device, not by nickname: nicknames are not unique)
+        || Math.abs((+p.trophy || 0) - myTr) > span(); // (not yet within the rating span)
       const m = await NET.find(profile, WAIT, blocked);
       searching = false;
       const how = $('searchOv').dataset.how || ''; $('searchOv').dataset.how = ''; $('searchOv').hidden = true;
@@ -1220,6 +1247,7 @@
   function init() {
     $('appVer').textContent = APP_VERSION;
     syncCollection();
+    settlePendingOnline(); // (an online fight left without a result last time: lost)
     applyAudio();
     if (window.IMG && IMG.bg_title) document.documentElement.style.setProperty('--bgtitle', `url(${new URL(IMG.bg_title, location.href).href})`); // absolute: the stylesheet would resolve a relative one under css/
     $('diffSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; save.diff = +b.dataset.d; persist(); SFX.play('click'); renderTitle(); });
@@ -1408,6 +1436,8 @@
     const ep = $('emotePanel');
     ep.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
+      if (performance.now() - (ep.sentT || -1e9) < 3000) { ep.hidden = true; toast('감정 표현은 3초에 한 번 보낼 수 있습니다'); return; } // (no flooding the other screen)
+      ep.sentT = performance.now();
       emote('blue', +b.dataset.i); ep.hidden = true; GAME.mpEmote(+b.dataset.i);
       GAME.aiEmote(Math.floor(Math.random() * DATA.EMOTES.length), 0.35); // the opponent answers on the game clock and its own chatter cooldown
     });
@@ -1428,6 +1458,6 @@
     } else if (!e.target.closest || !e.target.closest('#emotePanel')) { const p = $('emotePanel'); if (p) p.hidden = true; }
   }, true);
 
-  window.UI = { _sync: () => syncCollection(), init, dmgNum, healNum, elixirLeak, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, shout, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
+  window.UI = { mpStarted, mpVoid, _sync: () => syncCollection(), init, dmgNum, healNum, elixirLeak, cardEl, hand, tick, crowns, crownFly, toast, banner, countdown, dragCard, loading, loaded, pause, result, save, skillCut, shout, emote, elixirShake, fatal, fireSkill, aimPid: () => (aim ? aim.pid : null) };
   window.addEventListener('DOMContentLoaded', init);
 })();

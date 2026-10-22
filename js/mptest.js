@@ -19,7 +19,7 @@
       return new Promise((resolve) => {
         let fn = null; const early = [];
         deliver = () => { while (held.length && fn) fn(held.shift()); };
-        const link = (foe, seed) => resolve({ guest: !host, seed, foe, send: (m) => bc.postMessage({ k: 'g', from: host, m }), listen: (f) => { fn = f; while (early.length) f(early.shift()); }, close() {} });
+        const link = (foe, seed) => (out.linkedAfter = Math.round(performance.now() - (out.searchAt || 0)), resolve({ guest: !host, seed, foe, send: (m) => bc.postMessage({ k: 'g', from: host, m }), listen: (f) => { fn = f; while (early.length) f(early.shift()); }, close() {} }));
         bc.onmessage = (ev) => {
           const d = ev.data;
           if (d.k === 'g' && d.from !== host) { if (out.freeze || held.length) { held.push(d.m); return; } if (fn) fn(d.m); else early.push(d.m); } // (a frozen tab hears nothing until it is back, like a phone with the app down)
@@ -44,13 +44,15 @@
     for (let i = 0; i < 300 && !(window.GAME && GAME.ready && window.UI); i++) await wait(100);
     await wait(800);
     const nq = /[?&]nick=([^&]+)/.exec(location.search);
-    const pq = /[?&]pid=([a-z0-9]{12})/.exec(location.search); if (pq) UI.save.pid = pq[1]; // (pid=: two tabs of one browser stand in for two devices)
+    const pq = /[?&]pid=([a-z0-9]{12})/.exec(location.search); UI.save.pid = pq ? pq[1] : (host ? 'hosttab00000' : 'guesttab0000');
+    const tq = /[?&]tr=(\d+)/.exec(location.search); if (tq) UI.save.trophy = +tq[1]; // (tr=: a rating of its own, for the rating-span check)
+    out.searchAt = performance.now(); // (pid=: two tabs of one browser stand in for two devices)
     Object.assign(UI.save, { mode: 0, tutorial: true, nick: nq ? decodeURIComponent(nq[1]) : UI.save.nick || '점검' }); // (nick=: each tab its own name)
     const ov = document.getElementById('nickOv'); if (ov) ov.hidden = true;
     const G = GAME.G;
     for (let k = 0; k < 8 && G.phase === 'title'; k++) { document.getElementById('btnBattle').click(); await wait(3000); }
     for (let i = 0; i < 600 && G.phase !== 'play'; i++) await wait(100);
-    out.started = G.phase === 'play';
+    out.started = G.phase === 'play'; out.matchedAfter = Math.round(performance.now() - out.searchAt);
     const secs = +(/[?&]secs=(\d+)/.exec(location.search) || [0, 90])[1];
     let next = 0;
     while (G.phase === 'play' && G.time < secs) {

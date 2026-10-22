@@ -4,7 +4,7 @@
 (function () {
   const LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
   const APP = 'lastroyal-isinjia';
-  const PROTO = 4; // bump when the match protocol changes: old and new builds never meet
+  const PROTO = 5; // bump when the match protocol changes: old and new builds never meet
   // a fixed list of relays known to answer: the library's default list includes relays that are down or have broken
   // certificates, and in-app browsers such as KakaoTalk's warn about every one of them
   const RELAYS = ['wss://nos.lol', 'wss://relay.mostro.network', 'wss://nostr-01.yakihonne.com', 'wss://relay.sigit.io', 'wss://schnorr.me', 'wss://yabu.me/v2', 'wss://nostr.data.haus', 'wss://strfry.shock.network']; // (from the library's own list: the ones that answer)
@@ -19,7 +19,8 @@
     const no = (p) => !!(blocked && blocked(p));
     return new Promise((resolve) => {
       let done = false, room = null, engaged = null, seed = 0, foe = null, inviteT = null;
-      const finish = (v) => { if (done) return; done = true; clearTimeout(timer); clearTimeout(inviteT); cancelFn = null; if (!v && room) { if (active === room) active = null; try { room.leave(); } catch (e) { /* gone */ } } resolve(v); };
+      let again = null;
+      const finish = (v) => { if (done) return; done = true; clearTimeout(timer); clearTimeout(inviteT); clearInterval(again); cancelFn = null; if (!v && room) { if (active === room) active = null; try { room.leave(); } catch (e) { /* gone */ } } resolve(v); };
       const timer = setTimeout(() => finish(null), ms);
       cancelFn = () => finish(null);
       load().then((L) => {
@@ -30,6 +31,7 @@
         const hello = room.makeAction('hello'), invite = room.makeAction('invite'), accept = room.makeAction('accept'), game = room.makeAction('game');
         const say = () => hello.send(me);
         say();
+        again = setInterval(() => { if (!done && !engaged) say(); }, 1500); // (a player passed over a moment ago may be welcome now)
         room.onPeerJoin = (pid) => { if (!done) hello.send(me, { target: pid }); };
         // the lower id invites, so two waiting players never invite each other at once
         hello.onMessage = (them, { peerId }) => {
